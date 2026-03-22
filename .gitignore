@@ -1,11 +1,34 @@
 *.iml
 .gradle
-/local.properties
 /.idea
-.DS_Store
 /build
 /captures
 .externalNativeBuild
 .cxx
+.DS_Store
 local.properties
 CLAUDE.md
+
+# Signing
+*.jks
+*.keystore
+
+# APK and bundle outputs
+*.apk
+*.aab
+*.ap_
+
+# Logs
+*.log
+
+# OS files
+Thumbs.db
+*.swp
+*~
+
+# Kotlin
+*.kotlin_module
+
+# Environment and secrets
+.env
+*.env.*

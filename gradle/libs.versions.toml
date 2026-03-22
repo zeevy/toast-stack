@@ -8,6 +8,7 @@ composeBom = "2026.03.00"
 junit = "4.13.2"
 junitVersion = "1.2.1"
 espressoCore = "3.6.1"
+robolectric = "4.14.1"
 coroutines = "1.10.2"
 
 [libraries]
@@ -27,6 +28,9 @@ androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "j
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
 kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "coroutines" }
 kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutines" }
+androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
+androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
+robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

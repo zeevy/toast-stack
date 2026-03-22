@@ -22,6 +22,10 @@ import java.util.UUID
  * @property swipeDismiss Allowed horizontal swipe directions for manual dismissal.
  * @property style Optional per toast style overrides. When null, the type's
  *   defaults from [ToastStackDefaults] are used.
+ * @property animation The enter/exit animation style for this toast.
+ *   When null, falls back to the host's default animation.
+ * @property animationConfig Timing and easing overrides for this toast's
+ *   animation. When null, falls back to the host's default config.
  * @property customIcon Optional composable that replaces the default type icon.
  * @property onDismiss Optional callback invoked when the toast is removed,
  *   with the [DismissReason] explaining why.
@@ -37,6 +41,8 @@ data class ToastData(
     val showCloseButton: Boolean = false,
     val swipeDismiss: SwipeDismissDirection = SwipeDismissDirection.Both,
     val style: ToastStackStyle? = null,
+    val animation: ToastAnimation? = null,
+    val animationConfig: ToastAnimationConfig? = null,
     val customIcon: (@Composable () -> Unit)? = null,
     val onDismiss: ((DismissReason) -> Unit)? = null
 )

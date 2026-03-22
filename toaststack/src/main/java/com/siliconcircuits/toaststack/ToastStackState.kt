@@ -52,7 +52,9 @@ class ToastStackState(
     val maxVisible: Int = 5,
     val defaultPosition: ToastPosition = ToastPosition.TopCenter,
     val defaultDuration: ToastDuration = ToastDuration.Short,
-    val defaultSwipeDismiss: SwipeDismissDirection = SwipeDismissDirection.Both
+    val defaultSwipeDismiss: SwipeDismissDirection = SwipeDismissDirection.Both,
+    val defaultAnimation: ToastAnimation = ToastAnimation.Slide,
+    val defaultAnimationConfig: ToastAnimationConfig = ToastAnimationConfig()
 ) {
     // Snapshot backed list: Compose observes this collection and automatically
     // triggers recomposition when items are added or removed. This is the
@@ -127,6 +129,10 @@ class ToastStackState(
      *   Defaults to [defaultSwipeDismiss].
      * @param style Optional [ToastStackStyle] overrides applied to this
      *   specific toast. Null fields fall through to the type defaults.
+     * @param animation The enter/exit animation style for this toast.
+     *   When null, uses [defaultAnimation].
+     * @param animationConfig Timing and easing overrides for this toast.
+     *   When null, uses [defaultAnimationConfig].
      * @param customIcon Optional composable that replaces the default icon
      *   for the toast's [type]. Useful when you need a non standard icon.
      * @param onDismiss Optional callback invoked when the toast is removed
@@ -142,6 +148,8 @@ class ToastStackState(
         showCloseButton: Boolean = false,
         swipeDismiss: SwipeDismissDirection = defaultSwipeDismiss,
         style: ToastStackStyle? = null,
+        animation: ToastAnimation? = null,
+        animationConfig: ToastAnimationConfig? = null,
         customIcon: (@Composable () -> Unit)? = null,
         onDismiss: ((DismissReason) -> Unit)? = null
     ): String {
@@ -154,6 +162,8 @@ class ToastStackState(
             showCloseButton = showCloseButton,
             swipeDismiss = swipeDismiss,
             style = style,
+            animation = animation,
+            animationConfig = animationConfig,
             customIcon = customIcon,
             onDismiss = onDismiss
         )
@@ -453,6 +463,8 @@ class ToastStackState(
  * @param defaultPosition Default screen position. See [ToastStackState.defaultPosition].
  * @param defaultDuration Default display duration. See [ToastStackState.defaultDuration].
  * @param defaultSwipeDismiss Default swipe behavior. See [ToastStackState.defaultSwipeDismiss].
+ * @param defaultAnimation Default animation style. See [ToastStackState.defaultAnimation].
+ * @param defaultAnimationConfig Default animation timing. See [ToastStackState.defaultAnimationConfig].
  * @return A remembered [ToastStackState] instance.
  */
 @ExperimentalToastStackApi
@@ -461,14 +473,18 @@ fun rememberToastStackState(
     maxVisible: Int = 5,
     defaultPosition: ToastPosition = ToastPosition.TopCenter,
     defaultDuration: ToastDuration = ToastDuration.Short,
-    defaultSwipeDismiss: SwipeDismissDirection = SwipeDismissDirection.Both
+    defaultSwipeDismiss: SwipeDismissDirection = SwipeDismissDirection.Both,
+    defaultAnimation: ToastAnimation = ToastAnimation.Slide,
+    defaultAnimationConfig: ToastAnimationConfig = ToastAnimationConfig()
 ): ToastStackState {
     val state = remember {
         ToastStackState(
             maxVisible = maxVisible,
             defaultPosition = defaultPosition,
             defaultDuration = defaultDuration,
-            defaultSwipeDismiss = defaultSwipeDismiss
+            defaultSwipeDismiss = defaultSwipeDismiss,
+            defaultAnimation = defaultAnimation,
+            defaultAnimationConfig = defaultAnimationConfig
         )
     }
 

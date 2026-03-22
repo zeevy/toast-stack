@@ -1,10 +1,6 @@
 package com.siliconcircuits.toaststack
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,12 +12,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
 
 /**
  * Fallback tag assigned when the caller does not provide an explicit host tag.
@@ -45,6 +46,13 @@ private const val DEFAULT_HOST_TAG = "__toaststack_default__"
  *
  * Multiple hosts can coexist in the same app by supplying distinct [tag]
  * values. Toasts routed without a tag land on the most recently attached host.
+ *
+ * **Exit animation strategy:** When a toast is dismissed, [ToastStackState]
+ * removes it from its internal list immediately. To allow the exit animation
+ * to play, this host maintains a separate render list that keeps dismissed
+ * toasts around with `visible = false`. Once [AnimatedVisibility] finishes
+ * the exit transition (after the configured exit duration), the toast is
+ * removed from the render list.
  *
  * @param state The state holder that owns the toast list. Use
  *   [rememberToastStackState] for composition scoped state, or provide a
@@ -72,40 +80,52 @@ fun ToastStackHost(
         onDispose { ToastStack.unregisterHost(tag) }
     }
 
-    // Read the current layout direction (LTR or RTL) so we can mirror
-    // Start/End positions correctly for right to left languages like Arabic.
     val layoutDirection = LocalLayoutDirection.current
+
+    // --- Render list and visibility tracking ---
+    // The render list is a superset of state.toasts. It includes toasts that
+    // have been dismissed but whose exit animation is still playing.
+    // The visibility map tracks whether each toast should be visible (true)
+    // or animating out (false).
+    val renderList = remember { mutableStateListOf<ToastData>() }
+    val visibilityMap = remember { mutableStateMapOf<String, Boolean>() }
+
+    // Sync the render list with state.toasts on every recomposition.
+    val activeIds = state.toasts.map { it.id }.toSet()
+
+    // Add new toasts that aren't in the render list yet. They start invisible
+    // and get flipped to visible via LaunchedEffect to trigger the enter animation.
+    state.toasts.forEach { toast ->
+        if (renderList.none { it.id == toast.id }) {
+            renderList.add(toast)
+            visibilityMap[toast.id] = false
+        }
+    }
+
+    // Mark removed toasts as invisible so AnimatedVisibility plays the exit.
+    // They stay in renderList until the exit animation duration passes.
+    renderList.forEach { toast ->
+        if (toast.id !in activeIds && visibilityMap[toast.id] != false) {
+            visibilityMap[toast.id] = false
+        }
+    }
 
     Box(
         modifier = modifier
             .fillMaxSize()
-            // systemBarsPadding ensures toasts don't overlap the status bar at
-            // the top or the navigation bar/gesture handle at the bottom.
             .systemBarsPadding()
-            // imePadding shifts the entire box upward when the software keyboard
-            // is open, preventing bottom positioned toasts from hiding behind it.
             .imePadding()
     ) {
-        // Group all active toasts by their position so we can render a separate
-        // column for each anchor point (e.g., TopCenter, BottomEnd, Center).
-        val toastsByPosition = state.toasts.groupBy { it.position }
+        val toastsByPosition = renderList.groupBy { it.position }
 
         toastsByPosition.forEach { (position, toastsAtPosition) ->
-            // Convert the logical position to a Box alignment, accounting for
-            // RTL layout direction (Start becomes End and vice versa).
             val boxAlignment = position.toBoxAlignment(layoutDirection)
-
-            // Determine whether this position is at the top of the screen.
-            // This affects the slide animation direction: top positioned toasts
-            // slide in from above, bottom positioned toasts slide in from below.
             val isTopAnchored = position in setOf(
                 ToastPosition.TopCenter,
                 ToastPosition.TopStart,
                 ToastPosition.TopEnd
             )
 
-            // Stack toasts from the edge inward: top positions grow downward,
-            // bottom positions grow upward, center positions expand from middle.
             val verticalArrangement = when {
                 isTopAnchored -> Arrangement.Top
                 position == ToastPosition.Center -> Arrangement.Center
@@ -120,24 +140,54 @@ fun ToastStackHost(
                 horizontalAlignment = position.toHorizontalAlignment(layoutDirection),
                 verticalArrangement = verticalArrangement
             ) {
-                toastsAtPosition.forEach { toast ->
-                    // key() tells Compose to track this item by its unique toast ID.
-                    // Without this, removing a middle toast could cause the wrong
-                    // item to animate out.
+                toastsAtPosition.forEachIndexed { index, toast ->
                     key(toast.id) {
-                        // slideSign controls animation direction:
-                        //  -1 means "slide down from above" (negative Y offset enters from top)
-                        //  +1 means "slide up from below" (positive Y offset enters from bottom)
-                        val slideSign = if (isTopAnchored) -1 else 1
+                        val slideSign = when {
+                            isTopAnchored -> -1
+                            position == ToastPosition.Center -> 0
+                            else -> 1
+                        }
+
+                        val animation = toast.animation ?: state.defaultAnimation
+                        val baseConfig = toast.animationConfig ?: state.defaultAnimationConfig
+
+                        val staggeredConfig = if (index > 0 && baseConfig.staggerDelayMillis > 0) {
+                            val staggerDelay = index * baseConfig.staggerDelayMillis
+                            baseConfig.copy(
+                                enterDurationMillis = baseConfig.enterDurationMillis + staggerDelay
+                            )
+                        } else {
+                            baseConfig
+                        }
+
+                        // Flip new toasts to visible on the next frame to trigger
+                        // the enter animation.
+                        LaunchedEffect(toast.id) {
+                            visibilityMap[toast.id] = true
+                        }
+
+                        val isVisible = visibilityMap[toast.id] ?: false
+                        val isActive = toast.id in activeIds
+
+                        // When a toast becomes invisible (dismissed) and is no longer
+                        // in the active state list, wait for the exit animation to
+                        // finish then remove it from the render list.
+                        if (!isActive && !isVisible) {
+                            LaunchedEffect(toast.id) {
+                                // Wait for the exit animation to complete before
+                                // removing the toast from the render list. Adding
+                                // a small buffer ensures the animation finishes
+                                // before the composable is torn down.
+                                delay(baseConfig.exitDurationMillis.toLong() + 50L)
+                                renderList.removeAll { it.id == toast.id }
+                                visibilityMap.remove(toast.id)
+                            }
+                        }
 
                         AnimatedVisibility(
-                            visible = true,
-                            enter = slideInVertically(
-                                initialOffsetY = { height -> slideSign * height }
-                            ) + fadeIn(),
-                            exit = slideOutVertically(
-                                targetOffsetY = { height -> slideSign * height }
-                            ) + fadeOut()
+                            visible = isVisible,
+                            enter = animation.toEnterTransition(staggeredConfig, slideSign),
+                            exit = animation.toExitTransition(baseConfig, slideSign)
                         ) {
                             ToastItem(
                                 toast = toast,

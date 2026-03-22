@@ -3,7 +3,9 @@ package com.siliconcircuits.toaststack
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.horizontalDrag
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -36,6 +38,8 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.input.pointer.positionChange
+import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.CoroutineScope
@@ -49,6 +53,14 @@ import kotlin.math.roundToInt
  * Anything less than this snaps the card back to center on release.
  */
 private const val SWIPE_THRESHOLD_DP = 100
+
+/**
+ * Minimum horizontal fling speed in pixels per second that triggers a dismiss
+ * even when the drag distance is below [SWIPE_THRESHOLD_DP]. A fast flick
+ * feels intentional, so we honor it regardless of how far the card moved.
+ * 800 px/s is roughly a brisk finger swipe on a typical density screen.
+ */
+private const val VELOCITY_THRESHOLD_PX_PER_SEC = 800f
 
 /**
  * Duration in milliseconds for the settle animation that plays after the user
@@ -269,13 +281,14 @@ private fun iconForType(type: ToastType): ImageVector? {
  * respond to horizontal drags.
  *
  * The gesture flow:
- * 1. **Drag starts** - pause the auto dismiss timer so it doesn't expire mid swipe.
+ * 1. **Touch down** - pause the auto dismiss timer so it doesn't expire mid swipe.
  * 2. **Dragging** - update [horizontalOffset] only in the allowed direction(s).
- *    The offset drives both the card's x position and its opacity via [dragAlpha].
- * 3. **Drag ends** - if the offset exceeds [swipeThresholdPx], animate the card
- *    off screen and fire [onDismiss] with [DismissReason.Swipe]. Otherwise snap
- *    back to center and resume the timer.
- * 4. **Drag cancelled** (e.g., parent intercepts) - always snap back and resume.
+ *    A [VelocityTracker] records each drag position to compute fling speed.
+ *    The offset drives both the card's x position and its opacity.
+ * 3. **Release** - dismiss if either condition is met:
+ *    - The drag distance exceeds [swipeThresholdPx], OR
+ *    - The fling velocity exceeds [VELOCITY_THRESHOLD_PX_PER_SEC] (fast flick)
+ *    Otherwise snap back to center and resume the timer.
  */
 @ExperimentalToastStackApi
 private fun buildSwipeModifier(
@@ -290,48 +303,82 @@ private fun buildSwipeModifier(
     if (toast.swipeDismiss == SwipeDismissDirection.None) return Modifier
 
     return Modifier.pointerInput(toast.id, toast.swipeDismiss) {
-        detectHorizontalDragGestures(
-            onDragStart = { onPauseTimer() },
-            onDragEnd = {
-                if (horizontalOffset.value.absoluteValue > swipeThresholdPx) {
-                    // Past the threshold - fly the card off screen and dismiss.
-                    val flyTarget = if (horizontalOffset.value > 0) {
-                        size.width.toFloat()
-                    } else {
-                        -size.width.toFloat()
-                    }
-                    coroutineScope.launch {
-                        horizontalOffset.animateTo(flyTarget, tween(SETTLE_ANIMATION_MILLIS))
-                        onDismiss(DismissReason.Swipe)
-                    }
-                } else {
-                    // Below threshold - snap back to center and resume the timer.
-                    coroutineScope.launch {
-                        horizontalOffset.animateTo(0f, tween(SETTLE_ANIMATION_MILLIS))
-                        onResumeTimer()
-                    }
-                }
-            },
-            onDragCancel = {
-                coroutineScope.launch {
-                    horizontalOffset.animateTo(0f, tween(SETTLE_ANIMATION_MILLIS))
-                    onResumeTimer()
-                }
-            },
-            onHorizontalDrag = { _, dragAmount ->
+        awaitEachGesture {
+            // Wait for the first finger to touch the card.
+            val down = awaitFirstDown()
+            onPauseTimer()
+
+            val velocityTracker = VelocityTracker()
+            velocityTracker.addPosition(down.uptimeMillis, down.position)
+
+            // Track horizontal movement until the finger lifts.
+            var dragCancelled = false
+            horizontalDrag(down.id) { change ->
+                val dragAmount = change.positionChange().x
+
                 // Only permit movement in the direction(s) the toast allows.
                 val isAllowed = when (toast.swipeDismiss) {
                     SwipeDismissDirection.Left -> dragAmount < 0 || horizontalOffset.value < 0
                     SwipeDismissDirection.Right -> dragAmount > 0 || horizontalOffset.value > 0
                     SwipeDismissDirection.Both -> true
-                    SwipeDismissDirection.None -> false // Unreachable - guarded above.
+                    SwipeDismissDirection.None -> false
                 }
+
                 if (isAllowed) {
                     coroutineScope.launch {
                         horizontalOffset.snapTo(horizontalOffset.value + dragAmount)
                     }
+                    velocityTracker.addPosition(change.uptimeMillis, change.position)
+                }
+
+                change.consume()
+            }
+
+            // Finger lifted or gesture cancelled. Compute the fling velocity
+            // to decide whether a fast flick should count as a dismiss even
+            // when the drag distance is short.
+            val velocity = try {
+                velocityTracker.calculateVelocity()
+            } catch (_: Exception) {
+                // VelocityTracker can throw if it has too few data points.
+                null
+            }
+            val xVelocity = velocity?.x ?: 0f
+
+            // Dismiss if the drag passed the distance threshold OR the
+            // fling speed exceeded the velocity threshold.
+            val pastDistanceThreshold =
+                horizontalOffset.value.absoluteValue > swipeThresholdPx
+            val pastVelocityThreshold =
+                xVelocity.absoluteValue > VELOCITY_THRESHOLD_PX_PER_SEC
+
+            // For velocity based dismiss, also check that the fling direction
+            // matches the allowed swipe direction.
+            val velocityDirectionAllowed = when (toast.swipeDismiss) {
+                SwipeDismissDirection.Left -> xVelocity < 0
+                SwipeDismissDirection.Right -> xVelocity > 0
+                SwipeDismissDirection.Both -> true
+                SwipeDismissDirection.None -> false
+            }
+
+            val shouldDismiss = pastDistanceThreshold ||
+                (pastVelocityThreshold && velocityDirectionAllowed)
+
+            if (shouldDismiss) {
+                // Fly the card off screen in the direction it was moving.
+                val flyDirection = if (horizontalOffset.value >= 0) 1f else -1f
+                val flyTarget = flyDirection * size.width.toFloat()
+                coroutineScope.launch {
+                    horizontalOffset.animateTo(flyTarget, tween(SETTLE_ANIMATION_MILLIS))
+                    onDismiss(DismissReason.Swipe)
+                }
+            } else {
+                // Snap back to center and resume the auto dismiss timer.
+                coroutineScope.launch {
+                    horizontalOffset.animateTo(0f, tween(SETTLE_ANIMATION_MILLIS))
+                    onResumeTimer()
                 }
             }
-        )
+        }
     }
 }
