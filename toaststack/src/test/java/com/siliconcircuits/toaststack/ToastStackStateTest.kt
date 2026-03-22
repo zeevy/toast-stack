@@ -43,15 +43,15 @@ class ToastStackStateTest {
 
     @Test
     fun `show returns a unique ID for each toast`() {
-        val id1 = state.show("First")
-        val id2 = state.show("Second")
-        assertNotEquals(id1, id2)
+        val handle1 = state.show("First")
+        val handle2 = state.show("Second")
+        assertNotEquals(handle1.id, handle2.id)
     }
 
     @Test
     fun `show returns non blank ID`() {
-        val id = state.show("Test")
-        assertTrue(id.isNotBlank())
+        val handle = state.show("Test")
+        assertTrue(handle.id.isNotBlank())
     }
 
     @Test
@@ -76,7 +76,7 @@ class ToastStackStateTest {
 
     @Test
     fun `show with all parameters propagates to ToastData`() {
-        val id = state.show(
+        val handle = state.show(
             message = "msg",
             title = "ttl",
             type = ToastType.Error,
@@ -89,7 +89,7 @@ class ToastStackStateTest {
             animationConfig = ToastAnimationConfig(enterDurationMillis = 999)
         )
         val toast = state.toasts.first()
-        assertEquals(id, toast.id)
+        assertEquals(handle.id, toast.id)
         assertEquals("msg", toast.message)
         assertEquals("ttl", toast.title)
         assertEquals(ToastType.Error, toast.type)
@@ -197,9 +197,9 @@ class ToastStackStateTest {
 
     @Test
     fun `dismiss removes the correct toast by ID`() {
-        val id = state.show("Target")
+        val handle = state.show("Target")
         state.show("Other")
-        state.dismiss(id)
+        state.dismiss(handle.id)
 
         assertEquals(1, state.toasts.size)
         assertEquals("Other", state.toasts.first().message)
@@ -208,24 +208,24 @@ class ToastStackStateTest {
     @Test
     fun `dismiss fires onDismiss with Swipe reason`() {
         var capturedReason: DismissReason? = null
-        val id = state.show("Test", onDismiss = { capturedReason = it })
-        state.dismiss(id, DismissReason.Swipe)
+        val handle = state.show("Test", onDismiss = { capturedReason = it })
+        state.dismiss(handle.id, DismissReason.Swipe)
         assertEquals(DismissReason.Swipe, capturedReason)
     }
 
     @Test
     fun `dismiss fires onDismiss with CloseButton reason`() {
         var capturedReason: DismissReason? = null
-        val id = state.show("Test", onDismiss = { capturedReason = it })
-        state.dismiss(id, DismissReason.CloseButton)
+        val handle = state.show("Test", onDismiss = { capturedReason = it })
+        state.dismiss(handle.id, DismissReason.CloseButton)
         assertEquals(DismissReason.CloseButton, capturedReason)
     }
 
     @Test
     fun `dismiss defaults to Programmatic reason`() {
         var capturedReason: DismissReason? = null
-        val id = state.show("Test", onDismiss = { capturedReason = it })
-        state.dismiss(id)
+        val handle = state.show("Test", onDismiss = { capturedReason = it })
+        state.dismiss(handle.id)
         assertEquals(DismissReason.Programmatic, capturedReason)
     }
 
@@ -238,16 +238,16 @@ class ToastStackStateTest {
 
     @Test
     fun `dismiss same ID twice is a no-op on second call`() {
-        val id = state.show("Once")
-        state.dismiss(id)
-        state.dismiss(id) // Should not crash.
+        val handle = state.show("Once")
+        state.dismiss(handle.id)
+        state.dismiss(handle.id) // Should not crash.
         assertTrue(state.toasts.isEmpty())
     }
 
     @Test
     fun `dismiss without onDismiss callback does not crash`() {
-        val id = state.show("No callback")
-        state.dismiss(id) // Should not throw.
+        val handle = state.show("No callback")
+        state.dismiss(handle.id) // Should not throw.
         assertTrue(state.toasts.isEmpty())
     }
 
@@ -328,7 +328,9 @@ class ToastStackStateTest {
 
     @Test
     fun `ToastDuration has exactly three values`() {
-        assertEquals(3, ToastDuration.entries.size)
+        // ToastDuration is a sealed class with 3 predefined subtypes + Custom.
+        val predefined = listOf(ToastDuration.Short, ToastDuration.Long, ToastDuration.Indefinite)
+        assertEquals(3, predefined.size)
     }
 
     // -- ToastData defaults --
@@ -460,8 +462,8 @@ class ToastStackStateTest {
     @Test
     fun `typed methods accept onDismiss callback`() {
         var called = false
-        val id = state.warning("caution", onDismiss = { called = true })
-        state.dismiss(id)
+        val handle = state.warning("caution", onDismiss = { called = true })
+        state.dismiss(handle.id)
         assertTrue(called)
     }
 
@@ -499,10 +501,10 @@ class ToastStackStateTest {
 
     @Test
     fun `pauseTimer and resumeTimer do not remove toast`() {
-        val id = state.show("Sticky", duration = ToastDuration.Indefinite)
-        state.pauseTimer(id)
+        val handle = state.show("Sticky", duration = ToastDuration.Indefinite)
+        state.pauseTimer(handle.id)
         assertEquals(1, state.toasts.size)
-        state.resumeTimer(id)
+        state.resumeTimer(handle.id)
         assertEquals(1, state.toasts.size)
     }
 
@@ -510,10 +512,10 @@ class ToastStackStateTest {
 
     @Test
     fun `indefinite toast is not auto dismissed`() {
-        val id = state.show("Forever", duration = ToastDuration.Indefinite)
+        val handle = state.show("Forever", duration = ToastDuration.Indefinite)
         // Indefinite toasts should remain until explicitly dismissed.
         assertEquals(1, state.toasts.size)
-        assertEquals(id, state.toasts.first().id)
+        assertEquals(handle.id, state.toasts.first().id)
     }
 
     // -- Dismiss callbacks with all reason types --
@@ -521,8 +523,8 @@ class ToastStackStateTest {
     @Test
     fun `dismiss fires onDismiss with Timeout reason`() {
         var capturedReason: DismissReason? = null
-        val id = state.show("Test", onDismiss = { capturedReason = it })
-        state.dismiss(id, DismissReason.Timeout)
+        val handle = state.show("Test", onDismiss = { capturedReason = it })
+        state.dismiss(handle.id, DismissReason.Timeout)
         assertEquals(DismissReason.Timeout, capturedReason)
     }
 

@@ -1,7 +1,8 @@
 package com.siliconcircuits.toaststack
 
 import androidx.compose.runtime.Composable
-import java.util.UUID
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 /**
  * Immutable snapshot of a single toast's configuration.
@@ -32,7 +33,8 @@ import java.util.UUID
  */
 @ExperimentalToastStackApi
 data class ToastData(
-    val id: String = UUID.randomUUID().toString(),
+    @OptIn(ExperimentalUuidApi::class)
+    val id: String = Uuid.random().toString(),
     val message: String,
     val title: String? = null,
     val type: ToastType = ToastType.Default,

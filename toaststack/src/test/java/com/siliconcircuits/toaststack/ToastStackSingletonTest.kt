@@ -93,9 +93,9 @@ class ToastStackSingletonTest {
         val state = ToastStackState()
         ToastStack.registerHost("__test__", state)
 
-        val id = ToastStack.show("Test")
-        assertNotNull(id)
-        assertEquals(id, state.toasts.first().id)
+        val handle = ToastStack.show("Test")
+        assertNotNull(handle)
+        assertEquals(handle!!.id, state.toasts.first().id)
     }
 
     // -- Typed methods --
@@ -182,8 +182,8 @@ class ToastStackSingletonTest {
         val state = ToastStackState()
         ToastStack.registerHost("__test__", state)
 
-        val id = ToastStack.show("Removable")!!
-        ToastStack.dismiss(id)
+        val handle = ToastStack.show("Removable")!!
+        ToastStack.dismiss(handle.id)
         assertTrue(state.toasts.isEmpty())
     }
 

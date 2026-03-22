@@ -19,6 +19,7 @@ import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -73,6 +74,12 @@ fun ToastStackHost(
     globalStyle: ToastStackStyle? = null,
     contentPadding: PaddingValues = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
 ) {
+    // Capture the application context for string resource resolution.
+    // This runs once per host composition and uses the application context
+    // (not the activity) so there is no risk of leaking an activity reference.
+    val context = LocalContext.current
+    StringResolver.initialize(context)
+
     // Register this host with the global singleton when it enters composition,
     // and unregister when it leaves. This allows ToastStack.show() to find us.
     DisposableEffect(tag, state) {

@@ -137,7 +137,8 @@ class ToastStackState(
      *   for the toast's [type]. Useful when you need a non standard icon.
      * @param onDismiss Optional callback invoked when the toast is removed
      *   from the screen, with a [DismissReason] explaining why.
-     * @return The unique toast ID string.
+     * @return A [ToastHandle] for programmatic control, chaining callbacks,
+     *   or suspending until dismissed. Use `handle.id` if you need the raw ID.
      */
     fun show(
         message: String,
@@ -152,7 +153,7 @@ class ToastStackState(
         animationConfig: ToastAnimationConfig? = null,
         customIcon: (@Composable () -> Unit)? = null,
         onDismiss: ((DismissReason) -> Unit)? = null
-    ): String {
+    ): ToastHandle {
         val toast = ToastData(
             message = message,
             title = title,
@@ -176,7 +177,7 @@ class ToastStackState(
      *
      * @param message The body text (e.g., "File uploaded successfully").
      * @param title Optional headline above the message.
-     * @return The unique toast ID string.
+     * @return A [ToastHandle] for programmatic control and chaining.
      */
     fun success(
         message: String,
@@ -184,7 +185,7 @@ class ToastStackState(
         duration: ToastDuration = defaultDuration,
         position: ToastPosition = defaultPosition,
         onDismiss: ((DismissReason) -> Unit)? = null
-    ): String = show(message, title, ToastType.Success, duration, position, onDismiss = onDismiss)
+    ): ToastHandle = show(message, title, ToastType.Success, duration, position, onDismiss = onDismiss)
 
     /**
      * Convenience method that shows a [ToastType.Error] toast with a
@@ -192,7 +193,7 @@ class ToastStackState(
      *
      * @param message The body text (e.g., "Connection failed").
      * @param title Optional headline above the message.
-     * @return The unique toast ID string.
+     * @return A [ToastHandle] for programmatic control and chaining.
      */
     fun error(
         message: String,
@@ -200,7 +201,7 @@ class ToastStackState(
         duration: ToastDuration = defaultDuration,
         position: ToastPosition = defaultPosition,
         onDismiss: ((DismissReason) -> Unit)? = null
-    ): String = show(message, title, ToastType.Error, duration, position, onDismiss = onDismiss)
+    ): ToastHandle = show(message, title, ToastType.Error, duration, position, onDismiss = onDismiss)
 
     /**
      * Convenience method that shows a [ToastType.Warning] toast with an
@@ -208,7 +209,7 @@ class ToastStackState(
      *
      * @param message The body text (e.g., "Low storage space").
      * @param title Optional headline above the message.
-     * @return The unique toast ID string.
+     * @return A [ToastHandle] for programmatic control and chaining.
      */
     fun warning(
         message: String,
@@ -216,7 +217,7 @@ class ToastStackState(
         duration: ToastDuration = defaultDuration,
         position: ToastPosition = defaultPosition,
         onDismiss: ((DismissReason) -> Unit)? = null
-    ): String = show(message, title, ToastType.Warning, duration, position, onDismiss = onDismiss)
+    ): ToastHandle = show(message, title, ToastType.Warning, duration, position, onDismiss = onDismiss)
 
     /**
      * Convenience method that shows a [ToastType.Info] toast with a
@@ -224,7 +225,7 @@ class ToastStackState(
      *
      * @param message The body text (e.g., "Update available").
      * @param title Optional headline above the message.
-     * @return The unique toast ID string.
+     * @return A [ToastHandle] for programmatic control and chaining.
      */
     fun info(
         message: String,
@@ -232,7 +233,138 @@ class ToastStackState(
         duration: ToastDuration = defaultDuration,
         position: ToastPosition = defaultPosition,
         onDismiss: ((DismissReason) -> Unit)? = null
-    ): String = show(message, title, ToastType.Info, duration, position, onDismiss = onDismiss)
+    ): ToastHandle = show(message, title, ToastType.Info, duration, position, onDismiss = onDismiss)
+
+    /**
+     * Shows a toast and suspends until it is dismissed, returning the
+     * [DismissReason] that caused the removal.
+     *
+     * This is the coroutine friendly alternative to passing an `onDismiss`
+     * callback. It works naturally inside `viewModelScope.launch { }` or
+     * any other coroutine scope:
+     * ```
+     * viewModelScope.launch {
+     *     val reason = toastState.showAndAwait("Confirm delete?")
+     *     if (reason == DismissReason.Timeout) {
+     *         // User did not interact
+     *     }
+     * }
+     * ```
+     *
+     * If the coroutine is cancelled while waiting (e.g., the ViewModel
+     * is cleared or the scope is cancelled), the toast is automatically
+     * dismissed with [DismissReason.Programmatic] so it doesn't stay
+     * on screen with no one observing it.
+     *
+     * @return The [DismissReason] explaining why the toast was removed.
+     */
+    suspend fun showAndAwait(
+        message: String,
+        title: String? = null,
+        type: ToastType = ToastType.Default,
+        duration: ToastDuration = defaultDuration,
+        position: ToastPosition = defaultPosition,
+        showCloseButton: Boolean = false,
+        swipeDismiss: SwipeDismissDirection = defaultSwipeDismiss,
+        style: ToastStackStyle? = null,
+        animation: ToastAnimation? = null,
+        animationConfig: ToastAnimationConfig? = null
+    ): DismissReason {
+        val handle = show(
+            message = message,
+            title = title,
+            type = type,
+            duration = duration,
+            position = position,
+            showCloseButton = showCloseButton,
+            swipeDismiss = swipeDismiss,
+            style = style,
+            animation = animation,
+            animationConfig = animationConfig
+        )
+        return handle.await()
+    }
+
+    // -- String resource overloads --
+
+    /**
+     * Shows a toast using an Android string resource ID instead of a
+     * raw string. The resource is resolved via [StringResolver] using
+     * the application context captured by [ToastStackHost].
+     *
+     * @param messageRes The string resource ID (e.g., `R.string.saved`).
+     * @param formatArgs Optional format arguments for the string resource.
+     * @return A [ToastHandle] for programmatic control and chaining.
+     */
+    fun show(
+        @androidx.annotation.StringRes messageRes: Int,
+        vararg formatArgs: Any,
+        title: String? = null,
+        type: ToastType = ToastType.Default,
+        duration: ToastDuration = defaultDuration,
+        position: ToastPosition = defaultPosition,
+        showCloseButton: Boolean = false,
+        onDismiss: ((DismissReason) -> Unit)? = null
+    ): ToastHandle {
+        val message = if (formatArgs.isEmpty()) {
+            StringResolver.resolve(messageRes)
+        } else {
+            StringResolver.resolve(messageRes, *formatArgs)
+        }
+        return show(message, title, type, duration, position, showCloseButton, onDismiss = onDismiss)
+    }
+
+    /**
+     * Shows a [ToastType.Success] toast from a string resource.
+     */
+    fun success(
+        @androidx.annotation.StringRes messageRes: Int,
+        vararg formatArgs: Any,
+        title: String? = null,
+        onDismiss: ((DismissReason) -> Unit)? = null
+    ): ToastHandle {
+        val message = if (formatArgs.isEmpty()) StringResolver.resolve(messageRes) else StringResolver.resolve(messageRes, *formatArgs)
+        return success(message, title, onDismiss = onDismiss)
+    }
+
+    /**
+     * Shows a [ToastType.Error] toast from a string resource.
+     */
+    fun error(
+        @androidx.annotation.StringRes messageRes: Int,
+        vararg formatArgs: Any,
+        title: String? = null,
+        onDismiss: ((DismissReason) -> Unit)? = null
+    ): ToastHandle {
+        val message = if (formatArgs.isEmpty()) StringResolver.resolve(messageRes) else StringResolver.resolve(messageRes, *formatArgs)
+        return error(message, title, onDismiss = onDismiss)
+    }
+
+    /**
+     * Shows a [ToastType.Warning] toast from a string resource.
+     */
+    fun warning(
+        @androidx.annotation.StringRes messageRes: Int,
+        vararg formatArgs: Any,
+        title: String? = null,
+        onDismiss: ((DismissReason) -> Unit)? = null
+    ): ToastHandle {
+        val message = if (formatArgs.isEmpty()) StringResolver.resolve(messageRes) else StringResolver.resolve(messageRes, *formatArgs)
+        return warning(message, title, onDismiss = onDismiss)
+    }
+
+    /**
+     * Shows a [ToastType.Info] toast from a string resource.
+     */
+    fun info(
+        @androidx.annotation.StringRes messageRes: Int,
+        vararg formatArgs: Any,
+        title: String? = null,
+        onDismiss: ((DismissReason) -> Unit)? = null
+    ): ToastHandle {
+        val message = if (formatArgs.isEmpty()) StringResolver.resolve(messageRes) else StringResolver.resolve(messageRes, *formatArgs)
+        return info(message, title, onDismiss = onDismiss)
+    }
 
     /**
      * Adds a pre built [ToastData] to the visible toast stack.
@@ -243,9 +375,9 @@ class ToastStackState(
      * timer for the new toast.
      *
      * @param toast The fully configured toast to add.
-     * @return The toast's unique ID.
+     * @return A [ToastHandle] wrapping the toast's ID and this state.
      */
-    internal fun enqueue(toast: ToastData): String {
+    internal fun enqueue(toast: ToastData): ToastHandle {
         // If we are at capacity, remove the oldest toast (the first item
         // in the list) to make room. The evicted toast's onDismiss callback
         // fires with Programmatic reason so the caller knows it was forced out.
@@ -255,7 +387,23 @@ class ToastStackState(
         }
         activeToasts.add(toast)
         scheduleAutoDismiss(toast)
-        return toast.id
+        return ToastHandle(toast.id, this)
+    }
+
+    /**
+     * Replaces the onDismiss callback for an active toast.
+     *
+     * Used by [ToastHandle.onDismiss] to chain callbacks after the toast
+     * has already been created. If the toast is no longer active (already
+     * dismissed), this call is silently ignored.
+     *
+     * @param id The toast's unique identifier.
+     * @param callback The new onDismiss callback to set.
+     */
+    internal fun updateToastCallback(id: String, callback: (DismissReason) -> Unit) {
+        val index = activeToasts.indexOfFirst { it.id == id }
+        if (index == -1) return
+        activeToasts[index] = activeToasts[index].copy(onDismiss = callback)
     }
 
     /**

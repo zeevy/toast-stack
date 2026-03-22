@@ -92,7 +92,7 @@ class ToastAnimationUiTest {
             }
         }
 
-        val id = state.show(
+        val handle = state.show(
             "Slide exit",
             animation = ToastAnimation.Slide,
             duration = ToastDuration.Indefinite
@@ -100,7 +100,7 @@ class ToastAnimationUiTest {
         composeTestRule.mainClock.advanceTimeBy(500)
         composeTestRule.onNodeWithText("Slide exit").assertIsDisplayed()
 
-        state.dismiss(id)
+        state.dismiss(handle.id)
         composeTestRule.mainClock.advanceTimeBy(500)
         composeTestRule.onNodeWithText("Slide exit").assertDoesNotExist()
     }
@@ -115,7 +115,7 @@ class ToastAnimationUiTest {
             }
         }
 
-        val id = state.show(
+        val handle = state.show(
             "Fade exit",
             animation = ToastAnimation.Fade,
             duration = ToastDuration.Indefinite
@@ -123,7 +123,7 @@ class ToastAnimationUiTest {
         composeTestRule.mainClock.advanceTimeBy(500)
         composeTestRule.onNodeWithText("Fade exit").assertIsDisplayed()
 
-        state.dismiss(id)
+        state.dismiss(handle.id)
         composeTestRule.mainClock.advanceTimeBy(500)
         composeTestRule.onNodeWithText("Fade exit").assertDoesNotExist()
     }
@@ -138,7 +138,7 @@ class ToastAnimationUiTest {
             }
         }
 
-        val id = state.show(
+        val handle = state.show(
             "Scale exit",
             animation = ToastAnimation.ScaleAndFade,
             duration = ToastDuration.Indefinite
@@ -146,7 +146,7 @@ class ToastAnimationUiTest {
         composeTestRule.mainClock.advanceTimeBy(500)
         composeTestRule.onNodeWithText("Scale exit").assertIsDisplayed()
 
-        state.dismiss(id)
+        state.dismiss(handle.id)
         composeTestRule.mainClock.advanceTimeBy(500)
         composeTestRule.onNodeWithText("Scale exit").assertDoesNotExist()
     }
@@ -235,7 +235,7 @@ class ToastAnimationUiTest {
         }
 
         state.show("First", duration = ToastDuration.Indefinite)
-        val middleId = state.show("Middle", duration = ToastDuration.Indefinite)
+        val middleHandle = state.show("Middle", duration = ToastDuration.Indefinite)
         state.show("Third", duration = ToastDuration.Indefinite)
         composeTestRule.mainClock.advanceTimeBy(500)
 
@@ -243,7 +243,7 @@ class ToastAnimationUiTest {
         composeTestRule.onNodeWithText("Middle").assertIsDisplayed()
         composeTestRule.onNodeWithText("Third").assertIsDisplayed()
 
-        state.dismiss(middleId)
+        state.dismiss(middleHandle.id)
         composeTestRule.mainClock.advanceTimeBy(500)
 
         composeTestRule.onNodeWithText("First").assertIsDisplayed()

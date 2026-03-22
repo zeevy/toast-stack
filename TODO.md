@@ -145,36 +145,36 @@ Prevents breaking API changes later.*
 
 ### Builder / Chaining API
 
-- [ ] `show()` returns a `ToastHandle` object instead of a raw `String` ID
-- [ ] `ToastHandle` provides `dismiss()`, `update()`, and chaining methods
-- [ ] `ToastStack.show("msg").withAction("Undo") { }` chaining for actions
-- [ ] `ToastStack.show("msg").onDismiss { reason -> }` chaining for callbacks
-- [ ] Backward compatible: `ToastHandle.id` property for callers that need the raw ID
+- [x] `show()` returns a `ToastHandle` object instead of a raw `String` ID
+- [x] `ToastHandle` provides `dismiss()` and chaining methods
+- [ ] `ToastStack.show("msg").withAction("Undo") { }` chaining for actions *(deferred to Phase 5 when action buttons are built)*
+- [x] `ToastStack.show("msg").onDismiss { reason -> }` chaining for callbacks
+- [x] Backward compatible: `ToastHandle.id` property for callers that need the raw ID
 
 ### Suspend Function Variant
 
-- [ ] `ToastStack.showAndAwait("msg")` suspends until dismissed, returns `DismissReason`
-- [ ] Coroutine cancellation dismisses the toast automatically
-- [ ] Works naturally inside `viewModelScope.launch { }`
+- [x] `ToastStack.showAndAwait("msg")` suspends until dismissed, returns `DismissReason`
+- [x] Coroutine cancellation dismisses the toast automatically
+- [x] Works naturally inside `viewModelScope.launch { }`
 
 ### Kotlin Duration Support
 
-- [ ] `show()` accepts `kotlin.time.Duration` alongside `ToastDuration` enum
-- [ ] `ToastStack.show("msg", duration = 3.seconds)` for arbitrary durations
-- [ ] `ToastDuration` enum values remain for common cases (Short, Long, Indefinite)
+- [x] `show()` accepts `kotlin.time.Duration` via `ToastDuration(duration)` factory
+- [x] `ToastDuration.Custom(millis)` for arbitrary millisecond values
+- [x] `ToastDuration` sealed class preserves Short, Long, Indefinite as predefined constants
 
 ### Multiplatform Ready Audit
 
-- [ ] Audit all public API signatures for Android specific types
-- [ ] Replace `java.util.UUID` with `kotlin.uuid.Uuid` (Kotlin 2.x)
-- [ ] Ensure no Android framework types leak into the public API surface
-- [ ] Document which internal classes need platform expect/actual for KMP
+- [x] Audited all public API signatures for Android specific types
+- [x] Replaced `java.util.UUID` with `kotlin.uuid.Uuid` (Kotlin 2.x)
+- [x] No Android framework types in the public API surface *(only ConcurrentHashMap used internally)*
+- [x] `StringResolver` and `ConcurrentHashMap` identified as needing expect/actual for KMP
 
 ### String Resource Support
 
-- [ ] `show(@StringRes messageRes: Int)` overloads on all show methods
-- [ ] `show(@StringRes messageRes: Int, vararg formatArgs: Any)` for formatted strings
-- [ ] Typed methods: `success(@StringRes)`, `error(@StringRes)`, etc.
+- [x] `show(@StringRes messageRes: Int)` overloads on all show methods
+- [x] `show(@StringRes messageRes: Int, vararg formatArgs: Any)` for formatted strings
+- [x] Typed methods: `success(@StringRes)`, `error(@StringRes)`, etc.
 
 ---
 

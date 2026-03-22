@@ -110,7 +110,7 @@ object ToastStack {
      * @param hostTag Target a specific host by tag. When null, routes to
      *   the most recently attached host.
      * @param onDismiss Optional callback with the [DismissReason].
-     * @return The unique toast ID, or null if no host was available.
+     * @return A [ToastHandle], or null if no host was available.
      */
     fun show(
         message: String,
@@ -123,7 +123,7 @@ object ToastStack {
         style: ToastStackStyle? = null,
         hostTag: String? = null,
         onDismiss: ((DismissReason) -> Unit)? = null
-    ): String? {
+    ): ToastHandle? {
         val state = resolveHost(hostTag) ?: return null
         return state.show(
             message = message,
@@ -145,14 +145,14 @@ object ToastStack {
      * @param title Optional headline above the message.
      * @param hostTag Target a specific host, or null for the default.
      * @param onDismiss Optional callback with the [DismissReason].
-     * @return The unique toast ID, or null if no host was available.
+     * @return A [ToastHandle], or null if no host was available.
      */
     fun success(
         message: String,
         title: String? = null,
         hostTag: String? = null,
         onDismiss: ((DismissReason) -> Unit)? = null
-    ): String? = resolveHost(hostTag)?.success(message, title, onDismiss = onDismiss)
+    ): ToastHandle? = resolveHost(hostTag)?.success(message, title, onDismiss = onDismiss)
 
     /**
      * Shows a [ToastType.Error] toast (red background, error icon).
@@ -161,14 +161,14 @@ object ToastStack {
      * @param title Optional headline above the message.
      * @param hostTag Target a specific host, or null for the default.
      * @param onDismiss Optional callback with the [DismissReason].
-     * @return The unique toast ID, or null if no host was available.
+     * @return A [ToastHandle], or null if no host was available.
      */
     fun error(
         message: String,
         title: String? = null,
         hostTag: String? = null,
         onDismiss: ((DismissReason) -> Unit)? = null
-    ): String? = resolveHost(hostTag)?.error(message, title, onDismiss = onDismiss)
+    ): ToastHandle? = resolveHost(hostTag)?.error(message, title, onDismiss = onDismiss)
 
     /**
      * Shows a [ToastType.Warning] toast (amber background, warning icon).
@@ -177,14 +177,14 @@ object ToastStack {
      * @param title Optional headline above the message.
      * @param hostTag Target a specific host, or null for the default.
      * @param onDismiss Optional callback with the [DismissReason].
-     * @return The unique toast ID, or null if no host was available.
+     * @return A [ToastHandle], or null if no host was available.
      */
     fun warning(
         message: String,
         title: String? = null,
         hostTag: String? = null,
         onDismiss: ((DismissReason) -> Unit)? = null
-    ): String? = resolveHost(hostTag)?.warning(message, title, onDismiss = onDismiss)
+    ): ToastHandle? = resolveHost(hostTag)?.warning(message, title, onDismiss = onDismiss)
 
     /**
      * Shows a [ToastType.Info] toast (blue background, info icon).
@@ -193,14 +193,116 @@ object ToastStack {
      * @param title Optional headline above the message.
      * @param hostTag Target a specific host, or null for the default.
      * @param onDismiss Optional callback with the [DismissReason].
-     * @return The unique toast ID, or null if no host was available.
+     * @return A [ToastHandle], or null if no host was available.
      */
     fun info(
         message: String,
         title: String? = null,
         hostTag: String? = null,
         onDismiss: ((DismissReason) -> Unit)? = null
-    ): String? = resolveHost(hostTag)?.info(message, title, onDismiss = onDismiss)
+    ): ToastHandle? = resolveHost(hostTag)?.info(message, title, onDismiss = onDismiss)
+
+    /**
+     * Shows a toast and suspends until it is dismissed, returning the
+     * [DismissReason]. Returns null if no host is registered.
+     *
+     * If the coroutine is cancelled, the toast is automatically dismissed.
+     *
+     * @param hostTag Target a specific host, or null for the default.
+     * @return The [DismissReason], or null if no host was available.
+     */
+    suspend fun showAndAwait(
+        message: String,
+        title: String? = null,
+        type: ToastType = ToastType.Default,
+        duration: ToastDuration = ToastDuration.Short,
+        position: ToastPosition = ToastPosition.TopCenter,
+        showCloseButton: Boolean = false,
+        swipeDismiss: SwipeDismissDirection = SwipeDismissDirection.Both,
+        style: ToastStackStyle? = null,
+        hostTag: String? = null
+    ): DismissReason? {
+        val state = resolveHost(hostTag) ?: return null
+        return state.showAndAwait(
+            message = message,
+            title = title,
+            type = type,
+            duration = duration,
+            position = position,
+            showCloseButton = showCloseButton,
+            swipeDismiss = swipeDismiss,
+            style = style
+        )
+    }
+
+    // -- String resource overloads --
+
+    /**
+     * Shows a toast using an Android string resource ID.
+     *
+     * @param messageRes The string resource ID (e.g., `R.string.saved`).
+     * @param formatArgs Optional format arguments for the string resource.
+     * @return A [ToastHandle], or null if no host was available.
+     */
+    fun show(
+        @androidx.annotation.StringRes messageRes: Int,
+        vararg formatArgs: Any,
+        title: String? = null,
+        type: ToastType = ToastType.Default,
+        hostTag: String? = null,
+        onDismiss: ((DismissReason) -> Unit)? = null
+    ): ToastHandle? {
+        val state = resolveHost(hostTag) ?: return null
+        return state.show(messageRes, *formatArgs, title = title, type = type, onDismiss = onDismiss)
+    }
+
+    /**
+     * Shows a [ToastType.Success] toast using an Android string resource ID.
+     * The resource is resolved via [StringResolver] using the application
+     * context captured by [ToastStackHost].
+     */
+    fun success(
+        @androidx.annotation.StringRes messageRes: Int,
+        vararg formatArgs: Any,
+        title: String? = null,
+        hostTag: String? = null
+    ): ToastHandle? = resolveHost(hostTag)?.success(messageRes, *formatArgs, title = title)
+
+    /**
+     * Shows a [ToastType.Error] toast using an Android string resource ID.
+     * The resource is resolved via [StringResolver] using the application
+     * context captured by [ToastStackHost].
+     */
+    fun error(
+        @androidx.annotation.StringRes messageRes: Int,
+        vararg formatArgs: Any,
+        title: String? = null,
+        hostTag: String? = null
+    ): ToastHandle? = resolveHost(hostTag)?.error(messageRes, *formatArgs, title = title)
+
+    /**
+     * Shows a [ToastType.Warning] toast using an Android string resource ID.
+     * The resource is resolved via [StringResolver] using the application
+     * context captured by [ToastStackHost].
+     */
+    fun warning(
+        @androidx.annotation.StringRes messageRes: Int,
+        vararg formatArgs: Any,
+        title: String? = null,
+        hostTag: String? = null
+    ): ToastHandle? = resolveHost(hostTag)?.warning(messageRes, *formatArgs, title = title)
+
+    /**
+     * Shows a [ToastType.Info] toast using an Android string resource ID.
+     * The resource is resolved via [StringResolver] using the application
+     * context captured by [ToastStackHost].
+     */
+    fun info(
+        @androidx.annotation.StringRes messageRes: Int,
+        vararg formatArgs: Any,
+        title: String? = null,
+        hostTag: String? = null
+    ): ToastHandle? = resolveHost(hostTag)?.info(messageRes, *formatArgs, title = title)
 
     /**
      * Removes a single toast by its [id].

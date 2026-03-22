@@ -21,7 +21,10 @@ package com.siliconcircuits.toaststack
 @ExperimentalToastStackApi
 enum class ToastPosition {
 
-    /** Top edge, horizontally centered. This is the default position. */
+    /**
+     * Top edge, horizontally centered.
+     * This is the default position used when no position is specified.
+     */
     TopCenter,
 
     /**
@@ -36,7 +39,10 @@ enum class ToastPosition {
      */
     TopEnd,
 
-    /** Bottom edge, horizontally centered. */
+    /**
+     * Bottom edge, horizontally centered.
+     * Toasts appear above the navigation bar or gesture handle.
+     */
     BottomCenter,
 
     /**

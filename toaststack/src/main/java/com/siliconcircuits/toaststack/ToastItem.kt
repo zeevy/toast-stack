@@ -312,7 +312,6 @@ private fun buildSwipeModifier(
             velocityTracker.addPosition(down.uptimeMillis, down.position)
 
             // Track horizontal movement until the finger lifts.
-            var dragCancelled = false
             horizontalDrag(down.id) { change ->
                 val dragAmount = change.positionChange().x
 

@@ -26,6 +26,9 @@ import androidx.compose.ui.unit.dp
 import com.siliconcircuits.toaststack.ExperimentalToastStackApi
 import com.siliconcircuits.toaststack.ToastDuration
 import com.siliconcircuits.toaststack.ToastStackState
+import kotlin.time.Duration.Companion.milliseconds
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import com.siliconcircuits.toaststack.ToastStackStyle
 import com.siliconcircuits.toaststack.ToastType
 
@@ -100,13 +103,56 @@ fun StyleTab(toastState: ToastStackState) {
 
         Spacer(modifier = Modifier.height(28.dp))
 
-        SectionLabel("Typography")
-        PlaceholderCard("Custom font and text style overrides")
+        SectionLabel("Custom Duration")
+        Spacer(modifier = Modifier.height(4.dp))
 
-        Spacer(modifier = Modifier.height(16.dp))
+        StyleDemoCard(
+            title = "3 Second Toast",
+            subtitle = "Using ToastDuration.Custom(3000)",
+            onClick = {
+                counter++
+                toastState.show(
+                    message = "Visible for exactly 3 seconds",
+                    title = "Custom Duration #$counter",
+                    duration = ToastDuration.Custom(3000)
+                )
+            }
+        )
 
-        SectionLabel("Shape")
-        PlaceholderCard("Custom corner radius and card shape")
+        StyleDemoCard(
+            title = "Half Second Flash",
+            subtitle = "Using ToastDuration(500.milliseconds)",
+            onClick = {
+                counter++
+                toastState.show(
+                    message = "Gone in a flash!",
+                    duration = ToastDuration(500.milliseconds)
+                )
+            }
+        )
+
+        Spacer(modifier = Modifier.height(28.dp))
+
+        SectionLabel("Chaining API")
+        Spacer(modifier = Modifier.height(4.dp))
+
+        StyleDemoCard(
+            title = "Handle Dismiss",
+            subtitle = "Dismiss via ToastHandle after 2s",
+            onClick = {
+                counter++
+                val handle = toastState.show(
+                    message = "I'll be dismissed by code in 2s",
+                    title = "Handle #$counter",
+                    duration = ToastDuration.Indefinite
+                )
+                // Dismiss after a delay using the handle.
+                kotlinx.coroutines.MainScope().launch {
+                    kotlinx.coroutines.delay(2000)
+                    handle.dismiss()
+                }
+            }
+        )
 
         Spacer(modifier = Modifier.height(32.dp))
     }
