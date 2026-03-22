@@ -40,9 +40,21 @@ ToastStack replaces Android's limited native `Toast` and `Snackbar` with a fully
 ## Screenshots
 
 ![Toast Types](docs/images/types.png)
+
+---
+
 ![Dark Mode](docs/images/dark.png)
+
+---
+
 ![Animations](docs/images/anim.gif)
+
+---
+
 ![Actions & Progress](docs/images/actions.gif)
+
+---
+
 ![Custom Content](docs/images/custom.png)
 
 ## Installation
@@ -341,7 +353,7 @@ Consumer rules are bundled with the library. No additional ProGuard configuratio
 
 ## License
 
-```
+```text
 Copyright 2026 zeevy
 
 Licensed under the Apache License, Version 2.0 (the "License");
