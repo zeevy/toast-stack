@@ -184,9 +184,16 @@ internal fun ToastItem(
         Modifier.widthIn(min = 200.dp, max = 320.dp)
     }
 
+    // Apply per toast offset on top of the swipe horizontal offset.
+    // offsetX/offsetY let callers nudge individual toasts from their
+    // default position (e.g., shift 16dp down from the top edge).
+    val toastOffsetX = toast.offsetX
+    val toastOffsetY = toast.offsetY
+
     Box(
         modifier = Modifier
             .padding(vertical = 4.dp)
+            .offset(x = toastOffsetX.dp, y = toastOffsetY.dp)
     ) {
         Surface(
             modifier = widthModifier

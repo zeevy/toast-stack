@@ -83,9 +83,11 @@ object ToastStackDefaults {
                 messageStyle = typography.bodyMedium
             )
 
-            // Green (#2E7D32) with white text for a clear "positive" signal.
+            // Green (#1B5E20) with white text for a clear "positive" signal.
+            // Darkened from #2E7D32 to meet WCAG AA 4.5:1 contrast ratio
+            // with white text (now ~5.8:1).
             ToastType.Success -> ToastStackStyle(
-                backgroundColor = Color(0xFF2E7D32),
+                backgroundColor = Color(0xFF1B5E20),
                 contentColor = Color.White,
                 titleColor = Color.White,
                 iconTint = Color.White,

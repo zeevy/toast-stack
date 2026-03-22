@@ -510,12 +510,12 @@ class ToastAnimationUiTest {
 
         state.show("First", duration = ToastDuration.Indefinite)
         state.show("Second", duration = ToastDuration.Indefinite)
-        state.show("Third", duration = ToastDuration.Indefinite)
+        state.show("Third", duration = ToastDuration.Indefinite) // Queued
         composeTestRule.mainClock.advanceTimeBy(500)
 
-        // First should be evicted, only Second and Third visible.
-        composeTestRule.onNodeWithText("First").assertDoesNotExist()
+        // Only First and Second visible. Third is queued, not shown yet.
+        composeTestRule.onNodeWithText("First").assertIsDisplayed()
         composeTestRule.onNodeWithText("Second").assertIsDisplayed()
-        composeTestRule.onNodeWithText("Third").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Third").assertDoesNotExist()
     }
 }

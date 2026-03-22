@@ -54,12 +54,25 @@ class ToastStackState(
     val defaultDuration: ToastDuration = ToastDuration.Short,
     val defaultSwipeDismiss: SwipeDismissDirection = SwipeDismissDirection.Both,
     val defaultAnimation: ToastAnimation = ToastAnimation.Slide,
-    val defaultAnimationConfig: ToastAnimationConfig = ToastAnimationConfig()
+    val defaultAnimationConfig: ToastAnimationConfig = ToastAnimationConfig(),
+    val deduplicationWindowMs: Long = 0L
 ) {
     // Snapshot backed list: Compose observes this collection and automatically
     // triggers recomposition when items are added or removed. This is the
     // reactive mechanism that makes toasts appear and disappear on screen.
     private val activeToasts = mutableStateListOf<ToastData>()
+
+    // Tracks the wall clock timestamp when each message was last shown.
+    // Used by deduplication to suppress identical messages within the
+    // configured time window (deduplicationWindowMs). A value of 0 disables
+    // deduplication entirely (the default).
+    private val lastShownTimestamps = mutableMapOf<String, Long>()
+
+    // Queue for toasts that can't be shown yet because maxVisible is reached.
+    // Toasts are ordered by priority (Urgent > High > Normal > Low), then by
+    // insertion order within the same priority. When a visible toast is
+    // dismissed, the next queued toast is promoted to the active list.
+    private val pendingQueue = mutableListOf<ToastData>()
 
     /**
      * Read only snapshot of all currently visible toasts, ordered from
@@ -154,6 +167,7 @@ class ToastStackState(
         customIcon: (@Composable () -> Unit)? = null,
         hapticEnabled: Boolean = false,
         soundEnabled: Boolean = false,
+        priority: ToastPriority = ToastPriority.Normal,
         onDismiss: ((DismissReason) -> Unit)? = null
     ): ToastHandle {
         val toast = ToastData(
@@ -170,6 +184,7 @@ class ToastStackState(
             customIcon = customIcon,
             hapticEnabled = hapticEnabled,
             soundEnabled = soundEnabled,
+            priority = priority,
             onDismiss = onDismiss
         )
         return enqueue(toast)
@@ -430,27 +445,83 @@ class ToastStackState(
     }
 
     /**
-     * Adds a pre built [ToastData] to the visible toast stack.
+     * Adds a [ToastData] to the visible stack or the pending queue,
+     * depending on capacity and priority.
      *
-     * This is the shared internal entry point used by [show] and the typed
-     * convenience methods. It handles capacity enforcement (evicting the
-     * oldest toast when [maxVisible] is reached) and starts the auto dismiss
-     * timer for the new toast.
+     * **Priority behavior:**
+     * - [ToastPriority.Urgent]: bypasses the queue entirely and displays
+     *   immediately. If at capacity, the oldest non urgent active toast is
+     *   evicted to make room.
+     * - [ToastPriority.High]: inserted ahead of Normal and Low toasts in
+     *   the queue, but still waits for a slot to open.
+     * - [ToastPriority.Normal] / [ToastPriority.Low]: queued in FIFO order
+     *   within their priority group when at capacity.
+     *
+     * When a visible toast is dismissed (by any means), the next toast in
+     * the queue is automatically promoted to the active list via
+     * [promoteFromQueue].
      *
      * @param toast The fully configured toast to add.
      * @return A [ToastHandle] wrapping the toast's ID and this state.
      */
     internal fun enqueue(toast: ToastData): ToastHandle {
-        // If we are at capacity, remove the oldest toast (the first item
-        // in the list) to make room. The evicted toast's onDismiss callback
-        // fires with Programmatic reason so the caller knows it was forced out.
-        while (activeToasts.size >= maxVisible) {
-            val oldest = activeToasts.firstOrNull() ?: break
-            removeSilently(oldest.id, DismissReason.Programmatic)
+        // Duplicate detection: if the same message was shown within the
+        // deduplication window, skip this toast and return a handle to
+        // the existing one instead. This prevents spam when the same
+        // event fires multiple times in quick succession.
+        if (deduplicationWindowMs > 0 && toast.message.isNotEmpty()) {
+            val now = System.currentTimeMillis()
+            val lastShown = lastShownTimestamps[toast.message]
+            if (lastShown != null && (now - lastShown) < deduplicationWindowMs) {
+                // Find the existing active toast with this message and return
+                // a handle to it. If it was already dismissed, allow the new one.
+                val existing = activeToasts.find { it.message == toast.message }
+                if (existing != null) {
+                    return ToastHandle(existing.id, this)
+                }
+            }
+            lastShownTimestamps[toast.message] = now
         }
-        activeToasts.add(toast)
-        scheduleAutoDismiss(toast)
+
+        if (activeToasts.size < maxVisible) {
+            // Slot available: show immediately regardless of priority.
+            activeToasts.add(toast)
+            scheduleAutoDismiss(toast)
+        } else if (toast.priority == ToastPriority.Urgent) {
+            // Urgent bypasses the queue. Evict the oldest non urgent toast
+            // to make room. If all active toasts are urgent, evict the oldest.
+            val evictTarget = activeToasts.firstOrNull { it.priority != ToastPriority.Urgent }
+                ?: activeToasts.firstOrNull()
+            if (evictTarget != null) {
+                removeSilently(evictTarget.id, DismissReason.Programmatic)
+            }
+            activeToasts.add(toast)
+            scheduleAutoDismiss(toast)
+        } else {
+            // At capacity and not urgent: add to the pending queue.
+            // Insert based on priority: High before Normal, Normal before Low.
+            val insertIndex = pendingQueue.indexOfFirst { it.priority.ordinal < toast.priority.ordinal }
+            if (insertIndex == -1) {
+                pendingQueue.add(toast)
+            } else {
+                pendingQueue.add(insertIndex, toast)
+            }
+        }
         return ToastHandle(toast.id, this)
+    }
+
+    /**
+     * Promotes the next toast from the pending queue to the active list.
+     *
+     * Called automatically whenever a visible toast is removed. If the queue
+     * is empty, this is a no-op.
+     */
+    private fun promoteFromQueue() {
+        if (pendingQueue.isEmpty()) return
+        if (activeToasts.size >= maxVisible) return
+        val next = pendingQueue.removeAt(0)
+        activeToasts.add(next)
+        scheduleAutoDismiss(next)
     }
 
     /**
@@ -580,6 +651,7 @@ class ToastStackState(
         // can still iterate over the toasts to fire their callbacks.
         val snapshot = activeToasts.toList()
         activeToasts.clear()
+        pendingQueue.clear()
         snapshot.forEach { toast ->
             clearTimerState(toast.id)
             toast.onDismiss?.invoke(DismissReason.Programmatic)
@@ -677,6 +749,7 @@ class ToastStackState(
      */
     fun destroy() {
         activeToasts.clear()
+        pendingQueue.clear()
         timerJobs.values.forEach { it.cancel() }
         timerJobs.clear()
         remainingMillis.clear()
@@ -697,6 +770,8 @@ class ToastStackState(
         activeToasts.remove(toast)
         clearTimerState(id)
         toast.onDismiss?.invoke(reason)
+        // A slot opened up. Promote the next queued toast if any.
+        promoteFromQueue()
     }
 
     /**

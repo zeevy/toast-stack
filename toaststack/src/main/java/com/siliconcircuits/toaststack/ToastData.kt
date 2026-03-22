@@ -51,6 +51,8 @@ data class ToastData(
     val type: ToastType = ToastType.Default,
     val duration: ToastDuration = ToastDuration.Short,
     val position: ToastPosition = ToastPosition.TopCenter,
+    val offsetX: Int = 0,
+    val offsetY: Int = 0,
     val showCloseButton: Boolean = false,
     val swipeDismiss: SwipeDismissDirection = SwipeDismissDirection.Both,
     val style: ToastStackStyle? = null,
@@ -67,6 +69,7 @@ data class ToastData(
     val customContent: (@Composable () -> Unit)? = null,
     val hapticEnabled: Boolean = false,
     val soundEnabled: Boolean = false,
+    val soundUri: android.net.Uri? = null,
     val onShow: (() -> Unit)? = null,
     val onDismiss: ((DismissReason) -> Unit)? = null
 )

@@ -79,7 +79,7 @@ internal object ToastFeedback {
      *
      * @param context The application context for accessing audio services.
      */
-    fun playSound(context: Context) {
+    fun playSound(context: Context, customSoundUri: android.net.Uri? = null) {
         val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
         // Skip if ringer mode is silent or vibrate only.
         val ringerMode = audioManager?.ringerMode ?: AudioManager.RINGER_MODE_NORMAL
@@ -87,7 +87,10 @@ internal object ToastFeedback {
             ringerMode == AudioManager.RINGER_MODE_VIBRATE) return
 
         try {
-            val uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+            // Use the custom sound URI if provided, otherwise fall back
+            // to the system's default notification sound.
+            val uri = customSoundUri
+                ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
             val ringtone = RingtoneManager.getRingtone(context, uri)
             ringtone?.play()
         } catch (_: Exception) {

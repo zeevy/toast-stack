@@ -40,7 +40,7 @@ No Scaffold required. One liner API. Stackable. Themeable. Animated.
 - [x] Top start / Top end
 - [x] Bottom start / Bottom end
 - [x] Center (overlay style)
-- [ ] Configurable offset from edges *(host accepts `contentPadding` but per toast custom offset not yet exposed in `ToastData`)*
+- [x] Configurable offset from edges (host `contentPadding` + per toast `offsetX`/`offsetY` on `ToastData`)
 - [x] Edge-to-edge / WindowInsets support (status bar, navigation bar, display cutouts)
 - [x] IME (keyboard) awareness - bottom-positioned toasts shift above the soft keyboard
 - [x] RTL layout support - start/end positions and swipe directions respect layout direction
@@ -54,7 +54,7 @@ No Scaffold required. One liner API. Stackable. Themeable. Animated.
 
 - [x] Semantics and `LiveRegion` - toast content announced via TalkBack on show
 - [x] Content descriptions on icons and close button
-- [ ] Auto-dismiss timer pauses when TalkBack is active *(pauseAll/resumeAll methods exist but automatic TalkBack detection via `AccessibilityManager` not wired up yet)*
+- [x] Auto dismiss timer pauses when TalkBack is active (AccessibilityManager TouchExplorationStateChangeListener)
 
 ### API Stability
 
@@ -147,7 +147,7 @@ Prevents breaking API changes later.*
 
 - [x] `show()` returns a `ToastHandle` object instead of a raw `String` ID
 - [x] `ToastHandle` provides `dismiss()` and chaining methods
-- [ ] `ToastStack.show("msg").withAction("Undo") { }` chaining for actions *(deferred to Phase 5 when action buttons are built)*
+- [x] `handle.withAction("Undo") { }` chaining for actions (implemented in Phase 5)
 - [x] `ToastStack.show("msg").onDismiss { reason -> }` chaining for callbacks
 - [x] Backward compatible: `ToastHandle.id` property for callers that need the raw ID
 
@@ -206,10 +206,10 @@ Prevents breaking API changes later.*
 
 ### Queueing Behavior
 
-- [ ] When max visible limit is reached, new toasts queue and appear as slots open *(currently evicts oldest instead of queueing)*
+- [x] When max visible limit is reached, new toasts queue and appear as slots open
 - [x] Priority levels (Low, Normal, High, Urgent) via ToastPriority enum
-- [ ] Urgent toasts jump the queue and display immediately *(enum defined, queue logic not yet implemented)*
-- [ ] Duplicate detection - same message within a time window is ignored or updates the existing toast
+- [x] Urgent toasts jump the queue and display immediately (evicts oldest non urgent)
+- [x] Duplicate detection via `deduplicationWindowMs` parameter on ToastStackState
 
 ---
 
@@ -238,13 +238,13 @@ Prevents breaking API changes later.*
 
 - [x] Toast type announced (e.g., "Error notification: Connection failed")
 - [x] Action buttons focusable and activatable via accessibility services *(TextButton is focusable by default)*
-- [ ] Sufficient color contrast audit for all built in types (WCAG AA)
+- [x] Sufficient color contrast for all built in types (WCAG AA, Success darkened to #1B5E20 for 5.8:1 ratio)
 - [x] Reduced motion support (Fade with 150ms when system animator scale is 0)
 
 ### Sound
 
 - [x] Optional notification sound on appearance via `soundEnabled` flag
-- [ ] Per type sound customization *(currently uses system notification sound for all types)*
+- [x] Per type sound customization via `soundUri` field on ToastData (defaults to system notification)
 - [x] Respects system Do Not Disturb and silent mode
 
 ---

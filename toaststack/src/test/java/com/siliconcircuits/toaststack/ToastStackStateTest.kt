@@ -148,47 +148,59 @@ class ToastStackStateTest {
     // -- Max visible enforcement --
 
     @Test
-    fun `oldest toast is evicted when max visible is reached`() {
+    fun `excess toasts queue when max visible is reached`() {
         state.show("One")
         state.show("Two")
         state.show("Three")
-        state.show("Four")
+        state.show("Four") // Should queue, not evict
 
+        // Only 3 visible (maxVisible = 3), Four is queued.
         assertEquals(3, state.toasts.size)
-        assertTrue(state.toasts.none { it.message == "One" })
-        assertEquals("Two", state.toasts.first().message)
+        assertEquals("One", state.toasts[0].message)
+        assertEquals("Three", state.toasts[2].message)
     }
 
     @Test
-    fun `multiple evictions when burst exceeds capacity`() {
-        state.show("A")
+    fun `queued toasts promote when active toasts dismissed`() {
+        val handle1 = state.show("A")
         state.show("B")
         state.show("C")
-        state.show("D")
-        state.show("E")
+        state.show("D") // Queued
+        state.show("E") // Queued
 
         assertEquals(3, state.toasts.size)
-        assertEquals("C", state.toasts[0].message)
-        assertEquals("D", state.toasts[1].message)
-        assertEquals("E", state.toasts[2].message)
+
+        // Dismiss A, D should promote.
+        state.dismiss(handle1.id)
+        assertEquals(3, state.toasts.size)
+        assertTrue(state.toasts.any { it.message == "D" })
     }
 
     @Test
-    fun `eviction fires onDismiss with Programmatic reason`() {
-        var dismissedReason: DismissReason? = null
-        state.show("Evictable", onDismiss = { dismissedReason = it })
-        state.show("Two")
-        state.show("Three")
-        state.show("Four")
+    fun `urgent toast evicts oldest when at capacity`() {
+        state.show("Normal1")
+        state.show("Normal2")
+        state.show("Normal3")
 
-        assertEquals(DismissReason.Programmatic, dismissedReason)
+        // Urgent bypasses queue, evicts Normal1.
+        state.show("Urgent!", priority = ToastPriority.Urgent)
+
+        assertEquals(3, state.toasts.size)
+        assertTrue(state.toasts.any { it.message == "Urgent!" })
+        assertTrue(state.toasts.none { it.message == "Normal1" })
     }
 
     @Test
-    fun `maxVisible of 1 keeps only the newest toast`() {
+    fun `maxVisible of 1 queues second toast`() {
         val tinyState = ToastStackState(maxVisible = 1)
-        tinyState.show("Old")
-        tinyState.show("New")
+        val first = tinyState.show("Old")
+        tinyState.show("New") // Queued
+
+        assertEquals(1, tinyState.toasts.size)
+        assertEquals("Old", tinyState.toasts.first().message)
+
+        // Dismiss Old, New promotes.
+        tinyState.dismiss(first.id)
         assertEquals(1, tinyState.toasts.size)
         assertEquals("New", tinyState.toasts.first().message)
     }

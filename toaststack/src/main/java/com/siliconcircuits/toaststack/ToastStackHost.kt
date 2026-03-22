@@ -82,9 +82,33 @@ fun ToastStackHost(
 
     // Register this host with the global singleton when it enters composition,
     // and unregister when it leaves. This allows ToastStack.show() to find us.
+    // Also listen for TalkBack (touch exploration) state changes so we can
+    // pause auto dismiss timers while the screen reader is active. Users
+    // relying on TalkBack need time to hear the full announcement before
+    // the toast disappears.
     DisposableEffect(tag, state) {
         ToastStack.registerHost(tag, state)
-        onDispose { ToastStack.unregisterHost(tag) }
+
+        val accessibilityManager = context.getSystemService(
+            android.content.Context.ACCESSIBILITY_SERVICE
+        ) as? android.view.accessibility.AccessibilityManager
+
+        val touchExplorationListener =
+            android.view.accessibility.AccessibilityManager.TouchExplorationStateChangeListener { enabled ->
+                if (enabled) state.pauseAll() else state.resumeAll()
+            }
+
+        // If TalkBack is already active when the host enters composition,
+        // pause all timers immediately.
+        if (accessibilityManager?.isTouchExplorationEnabled == true) {
+            state.pauseAll()
+        }
+        accessibilityManager?.addTouchExplorationStateChangeListener(touchExplorationListener)
+
+        onDispose {
+            accessibilityManager?.removeTouchExplorationStateChangeListener(touchExplorationListener)
+            ToastStack.unregisterHost(tag)
+        }
     }
 
     val layoutDirection = LocalLayoutDirection.current
@@ -213,7 +237,7 @@ fun ToastStackHost(
                                 ToastFeedback.vibrate(context, toast.type)
                             }
                             if (toast.soundEnabled) {
-                                ToastFeedback.playSound(context)
+                                ToastFeedback.playSound(context, toast.soundUri)
                             }
                             // Wait for the enter animation to finish before firing onShow.
                             delay(staggeredConfig.enterDurationMillis.toLong())
