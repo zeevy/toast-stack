@@ -6,8 +6,7 @@ No Scaffold required. One liner API. Stackable. Themeable. Animated.
 [![API](https://img.shields.io/badge/API-24%2B-brightgreen.svg)](https://developer.android.com/about/versions/nougat)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
-<!-- TODO: Add hero screenshot or GIF showing the library in action -->
-<!-- ![ToastStack Demo](docs/images/hero.gif) -->
+![ToastStack Demo](docs/images/hero.gif)
 
 ## What is ToastStack?
 
@@ -40,15 +39,13 @@ ToastStack replaces Android's limited native `Toast` and `Snackbar` with a fully
 
 ## Screenshots
 
-<!-- TODO: Replace these placeholders with actual screenshots -->
+| Toast Types                          | Animations                         | Actions & Progress                 |
+| ------------------------------------ | ---------------------------------- | ---------------------------------- |
+| ![Types](docs/images/types.png)     | ![Animations](docs/images/anim.gif) | ![Actions](docs/images/actions.gif) |
 
-| Toast Types                                      | Animations                                     | Actions & Progress                             |
-| ------------------------------------------------ | ---------------------------------------------- | ---------------------------------------------- |
-| <!-- ![Types](docs/images/types.png) -->         | <!-- ![Animations](docs/images/anim.gif) -->   | <!-- ![Actions](docs/images/actions.gif) -->   |
-
-| Positions                                        | Custom Content                                 | Dark Mode                                      |
-| ------------------------------------------------ | ---------------------------------------------- | ---------------------------------------------- |
-| <!-- ![Positions](docs/images/positions.png) --> | <!-- ![Custom](docs/images/custom.png) -->     | <!-- ![Dark](docs/images/dark.png) -->         |
+| Positions                              | Custom Content                     | Dark Mode                          |
+| -------------------------------------- | ---------------------------------- | ---------------------------------- |
+| ![Positions](docs/images/positions.png) | ![Custom](docs/images/custom.png) | ![Dark](docs/images/dark.png)     |
 
 ## Installation
 
