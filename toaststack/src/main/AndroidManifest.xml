@@ -2,4 +2,19 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- Required for haptic feedback on toast appearance when hapticEnabled is true. -->
     <uses-permission android:name="android.permission.VIBRATE" />
+
+    <application>
+        <!-- AndroidX Startup provider that runs ToastStackInitializer at app launch.
+             This auto attaches a ToastStackHost overlay to every Activity so users
+             can call ToastStack.show() without any composable setup.
+             To opt out, add tools:node="remove" on this meta-data in your app manifest. -->
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false">
+            <meta-data
+                android:name="com.siliconcircuits.toaststack.ToastStackInitializer"
+                android:value="androidx.startup" />
+        </provider>
+    </application>
 </manifest>

@@ -44,6 +44,10 @@ dependencies {
     implementation(libs.androidx.material.icons)
     implementation(libs.androidx.compose.animation)
     implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.androidx.startup.runtime)
+    implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.lifecycle.viewmodel)
+    implementation(libs.androidx.activity.compose)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)

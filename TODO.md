@@ -253,31 +253,34 @@ Prevents breaking API changes later.*
 
 ### Zero Setup / Auto Initialization
 
-- [ ] `ContentProvider` or `AndroidX Startup Initializer` that auto attaches host to every Activity
-- [ ] Users just add the dependency and call `ToastStack.show()` with no composable setup
-- [ ] Opt out mechanism for apps that want manual host placement
-- [ ] `Modifier.toastStackHost()` as an alternative to `ToastStackHost()` composable
+- [x] AndroidX Startup Initializer auto attaches ToastStackHost to every ComponentActivity
+- [x] Users just add the dependency and call `ToastStack.show()` with no composable setup
+- [x] Opt out via manifest `tools:node="remove"` on the initializer meta data
+- [x] `WithToastStack { }` composable wrapper as alternative to manual Box + ToastStackHost
 
 ### ViewModel Extensions
 
-- [ ] `ViewModel.showToast()` extension via a provided interface
-- [ ] `ViewModel.showToastAndAwait()` suspend extension (builds on Phase 4)
-- [ ] Navigation integration: auto dismiss toasts on navigation events
+- [x] `ViewModel.showToast()` extension via ToastStack singleton
+- [x] `ViewModel.showToastAndAwait()` suspend extension (launches in viewModelScope)
+- [x] Typed extensions: `showSuccessToast()`, `showErrorToast()`, `showWarningToast()`, `showInfoToast()`, `showLoadingToast()`
+- [ ] Navigation integration: auto dismiss toasts on navigation events *(deferred: needs Navigation Compose dependency)*
 
 ### API Surface
 
-- [ ] `ToastStack.show { ... }` builder DSL for complex toasts
-- [ ] `ToastStack.update(id) { ... }` to modify an active toast
-- [ ] Stabilize all public APIs - remove `@ExperimentalToastStackApi` for 1.0 release
+- [x] `state.build { message = "..."; type = Success }` builder DSL for complex toasts
+- [x] `buildToast { }` global function for singleton builder DSL
+- [ ] `ToastStack.update(id) { ... }` to modify an active toast *(handle.updateProgress and handle.withAction cover most use cases)*
+- [ ] Stabilize all public APIs - remove `@ExperimentalToastStackApi` for 1.0 release *(deferred to actual 1.0)*
 
 ### Configuration DSL
 
-- [ ] Global configuration via `ToastStackHost(config = ToastStackConfig { ... })`
-- [ ] Duration defaults per type
-- [ ] Animation defaults
-- [ ] Position default
-- [ ] Style defaults
-- [ ] Max visible count
+- [x] `ToastStackConfig { }` builder for global defaults
+- [x] `rememberToastStackState(config = ToastStackConfig { ... })` convenience
+- [x] Duration defaults
+- [x] Animation defaults
+- [x] Position default
+- [x] Swipe dismiss default
+- [x] Max visible count
 
 ### Testing Support (140 tests passing, 100% coverage target)
 
