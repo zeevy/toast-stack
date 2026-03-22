@@ -422,20 +422,22 @@ Prevents breaking API changes later.*
 
 ### Publishing
 
-- [ ] Maven Central publication via `maven-publish` plugin
-- [ ] Gradle dependency: `implementation("com.siliconcircuits:toaststack:x.y.z")`
-- [ ] Version catalog entry for easy adoption
-- [ ] Gradle BOM for version management across future artifacts
-- [ ] ProGuard/R8 rules bundled (consumer rules)
-- [ ] Source JAR and Javadoc JAR published
+- [x] Maven publish plugin configured with `maven-publish`
+- [x] Gradle dependency: `implementation("com.siliconcircuits:toaststack:0.1.0")`
+- [x] Version catalog entry: `toaststack = { group = "com.siliconcircuits", name = "toaststack", version = "0.1.0" }`
+- [ ] Gradle BOM for version management across future artifacts *(single artifact for now, BOM not needed yet)*
+- [x] ProGuard/R8 consumer rules bundled (keeps all public API and initializer)
+- [x] Source JAR and Javadoc JAR published
+- [x] POM with license (Apache 2.0), developer (zeevy), SCM (GitHub)
+- [ ] Actual Maven Central publication *(requires Sonatype account and GPG signing)*
 
-### Multiplatform
+### Multiplatform (Future)
 
 - [ ] Compose Multiplatform support (Android + Desktop) using expect/actual from Phase 4 audit
 - [ ] iOS via Compose Multiplatform (when stable)
 - [ ] Common API across all targets
 
-### Integrations
+### Integrations (Future)
 
 - [ ] Hilt/Koin module for DI setup
 - [ ] CI pipeline runs full test suite on every PR
