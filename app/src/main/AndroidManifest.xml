@@ -7,7 +7,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.ToastStack">
         <activity
-            android:name=".demo.MainActivity"
+            android:name=".MainActivity"
             android:exported="true"
             android:theme="@style/Theme.ToastStack">
             <intent-filter>
