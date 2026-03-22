@@ -98,14 +98,24 @@ fun ToastStackHost(
     val visibilityMap = remember { mutableStateMapOf<String, Boolean>() }
 
     // Sync the render list with state.toasts on every recomposition.
+    // This handles three scenarios:
+    //  1. New toasts: added to the render list as invisible (triggers enter animation)
+    //  2. Updated toasts: replaced in the render list so changes like progress
+    //     values, action labels, or callback updates are reflected in the UI
+    //  3. Removed toasts: marked invisible (triggers exit animation)
     val activeIds = state.toasts.map { it.id }.toSet()
+    val activeToastsById = state.toasts.associateBy { it.id }
 
-    // Add new toasts that aren't in the render list yet. They start invisible
-    // and get flipped to visible via LaunchedEffect to trigger the enter animation.
     state.toasts.forEach { toast ->
-        if (renderList.none { it.id == toast.id }) {
+        val renderIndex = renderList.indexOfFirst { it.id == toast.id }
+        if (renderIndex == -1) {
+            // New toast: add to render list and start invisible for enter animation.
             renderList.add(toast)
             visibilityMap[toast.id] = false
+        } else if (renderList[renderIndex] != toast) {
+            // Existing toast was updated (e.g., progress, action, callback).
+            // Replace with the latest version so the UI reflects the change.
+            renderList[renderIndex] = toast
         }
     }
 
@@ -168,9 +178,13 @@ fun ToastStackHost(
                         }
 
                         // Flip new toasts to visible on the next frame to trigger
-                        // the enter animation.
+                        // the enter animation. After the enter animation completes,
+                        // fire the onShow callback if one is registered.
                         LaunchedEffect(toast.id) {
                             visibilityMap[toast.id] = true
+                            // Wait for the enter animation to finish before firing onShow.
+                            delay(staggeredConfig.enterDurationMillis.toLong())
+                            toast.onShow?.invoke()
                         }
 
                         val isVisible = visibilityMap[toast.id] ?: false

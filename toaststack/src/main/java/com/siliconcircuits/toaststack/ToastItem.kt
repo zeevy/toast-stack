@@ -21,10 +21,17 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -192,10 +199,26 @@ internal fun ToastItem(
                     ),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Leading icon: either a custom composable or the built in icon for the type.
-                val iconContent = toast.customIcon
-                if (iconContent != null) {
-                    iconContent()
+                val contentColor = resolvedStyle.contentColor ?: typeDefaults.contentColor!!
+
+                // Leading visual: loading spinner, custom icon, or type icon.
+                // The spinner only appears for Loading type when no determinate
+                // progress value has been set. Once progress is set (e.g., via
+                // handle.updateProgress(0.5f)), the spinner disappears and the
+                // determinate progress bar below the text takes over.
+                val showSpinner = toast.type == ToastType.Loading
+                    && toast.customIcon == null
+                    && toast.progress == null
+
+                if (showSpinner) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(22.dp),
+                        color = contentColor,
+                        strokeWidth = 2.dp
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                } else if (toast.customIcon != null) {
+                    toast.customIcon.invoke()
                     Spacer(modifier = Modifier.width(10.dp))
                 } else {
                     val typeIcon = iconForType(toast.type)
@@ -204,30 +227,84 @@ internal fun ToastItem(
                             imageVector = typeIcon,
                             contentDescription = "${toast.type.name} icon",
                             tint = resolvedStyle.iconTint
-                                ?: resolvedStyle.contentColor
-                                ?: typeDefaults.contentColor!!,
+                                ?: contentColor,
                             modifier = Modifier.size(22.dp)
                         )
                         Spacer(modifier = Modifier.width(10.dp))
                     }
                 }
 
-                // Text area: title (optional, bold) + message.
+                // Text area: title (optional) + message + progress label.
                 Column(modifier = Modifier.weight(1f)) {
                     if (toast.title != null) {
                         Text(
                             text = toast.title,
                             style = resolvedStyle.titleStyle!!,
                             color = resolvedStyle.titleColor
-                                ?: resolvedStyle.contentColor
-                                ?: typeDefaults.contentColor!!
+                                ?: contentColor
                         )
                     }
                     Text(
                         text = toast.message,
                         style = resolvedStyle.messageStyle!!,
-                        color = resolvedStyle.contentColor ?: typeDefaults.contentColor!!
+                        color = contentColor
                     )
+                    // Determinate progress bar, rendered when a progress value is set.
+                    if (toast.progress != null) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        LinearProgressIndicator(
+                            progress = { toast.progress },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(4.dp),
+                            color = contentColor,
+                            trackColor = contentColor.copy(alpha = 0.3f)
+                        )
+                    }
+                    if (toast.progressLabel != null) {
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = toast.progressLabel,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = contentColor.copy(alpha = 0.7f)
+                        )
+                    }
+                }
+
+                // Action buttons area: primary and optional secondary action.
+                if (toast.actionLabel != null) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    TextButton(
+                        onClick = {
+                            toast.onAction?.invoke()
+                            onDismiss(DismissReason.Action)
+                        },
+                        colors = ButtonDefaults.textButtonColors(
+                            contentColor = contentColor
+                        )
+                    ) {
+                        Text(
+                            text = toast.actionLabel,
+                            style = MaterialTheme.typography.labelMedium
+                        )
+                    }
+                }
+
+                if (toast.secondaryActionLabel != null) {
+                    TextButton(
+                        onClick = {
+                            toast.onSecondaryAction?.invoke()
+                            onDismiss(DismissReason.Action)
+                        },
+                        colors = ButtonDefaults.textButtonColors(
+                            contentColor = contentColor.copy(alpha = 0.8f)
+                        )
+                    ) {
+                        Text(
+                            text = toast.secondaryActionLabel,
+                            style = MaterialTheme.typography.labelMedium
+                        )
+                    }
                 }
 
                 // Close button, rendered only when the toast opts in.
@@ -239,7 +316,7 @@ internal fun ToastItem(
                         Icon(
                             imageVector = Icons.Default.Close,
                             contentDescription = "Dismiss toast",
-                            tint = resolvedStyle.contentColor ?: typeDefaults.contentColor!!,
+                            tint = contentColor,
                             modifier = Modifier.size(18.dp)
                         )
                     }
@@ -268,6 +345,7 @@ private fun iconForType(type: ToastType): ImageVector? {
         ToastType.Error -> Icons.Default.Close
         ToastType.Warning -> Icons.Default.Warning
         ToastType.Info -> Icons.Default.Info
+        ToastType.Loading -> null // Loading uses CircularProgressIndicator instead.
     }
 }
 

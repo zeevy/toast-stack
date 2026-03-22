@@ -203,6 +203,27 @@ object ToastStack {
     ): ToastHandle? = resolveHost(hostTag)?.info(message, title, onDismiss = onDismiss)
 
     /**
+     * Shows a [ToastType.Loading] toast with an indeterminate progress
+     * indicator. Defaults to [ToastDuration.Indefinite].
+     *
+     * Use the returned [ToastHandle] to update progress or dismiss:
+     * ```
+     * val handle = ToastStack.loading("Uploading...")
+     * handle.updateProgress(0.5f)
+     * handle.dismiss()
+     * ToastStack.success("Done")
+     * ```
+     *
+     * @return A [ToastHandle], or null if no host was available.
+     */
+    fun loading(
+        message: String,
+        title: String? = null,
+        hostTag: String? = null,
+        onDismiss: ((DismissReason) -> Unit)? = null
+    ): ToastHandle? = resolveHost(hostTag)?.loading(message, title, onDismiss = onDismiss)
+
+    /**
      * Shows a toast and suspends until it is dismissed, returning the
      * [DismissReason]. Returns null if no host is registered.
      *

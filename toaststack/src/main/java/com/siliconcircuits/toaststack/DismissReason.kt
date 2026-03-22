@@ -47,6 +47,13 @@ enum class DismissReason {
     CloseButton,
 
     /**
+     * The user tapped an action button on the toast (e.g., "Undo",
+     * "Retry", "View"). The toast is auto dismissed after the action
+     * callback fires, unless the callback explicitly prevents it.
+     */
+    Action,
+
+    /**
      * The toast was removed by code rather than by the user. This
      * happens when [ToastStackState.dismiss] or [ToastStackState.dismissAll]
      * is called, or when a toast is evicted because the maximum visible

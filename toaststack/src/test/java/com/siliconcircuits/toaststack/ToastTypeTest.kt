@@ -8,15 +8,15 @@ import org.junit.Test
 class ToastTypeTest {
 
     @Test
-    fun `ToastType has exactly five values`() {
-        assertEquals(5, ToastType.entries.size)
+    fun `ToastType has exactly six values`() {
+        assertEquals(6, ToastType.entries.size)
     }
 
     @Test
     fun `ToastType contains all expected names`() {
         val names = ToastType.entries.map { it.name }
         assertEquals(
-            listOf("Default", "Success", "Error", "Warning", "Info"),
+            listOf("Default", "Success", "Error", "Warning", "Info", "Loading"),
             names
         )
     }

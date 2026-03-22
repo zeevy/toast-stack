@@ -132,6 +132,20 @@ object ToastStackDefaults {
                 titleStyle = typography.titleSmall,
                 messageStyle = typography.bodyMedium
             )
+
+            // Loading uses the same inverse surface as Default, since
+            // the visual emphasis comes from the progress indicator
+            // rather than from the card color.
+            ToastType.Loading -> ToastStackStyle(
+                backgroundColor = colorScheme.inverseSurface,
+                contentColor = colorScheme.inverseOnSurface,
+                titleColor = colorScheme.inverseOnSurface,
+                iconTint = colorScheme.inverseOnSurface,
+                shape = Shape,
+                elevation = Elevation,
+                titleStyle = typography.titleSmall,
+                messageStyle = typography.bodyMedium
+            )
         }
     }
 }

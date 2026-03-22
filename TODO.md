@@ -182,33 +182,33 @@ Prevents breaking API changes later.*
 
 ### Action Buttons
 
-- [ ] Single action button (e.g., "Undo", "Retry", "View")
-- [ ] Action callback with toast auto dismiss on click
-- [ ] Action button styling (text button, outlined, filled)
-- [ ] Secondary action support (two buttons)
-- [ ] Chaining API: `.withAction("Undo") { }` built on Phase 4 ToastHandle
+- [x] Single action button (e.g., "Undo", "Retry", "View")
+- [x] Action callback with toast auto dismiss on click
+- [x] Action button styling (text button style via Material 3 TextButton)
+- [x] Secondary action support (two buttons)
+- [x] Chaining API: `.withAction("Undo") { }` built on Phase 4 ToastHandle
 
 ### Loading & Progress Toasts
 
-- [ ] Loading toast type with indeterminate progress indicator
-- [ ] `ToastStack.loading("message")` returning a `ToastHandle` for later update
-- [ ] Determinate progress bar (0-100%)
-- [ ] Update progress on an active toast via `handle.updateProgress(0.5f)`
-- [ ] Auto transition from loading to success/error on completion
-- [ ] Progress text label (e.g., "3 of 10 files uploaded")
+- [x] Loading toast type with indeterminate progress indicator (CircularProgressIndicator)
+- [x] `ToastStack.loading("message")` returning a `ToastHandle` for later update
+- [x] Determinate progress bar (0-100%) via LinearProgressIndicator
+- [x] Update progress on an active toast via `handle.updateProgress(0.5f)`
+- [x] Auto transition from loading to success/error on completion
+- [x] Progress text label (e.g., "3 of 10 files uploaded")
 
 ### Toast Lifecycle Callbacks
 
-- [ ] `onShow` - called when toast becomes visible
-- [ ] `onDismiss` - called when toast is removed (with dismiss reason)
-- [ ] `onAction` - called when action button is tapped
-- [ ] Chaining API: `.onDismiss { }` and `.onShow { }` built on Phase 4 ToastHandle
+- [x] `onShow` - called when toast becomes visible (after enter animation)
+- [x] `onDismiss` - called when toast is removed (with dismiss reason)
+- [x] `onAction` - called when action button is tapped (via onAction field)
+- [x] Chaining API: `.onDismiss { }` and `.onShow { }` built on Phase 4 ToastHandle
 
 ### Queueing Behavior
 
-- [ ] When max visible limit is reached, new toasts queue and appear as slots open
-- [ ] Priority levels (low, normal, high, urgent)
-- [ ] Urgent toasts jump the queue and display immediately
+- [ ] When max visible limit is reached, new toasts queue and appear as slots open *(currently evicts oldest instead of queueing)*
+- [x] Priority levels (Low, Normal, High, Urgent) via ToastPriority enum
+- [ ] Urgent toasts jump the queue and display immediately *(enum defined, queue logic not yet implemented)*
 - [ ] Duplicate detection - same message within a time window is ignored or updates the existing toast
 
 ---

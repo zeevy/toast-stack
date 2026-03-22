@@ -58,6 +58,78 @@ class ToastHandle internal constructor(
     }
 
     /**
+     * Registers a callback that is invoked when this toast becomes
+     * visible on screen (after the enter animation completes).
+     *
+     * This is a chaining method:
+     * ```
+     * ToastStack.show("Processing")
+     *     .onShow { startBackgroundWork() }
+     *     .onDismiss { stopBackgroundWork() }
+     * ```
+     *
+     * @param callback Invoked when the toast appears on screen.
+     * @return This handle for further chaining.
+     */
+    fun onShow(callback: () -> Unit): ToastHandle {
+        state.updateToastOnShow(id, callback)
+        return this
+    }
+
+    /**
+     * Adds a primary action button to this toast.
+     *
+     * The action button appears on the trailing edge of the toast card.
+     * When the user taps it, the [onClick] callback fires and the toast
+     * is automatically dismissed with [DismissReason.Action].
+     *
+     * This is a chaining method:
+     * ```
+     * ToastStack.show("File deleted")
+     *     .withAction("Undo") { restoreFile() }
+     *     .onDismiss { reason -> log(reason) }
+     * ```
+     *
+     * @param label The text displayed on the action button.
+     * @param onClick Callback invoked when the button is tapped.
+     * @return This handle for further chaining.
+     */
+    fun withAction(label: String, onClick: () -> Unit): ToastHandle {
+        state.updateToastAction(id, label, onClick)
+        return this
+    }
+
+    /**
+     * Updates the progress value on a loading/progress toast.
+     *
+     * The progress drives a determinate [LinearProgressIndicator] on the
+     * toast card. Pass a value between 0f (empty) and 1f (complete).
+     *
+     * Typically used with [ToastType.Loading] toasts:
+     * ```
+     * val handle = ToastStack.loading("Uploading...")
+     * handle.updateProgress(0.5f)  // 50%
+     * handle.updateProgress(1.0f)  // Done
+     * handle.dismiss()
+     * ```
+     *
+     * @param progress A value between 0f and 1f representing completion.
+     */
+    fun updateProgress(progress: Float) {
+        state.updateToastProgress(id, progress.coerceIn(0f, 1f))
+    }
+
+    /**
+     * Updates the progress value and label simultaneously.
+     *
+     * @param progress A value between 0f and 1f.
+     * @param label Descriptive text like "3 of 10 files uploaded".
+     */
+    fun updateProgress(progress: Float, label: String) {
+        state.updateToastProgress(id, progress.coerceIn(0f, 1f), label)
+    }
+
+    /**
      * Registers a callback that is invoked when this toast is dismissed,
      * regardless of how it was dismissed (timeout, swipe, close button,
      * or programmatic).

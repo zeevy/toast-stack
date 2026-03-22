@@ -390,10 +390,10 @@ class ToastStackStateTest {
     }
 
     @Test
-    fun `DismissReason has all four values`() {
-        assertEquals(4, DismissReason.entries.size)
+    fun `DismissReason has all five values`() {
+        assertEquals(5, DismissReason.entries.size)
         assertTrue(DismissReason.entries.map { it.name }.containsAll(
-            listOf("Timeout", "Swipe", "CloseButton", "Programmatic")
+            listOf("Timeout", "Swipe", "CloseButton", "Action", "Programmatic")
         ))
     }
 

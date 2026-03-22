@@ -59,5 +59,21 @@ enum class ToastType {
      * Renders with a blue background and an info circle icon.
      * Use for messages like "New version available" or "Sync complete".
      */
-    Info
+    Info,
+
+    /**
+     * Indicates an ongoing operation that hasn't completed yet.
+     * Renders with an indeterminate circular progress indicator instead
+     * of a static icon. Use with [ToastDuration.Indefinite] and update
+     * the toast to [Success] or [Error] when the operation finishes.
+     *
+     * Example:
+     * ```
+     * val handle = ToastStack.loading("Uploading...")
+     * // Later, when done:
+     * handle.dismiss()
+     * ToastStack.success("Upload complete")
+     * ```
+     */
+    Loading
 }

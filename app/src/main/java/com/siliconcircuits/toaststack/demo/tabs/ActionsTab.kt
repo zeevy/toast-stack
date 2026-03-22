@@ -12,7 +12,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -25,6 +24,9 @@ import androidx.compose.ui.unit.dp
 import com.siliconcircuits.toaststack.ExperimentalToastStackApi
 import com.siliconcircuits.toaststack.ToastDuration
 import com.siliconcircuits.toaststack.ToastStackState
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalToastStackApi::class)
 @Composable
@@ -39,78 +41,142 @@ fun ActionsTab(toastState: ToastStackState) {
     ) {
         Spacer(modifier = Modifier.height(16.dp))
 
-        SectionLabel("Close Button")
+        SectionLabel("Action Buttons")
         Spacer(modifier = Modifier.height(4.dp))
 
-        Card(
+        DemoCard(
+            title = "Single Action",
+            subtitle = "Toast with an Undo button",
             onClick = {
                 counter++
-                toastState.show(
-                    message = "Tap the X to dismiss me",
-                    duration = ToastDuration.Indefinite,
-                    showCloseButton = true
-                )
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 4.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-            ),
-            shape = RoundedCornerShape(14.dp)
-        ) {
-            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
-                Text(
-                    text = "Indefinite with Close",
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium
-                )
-                Text(
-                    text = "Shows close button, no auto dismiss",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                toastState.show("Item deleted", duration = ToastDuration.Long)
+                    .withAction("Undo") {
+                        toastState.success("Item restored")
+                    }
             }
-        }
+        )
+
+        DemoCard(
+            title = "Chained Callbacks",
+            subtitle = "withAction + onDismiss chaining",
+            onClick = {
+                counter++
+                toastState.show("Changes saved", duration = ToastDuration.Long)
+                    .withAction("View") {
+                        toastState.info("Opening details...")
+                    }
+                    .onDismiss { reason ->
+                        toastState.show(
+                            "Dismissed: ${reason.name}",
+                            duration = ToastDuration.Short
+                        )
+                    }
+            }
+        )
 
         Spacer(modifier = Modifier.height(28.dp))
 
-        SectionLabel("Action Buttons")
-        PlaceholderSection("Single action button (Undo, Retry, View) (Phase 4)")
+        SectionLabel("Close Button")
+        Spacer(modifier = Modifier.height(4.dp))
 
-        Spacer(modifier = Modifier.height(16.dp))
+        DemoCard(
+            title = "Indefinite + Close",
+            subtitle = "Stays until close button is tapped",
+            onClick = {
+                counter++
+                toastState.show(
+                    "Tap the X to dismiss",
+                    duration = ToastDuration.Indefinite,
+                    showCloseButton = true
+                )
+            }
+        )
 
-        SectionLabel("Progress Toasts")
-        PlaceholderSection("Determinate progress bar, loading state (Phase 4)")
+        Spacer(modifier = Modifier.height(28.dp))
 
-        Spacer(modifier = Modifier.height(16.dp))
+        SectionLabel("Loading & Progress")
+        Spacer(modifier = Modifier.height(4.dp))
 
-        SectionLabel("Lifecycle Callbacks")
-        PlaceholderSection("onShow, onDismiss with reason, onAction (Phase 4)")
+        DemoCard(
+            title = "Loading Toast",
+            subtitle = "Indeterminate spinner, auto dismiss after 3s",
+            onClick = {
+                counter++
+                val handle = toastState.loading("Processing your request...")
+                MainScope().launch {
+                    delay(3000)
+                    handle.dismiss()
+                    toastState.success("Request completed")
+                }
+            }
+        )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        DemoCard(
+            title = "Progress Toast",
+            subtitle = "Determinate progress bar 0% to 100%",
+            onClick = {
+                counter++
+                val handle = toastState.loading("Uploading files...")
+                MainScope().launch {
+                    for (i in 1..10) {
+                        delay(400)
+                        handle.updateProgress(i / 10f, "$i of 10 files")
+                    }
+                    delay(500)
+                    handle.dismiss()
+                    toastState.success("Upload complete")
+                }
+            }
+        )
 
-        SectionLabel("Queueing")
-        PlaceholderSection("Priority levels, duplicate detection (Phase 4)")
+        Spacer(modifier = Modifier.height(28.dp))
+
+        SectionLabel("Lifecycle")
+        Spacer(modifier = Modifier.height(4.dp))
+
+        DemoCard(
+            title = "onShow Callback",
+            subtitle = "Fires after enter animation completes",
+            onClick = {
+                counter++
+                toastState.show("Watch for the second toast", duration = ToastDuration.Long)
+                    .onShow {
+                        toastState.info("onShow fired!")
+                    }
+            }
+        )
 
         Spacer(modifier = Modifier.height(32.dp))
     }
 }
 
 @Composable
-private fun PlaceholderSection(text: String) {
-    Surface(
+private fun DemoCard(
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit
+) {
+    Card(
+        onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp),
-        shape = RoundedCornerShape(14.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerLow
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+        ),
+        shape = RoundedCornerShape(14.dp)
     ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(16.dp)
-        )
+        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }

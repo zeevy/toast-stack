@@ -27,6 +27,17 @@ import kotlin.uuid.Uuid
  *   When null, falls back to the host's default animation.
  * @property animationConfig Timing and easing overrides for this toast's
  *   animation. When null, falls back to the host's default config.
+ * @property actionLabel Text for the primary action button (e.g., "Undo").
+ *   When null, no action button is rendered.
+ * @property onAction Callback invoked when the user taps the action button.
+ *   The toast is auto dismissed with [DismissReason.Action] after this fires.
+ * @property secondaryActionLabel Text for an optional second action button.
+ * @property onSecondaryAction Callback for the secondary action button.
+ * @property progress Current progress value for determinate progress toasts.
+ *   Range is 0f to 1f. When null, no progress bar is shown (unless the type
+ *   is Loading, which shows an indeterminate indicator).
+ * @property progressLabel Optional text shown alongside the progress bar
+ *   (e.g., "3 of 10 files").
  * @property customIcon Optional composable that replaces the default type icon.
  * @property onDismiss Optional callback invoked when the toast is removed,
  *   with the [DismissReason] explaining why.
@@ -45,6 +56,14 @@ data class ToastData(
     val style: ToastStackStyle? = null,
     val animation: ToastAnimation? = null,
     val animationConfig: ToastAnimationConfig? = null,
+    val actionLabel: String? = null,
+    val onAction: (() -> Unit)? = null,
+    val secondaryActionLabel: String? = null,
+    val onSecondaryAction: (() -> Unit)? = null,
+    val progress: Float? = null,
+    val progressLabel: String? = null,
+    val priority: ToastPriority = ToastPriority.Normal,
     val customIcon: (@Composable () -> Unit)? = null,
+    val onShow: (() -> Unit)? = null,
     val onDismiss: ((DismissReason) -> Unit)? = null
 )

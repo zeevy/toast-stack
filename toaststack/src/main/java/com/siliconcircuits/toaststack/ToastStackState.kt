@@ -407,6 +407,90 @@ class ToastStackState(
     }
 
     /**
+     * Adds or replaces the action button on an active toast.
+     *
+     * Used by [ToastHandle.withAction] to configure action buttons via
+     * the chaining API after the toast has been created.
+     *
+     * @param id The toast's unique identifier.
+     * @param label The text to display on the action button.
+     * @param onClick Callback invoked when the button is tapped. The toast
+     *   is automatically dismissed with [DismissReason.Action] after this fires.
+     */
+    /**
+     * Sets the onShow callback for an active toast.
+     * Used by [ToastHandle.onShow] for chaining.
+     */
+    internal fun updateToastOnShow(id: String, callback: () -> Unit) {
+        val index = activeToasts.indexOfFirst { it.id == id }
+        if (index == -1) return
+        activeToasts[index] = activeToasts[index].copy(onShow = callback)
+    }
+
+    internal fun updateToastAction(id: String, label: String, onClick: () -> Unit) {
+        val index = activeToasts.indexOfFirst { it.id == id }
+        if (index == -1) return
+        activeToasts[index] = activeToasts[index].copy(
+            actionLabel = label,
+            onAction = onClick
+        )
+    }
+
+    /**
+     * Updates the progress value on an active toast.
+     *
+     * Used by [ToastHandle.updateProgress] to drive the determinate progress
+     * bar on loading/progress toasts.
+     *
+     * @param id The toast's unique identifier.
+     * @param progress A value between 0f and 1f.
+     * @param label Optional descriptive text for the progress.
+     */
+    internal fun updateToastProgress(id: String, progress: Float, label: String? = null) {
+        val index = activeToasts.indexOfFirst { it.id == id }
+        if (index == -1) return
+        val current = activeToasts[index]
+        activeToasts[index] = if (label != null) {
+            current.copy(progress = progress, progressLabel = label)
+        } else {
+            current.copy(progress = progress)
+        }
+    }
+
+    /**
+     * Shows a [ToastType.Loading] toast with an indeterminate progress
+     * indicator. The toast defaults to [ToastDuration.Indefinite] since
+     * loading operations have no predetermined end time.
+     *
+     * Use the returned [ToastHandle] to update progress or dismiss the
+     * toast when the operation completes:
+     * ```
+     * val handle = toastState.loading("Uploading...")
+     * handle.updateProgress(0.5f, "50% complete")
+     * // When done:
+     * handle.dismiss()
+     * toastState.success("Upload complete")
+     * ```
+     *
+     * @param message The body text (e.g., "Uploading...").
+     * @param title Optional headline above the message.
+     * @return A [ToastHandle] for updating progress and dismissing.
+     */
+    fun loading(
+        message: String,
+        title: String? = null,
+        position: ToastPosition = defaultPosition,
+        onDismiss: ((DismissReason) -> Unit)? = null
+    ): ToastHandle = show(
+        message = message,
+        title = title,
+        type = ToastType.Loading,
+        duration = ToastDuration.Indefinite,
+        position = position,
+        onDismiss = onDismiss
+    )
+
+    /**
      * Removes a single toast from the screen by its [id].
      *
      * If the toast has an `onDismiss` callback, it will be invoked with
