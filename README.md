@@ -39,13 +39,11 @@ ToastStack replaces Android's limited native `Toast` and `Snackbar` with a fully
 
 ## Screenshots
 
-| Toast Types                          | Animations                         | Actions & Progress                 |
-| ------------------------------------ | ---------------------------------- | ---------------------------------- |
-| ![Types](docs/images/types.png)     | ![Animations](docs/images/anim.gif) | ![Actions](docs/images/actions.gif) |
-
-| Positions                              | Custom Content                     | Dark Mode                          |
-| -------------------------------------- | ---------------------------------- | ---------------------------------- |
-| ![Positions](docs/images/positions.png) | ![Custom](docs/images/custom.png) | ![Dark](docs/images/dark.png)     |
+![Toast Types](docs/images/types.png)
+![Dark Mode](docs/images/dark.png)
+![Animations](docs/images/anim.gif)
+![Actions & Progress](docs/images/actions.gif)
+![Custom Content](docs/images/custom.png)
 
 ## Installation
 
