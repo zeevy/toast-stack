@@ -217,35 +217,35 @@ Prevents breaking API changes later.*
 
 ### Custom Content
 
-- [ ] `showCustom()` accepting an arbitrary `@Composable` lambda for fully custom toast layouts
-- [ ] Minimum height and width constraints for custom content
-- [ ] Custom content still gets swipe to dismiss and auto dismiss behavior
+- [x] `showCustom()` accepting an arbitrary `@Composable` lambda for fully custom toast layouts
+- [x] Minimum height (48dp) constraint for custom content
+- [x] Custom content still gets swipe to dismiss and auto dismiss behavior
 
 ### Stacking Modes
 
-- [ ] Expanded mode (all toasts visible, stacked vertically with spacing)
+- [x] Expanded mode (all toasts visible, stacked vertically with spacing) *(this is the current default behavior)*
 - [ ] Compact mode (newest toast fully visible, older ones peek behind with offset, like iOS notifications)
 - [ ] Tap compact stack to expand (gesture disambiguation with swipe to dismiss: vertical tap vs horizontal swipe)
 - [ ] Configurable max stack depth in compact mode
 
 ### Haptic Feedback
 
-- [ ] Optional vibration on toast appearance
-- [ ] Haptic feedback intensity per toast type (e.g., stronger for errors)
-- [ ] Respects system haptic settings
+- [x] Optional vibration on toast appearance via `hapticEnabled` flag
+- [x] Haptic feedback intensity per toast type (Error=80ms, Warning=60ms, Success=40ms, Info=30ms)
+- [x] Respects system haptic feedback setting
 
 ### Advanced Accessibility (basic TalkBack and content descriptions are in Phase 1)
 
-- [ ] Toast type announced (e.g., "Error notification")
-- [ ] Action buttons focusable and activatable via accessibility services
-- [ ] Sufficient color contrast for all built-in types (WCAG AA)
-- [ ] Reduced motion support (simplified animations when system setting is on)
+- [x] Toast type announced (e.g., "Error notification: Connection failed")
+- [x] Action buttons focusable and activatable via accessibility services *(TextButton is focusable by default)*
+- [ ] Sufficient color contrast audit for all built in types (WCAG AA)
+- [x] Reduced motion support (Fade with 150ms when system animator scale is 0)
 
 ### Sound
 
-- [ ] Optional notification sound on appearance
-- [ ] Per type sound customization
-- [ ] Respects system Do Not Disturb and silent mode
+- [x] Optional notification sound on appearance via `soundEnabled` flag
+- [ ] Per type sound customization *(currently uses system notification sound for all types)*
+- [x] Respects system Do Not Disturb and silent mode
 
 ---
 

@@ -89,6 +89,19 @@ fun ToastStackHost(
 
     val layoutDirection = LocalLayoutDirection.current
 
+    // Check if the system's "remove animations" setting is enabled.
+    // When active, all toast animations are simplified to a short fade
+    // regardless of what the toast or state defaults specify. This ensures
+    // users who are sensitive to motion still get a usable experience.
+    // The animator duration scale is 0.0 when animations are disabled.
+    val animatorScale = android.provider.Settings.Global.getFloat(
+        context.contentResolver,
+        android.provider.Settings.Global.ANIMATOR_DURATION_SCALE,
+        1.0f
+    )
+    val reduceMotion = animatorScale == 0.0f
+    val reducedConfig = ToastAnimationConfig(enterDurationMillis = 150, exitDurationMillis = 100)
+
     // --- Render list and visibility tracking ---
     // The render list is a superset of state.toasts. It includes toasts that
     // have been dismissed but whose exit animation is still playing.
@@ -165,8 +178,19 @@ fun ToastStackHost(
                             else -> 1
                         }
 
-                        val animation = toast.animation ?: state.defaultAnimation
-                        val baseConfig = toast.animationConfig ?: state.defaultAnimationConfig
+                        // When reduced motion is active, override the animation to
+                        // a simple fade with short duration. Otherwise use the
+                        // toast's configured animation or the state default.
+                        val animation = if (reduceMotion) {
+                            ToastAnimation.Fade
+                        } else {
+                            toast.animation ?: state.defaultAnimation
+                        }
+                        val baseConfig = if (reduceMotion) {
+                            reducedConfig
+                        } else {
+                            toast.animationConfig ?: state.defaultAnimationConfig
+                        }
 
                         val staggeredConfig = if (index > 0 && baseConfig.staggerDelayMillis > 0) {
                             val staggerDelay = index * baseConfig.staggerDelayMillis
@@ -178,10 +202,19 @@ fun ToastStackHost(
                         }
 
                         // Flip new toasts to visible on the next frame to trigger
-                        // the enter animation. After the enter animation completes,
-                        // fire the onShow callback if one is registered.
+                        // the enter animation. Also fire haptic/sound feedback
+                        // immediately on appearance, and onShow after the enter
+                        // animation completes.
                         LaunchedEffect(toast.id) {
                             visibilityMap[toast.id] = true
+                            // Haptic and sound fire on appearance (before animation ends)
+                            // so the user gets immediate sensory feedback.
+                            if (toast.hapticEnabled) {
+                                ToastFeedback.vibrate(context, toast.type)
+                            }
+                            if (toast.soundEnabled) {
+                                ToastFeedback.playSound(context)
+                            }
                             // Wait for the enter animation to finish before firing onShow.
                             delay(staggeredConfig.enterDurationMillis.toLong())
                             toast.onShow?.invoke()

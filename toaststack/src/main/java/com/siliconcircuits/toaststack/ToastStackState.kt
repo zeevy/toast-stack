@@ -152,6 +152,8 @@ class ToastStackState(
         animation: ToastAnimation? = null,
         animationConfig: ToastAnimationConfig? = null,
         customIcon: (@Composable () -> Unit)? = null,
+        hapticEnabled: Boolean = false,
+        soundEnabled: Boolean = false,
         onDismiss: ((DismissReason) -> Unit)? = null
     ): ToastHandle {
         val toast = ToastData(
@@ -166,6 +168,8 @@ class ToastStackState(
             animation = animation,
             animationConfig = animationConfig,
             customIcon = customIcon,
+            hapticEnabled = hapticEnabled,
+            soundEnabled = soundEnabled,
             onDismiss = onDismiss
         )
         return enqueue(toast)
@@ -234,6 +238,65 @@ class ToastStackState(
         position: ToastPosition = defaultPosition,
         onDismiss: ((DismissReason) -> Unit)? = null
     ): ToastHandle = show(message, title, ToastType.Info, duration, position, onDismiss = onDismiss)
+
+    /**
+     * Shows a toast with fully custom content provided as a `@Composable`
+     * lambda, replacing the default icon + text + action layout entirely.
+     *
+     * The custom content still inherits swipe to dismiss, auto dismiss
+     * timer, close button, and animation behavior from the toast config.
+     * Use this when the built in layout doesn't fit your needs.
+     *
+     * The lambda receives the full width constraint of the toast card.
+     * Minimum height is enforced internally (48dp) to ensure the toast
+     * remains tappable and visible.
+     *
+     * ```
+     * toastState.showCustom(
+     *     duration = ToastDuration.Long,
+     *     position = ToastPosition.BottomCenter
+     * ) {
+     *     Row {
+     *         Image(...)
+     *         Column {
+     *             Text("Custom title")
+     *             Text("Custom body with any layout")
+     *         }
+     *     }
+     * }
+     * ```
+     *
+     * @param duration How long the toast stays visible.
+     * @param position Where on screen the toast appears.
+     * @param showCloseButton Whether to show the close (X) button.
+     * @param swipeDismiss Which swipe directions dismiss the toast.
+     * @param style Visual overrides for the card background, shape, etc.
+     * @param content The composable lambda that renders the toast body.
+     * @return A [ToastHandle] for programmatic control and chaining.
+     */
+    fun showCustom(
+        duration: ToastDuration = defaultDuration,
+        position: ToastPosition = defaultPosition,
+        showCloseButton: Boolean = false,
+        swipeDismiss: SwipeDismissDirection = defaultSwipeDismiss,
+        style: ToastStackStyle? = null,
+        animation: ToastAnimation? = null,
+        onDismiss: ((DismissReason) -> Unit)? = null,
+        content: @Composable () -> Unit
+    ): ToastHandle {
+        val toast = ToastData(
+            message = "",
+            duration = duration,
+            position = position,
+            showCloseButton = showCloseButton,
+            swipeDismiss = swipeDismiss,
+            style = style,
+            animation = animation,
+            customContent = content,
+            onDismiss = onDismiss
+        )
+        return enqueue(toast)
+    }
 
     /**
      * Shows a toast and suspends until it is dismissed, returning the

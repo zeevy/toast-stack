@@ -7,6 +7,7 @@ import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.horizontalDrag
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -139,9 +140,22 @@ internal fun ToastItem(
         1f
     }
 
-    // Build the accessibility description from title + message so TalkBack
-    // reads both when the toast appears.
+    // Build the accessibility description including the toast type so
+    // screen readers announce context like "Error notification: Connection
+    // failed" rather than just the message text.
+    val typePrefix = when (toast.type) {
+        ToastType.Success -> "Success notification"
+        ToastType.Error -> "Error notification"
+        ToastType.Warning -> "Warning notification"
+        ToastType.Info -> "Information notification"
+        ToastType.Loading -> "Loading"
+        ToastType.Default -> null
+    }
     val accessibilityLabel = buildString {
+        if (typePrefix != null) {
+            append(typePrefix)
+            append(": ")
+        }
         if (toast.title != null) {
             append(toast.title)
             append(". ")
@@ -189,6 +203,43 @@ internal fun ToastItem(
             color = resolvedStyle.backgroundColor ?: typeDefaults.backgroundColor!!,
             border = borderStroke
         ) {
+            // When customContent is set, render it instead of the default
+            // icon + text + action layout. The custom content fills the card
+            // with a minimum height to ensure visibility and tappability.
+            // The close button is still rendered alongside if enabled.
+            if (toast.customContent != null) {
+                val contentColor = resolvedStyle.contentColor ?: typeDefaults.contentColor!!
+                Row(
+                    modifier = Modifier
+                        .defaultMinSize(minHeight = 48.dp)
+                        .padding(
+                            start = 12.dp,
+                            end = if (toast.showCloseButton) 4.dp else 12.dp,
+                            top = 12.dp,
+                            bottom = 12.dp
+                        ),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(modifier = Modifier.weight(1f)) {
+                        toast.customContent.invoke()
+                    }
+                    if (toast.showCloseButton) {
+                        IconButton(
+                            onClick = { onDismiss(DismissReason.CloseButton) },
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Dismiss toast",
+                                tint = contentColor,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+                }
+                return@Surface
+            }
+
             Row(
                 modifier = Modifier
                     .padding(

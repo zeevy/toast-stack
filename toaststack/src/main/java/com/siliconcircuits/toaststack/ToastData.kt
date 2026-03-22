@@ -64,6 +64,9 @@ data class ToastData(
     val progressLabel: String? = null,
     val priority: ToastPriority = ToastPriority.Normal,
     val customIcon: (@Composable () -> Unit)? = null,
+    val customContent: (@Composable () -> Unit)? = null,
+    val hapticEnabled: Boolean = false,
+    val soundEnabled: Boolean = false,
     val onShow: (() -> Unit)? = null,
     val onDismiss: ((DismissReason) -> Unit)? = null
 )
