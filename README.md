@@ -75,7 +75,7 @@ Add the dependency to your module's `build.gradle.kts`:
 
 ```kotlin
 dependencies {
-    implementation("com.github.zeevy:ToastStack:v0.1.0")
+    implementation("com.github.zeevy:ToastStack:v1.0.0")
 }
 ```
 
@@ -83,7 +83,7 @@ Or using a version catalog (`libs.versions.toml`):
 
 ```toml
 [versions]
-toaststack = "v0.1.0"
+toaststack = "v1.0.0"
 
 [libraries]
 toaststack = { group = "com.github.zeevy", name = "ToastStack", version.ref = "toaststack" }
