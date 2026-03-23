@@ -1,0 +1,4 @@
+jdk:
+  - 17
+install:
+  - ./gradlew :toaststack:publishToMavenLocal
