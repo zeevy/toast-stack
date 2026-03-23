@@ -21,7 +21,6 @@ package com.siliconcircuits.toaststack
  * })
  * ```
  */
-@ExperimentalToastStackApi
 enum class DismissReason {
 
     /**

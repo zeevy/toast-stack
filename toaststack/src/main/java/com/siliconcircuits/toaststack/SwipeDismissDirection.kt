@@ -14,7 +14,6 @@ package com.siliconcircuits.toaststack
  * the toast card animates off screen and is dismissed. If the drag does
  * not reach the threshold, the card snaps back to its original position.
  */
-@ExperimentalToastStackApi
 enum class SwipeDismissDirection {
 
     /**

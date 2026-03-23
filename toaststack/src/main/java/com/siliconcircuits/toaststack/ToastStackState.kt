@@ -46,7 +46,6 @@ import kotlinx.coroutines.sync.withLock
  *   does not explicitly specify its own swipe behavior. Defaults to
  *   [SwipeDismissDirection.Both] (swipeable in either direction).
  */
-@ExperimentalToastStackApi
 @Stable
 class ToastStackState(
     val maxVisible: Int = 5,
@@ -837,7 +836,6 @@ class ToastStackState(
  * @param defaultAnimationConfig Default animation timing. See [ToastStackState.defaultAnimationConfig].
  * @return A remembered [ToastStackState] instance.
  */
-@ExperimentalToastStackApi
 @Composable
 fun rememberToastStackState(
     maxVisible: Int = 5,

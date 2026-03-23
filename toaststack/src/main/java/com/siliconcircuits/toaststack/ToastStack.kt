@@ -41,7 +41,6 @@ import java.util.concurrent.ConcurrentHashMap
  * }
  * ```
  */
-@ExperimentalToastStackApi
 object ToastStack {
 
     /**

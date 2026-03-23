@@ -21,7 +21,6 @@ package com.siliconcircuits.toaststack
  * toastState.info("Update available")     // Sets type = Info
  * ```
  */
-@ExperimentalToastStackApi
 enum class ToastType {
 
     /**

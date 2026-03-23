@@ -40,7 +40,6 @@ import kotlin.coroutines.resume
  *   [ToastStackState.dismiss] directly if you prefer the ID based API.
  * @property state The state holder that manages this toast's lifecycle.
  */
-@ExperimentalToastStackApi
 class ToastHandle internal constructor(
     val id: String,
     private val state: ToastStackState

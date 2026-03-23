@@ -31,7 +31,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.siliconcircuits.toaststack.ExperimentalToastStackApi
 import com.siliconcircuits.toaststack.ToastStackHost
 import com.siliconcircuits.toaststack.rememberToastStackState
 import com.siliconcircuits.toaststack.demo.tabs.ActionsTab
@@ -42,7 +41,6 @@ import com.siliconcircuits.toaststack.demo.tabs.StyleTab
 import com.siliconcircuits.toaststack.demo.tabs.TypesTab
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalToastStackApi::class)
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -70,7 +68,7 @@ private enum class DemoTab(val title: String) {
     Advanced("Advanced")
 }
 
-@OptIn(ExperimentalToastStackApi::class, ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DemoScreen(
     isDarkMode: Boolean,

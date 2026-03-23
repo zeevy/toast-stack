@@ -28,7 +28,6 @@ import androidx.compose.ui.unit.dp
  * colors that provide strong visual contrast regardless of theme, while
  * still pulling typography from the current [MaterialTheme].
  */
-@ExperimentalToastStackApi
 object ToastStackDefaults {
 
     /**

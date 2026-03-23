@@ -42,7 +42,6 @@ import kotlin.uuid.Uuid
  * @property onDismiss Optional callback invoked when the toast is removed,
  *   with the [DismissReason] explaining why.
  */
-@ExperimentalToastStackApi
 data class ToastData(
     @OptIn(ExperimentalUuidApi::class)
     val id: String = Uuid.random().toString(),

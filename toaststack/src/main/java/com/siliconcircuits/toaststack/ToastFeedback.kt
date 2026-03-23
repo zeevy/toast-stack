@@ -21,7 +21,6 @@ import android.provider.Settings
  * becomes visible. For future Compose Multiplatform support, this class
  * would become an `expect/actual` declaration.
  */
-@ExperimentalToastStackApi
 internal object ToastFeedback {
 
     /**

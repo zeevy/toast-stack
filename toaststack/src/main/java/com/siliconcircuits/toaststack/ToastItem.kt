@@ -103,7 +103,6 @@ private const val SETTLE_ANIMATION_MILLIS = 200
  * @param onResumeTimer Resumes the countdown after the interaction ends
  *   without a dismiss.
  */
-@ExperimentalToastStackApi
 @Composable
 internal fun ToastItem(
     toast: ToastData,
@@ -395,7 +394,6 @@ internal fun ToastItem(
  * - [ToastType.Warning] - a triangle with an exclamation mark
  * - [ToastType.Info] - the letter "i" inside a circle
  */
-@ExperimentalToastStackApi
 private fun iconForType(type: ToastType): ImageVector? {
     return when (type) {
         ToastType.Default -> null
@@ -426,7 +424,6 @@ private fun iconForType(type: ToastType): ImageVector? {
  *    - The fling velocity exceeds [VELOCITY_THRESHOLD_PX_PER_SEC] (fast flick)
  *    Otherwise snap back to center and resume the timer.
  */
-@ExperimentalToastStackApi
 private fun buildSwipeModifier(
     toast: ToastData,
     horizontalOffset: Animatable<Float, *>,

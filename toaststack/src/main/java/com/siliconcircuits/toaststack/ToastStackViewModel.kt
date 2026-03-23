@@ -41,7 +41,6 @@ import kotlinx.coroutines.launch
  *
  * @return A [ToastHandle], or null if no host is registered.
  */
-@ExperimentalToastStackApi
 fun ViewModel.showToast(
     message: String,
     title: String? = null,
@@ -65,7 +64,6 @@ fun ViewModel.showToast(
 /**
  * Shows a [ToastType.Success] toast from a ViewModel.
  */
-@ExperimentalToastStackApi
 fun ViewModel.showSuccessToast(
     message: String,
     title: String? = null,
@@ -75,7 +73,6 @@ fun ViewModel.showSuccessToast(
 /**
  * Shows a [ToastType.Error] toast from a ViewModel.
  */
-@ExperimentalToastStackApi
 fun ViewModel.showErrorToast(
     message: String,
     title: String? = null,
@@ -85,7 +82,6 @@ fun ViewModel.showErrorToast(
 /**
  * Shows a [ToastType.Warning] toast from a ViewModel.
  */
-@ExperimentalToastStackApi
 fun ViewModel.showWarningToast(
     message: String,
     title: String? = null,
@@ -95,7 +91,6 @@ fun ViewModel.showWarningToast(
 /**
  * Shows a [ToastType.Info] toast from a ViewModel.
  */
-@ExperimentalToastStackApi
 fun ViewModel.showInfoToast(
     message: String,
     title: String? = null,
@@ -105,7 +100,6 @@ fun ViewModel.showInfoToast(
 /**
  * Shows a [ToastType.Loading] toast from a ViewModel.
  */
-@ExperimentalToastStackApi
 fun ViewModel.showLoadingToast(
     message: String,
     title: String? = null,
@@ -123,7 +117,6 @@ fun ViewModel.showLoadingToast(
  * @param message The toast message.
  * @param onResult Callback with the dismiss reason.
  */
-@ExperimentalToastStackApi
 fun ViewModel.showToastAndAwait(
     message: String,
     title: String? = null,

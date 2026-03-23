@@ -31,6 +31,3 @@
 -keep class com.siliconcircuits.toaststack.ToastStackViewModelKt { *; }
 -keep class com.siliconcircuits.toaststack.ToastBuilderKt { *; }
 -keep class com.siliconcircuits.toaststack.ToastStackConfigKt { *; }
-
-# Keep the ExperimentalToastStackApi annotation so opt in checks work.
--keep @interface com.siliconcircuits.toaststack.ExperimentalToastStackApi

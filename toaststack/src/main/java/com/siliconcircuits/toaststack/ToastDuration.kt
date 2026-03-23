@@ -32,7 +32,6 @@ import kotlin.time.Duration
  *   For [Indefinite], this is [Long.MAX_VALUE] which effectively means
  *   the timer never fires.
  */
-@ExperimentalToastStackApi
 sealed class ToastDuration(val millis: kotlin.Long) {
 
     /**

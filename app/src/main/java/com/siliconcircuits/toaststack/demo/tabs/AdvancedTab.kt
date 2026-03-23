@@ -25,12 +25,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.siliconcircuits.toaststack.ExperimentalToastStackApi
 import com.siliconcircuits.toaststack.ToastDuration
 import com.siliconcircuits.toaststack.ToastStackState
 import com.siliconcircuits.toaststack.ToastStackStyle
 
-@OptIn(ExperimentalToastStackApi::class)
 @Composable
 fun AdvancedTab(toastState: ToastStackState) {
     var counter by remember { mutableIntStateOf(0) }

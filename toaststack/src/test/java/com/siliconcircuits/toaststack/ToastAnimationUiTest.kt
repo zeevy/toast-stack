@@ -25,7 +25,6 @@ import org.robolectric.annotation.Config
  * verify that toasts appear, remain visible mid animation, and
  * disappear after the exit completes.
  */
-@OptIn(ExperimentalToastStackApi::class)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class ToastAnimationUiTest {

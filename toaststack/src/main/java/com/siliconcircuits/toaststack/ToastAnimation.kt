@@ -31,7 +31,6 @@ import androidx.compose.animation.slideOutVertically
  * bottom positioned toasts slide up from below, and center positioned
  * toasts fade in without sliding.
  */
-@ExperimentalToastStackApi
 enum class ToastAnimation {
 
     /**
@@ -77,7 +76,6 @@ enum class ToastAnimation {
  *   when multiple toasts are shown in rapid succession. Creates a cascading
  *   effect rather than all toasts appearing simultaneously.
  */
-@ExperimentalToastStackApi
 data class ToastAnimationConfig(
     val enterDurationMillis: Int = 300,
     val exitDurationMillis: Int = 250,
@@ -102,7 +100,6 @@ data class ToastAnimationConfig(
  *   the toast's position in [ToastStackHost].
  * @return A combined [EnterTransition] ready to pass to [AnimatedVisibility].
  */
-@ExperimentalToastStackApi
 internal fun ToastAnimation.toEnterTransition(
     config: ToastAnimationConfig,
     slideSign: Int
@@ -158,7 +155,6 @@ internal fun ToastAnimation.toEnterTransition(
  * @param slideSign Direction multiplier for vertical slide.
  * @return A combined [ExitTransition] ready to pass to [AnimatedVisibility].
  */
-@ExperimentalToastStackApi
 internal fun ToastAnimation.toExitTransition(
     config: ToastAnimationConfig,
     slideSign: Int

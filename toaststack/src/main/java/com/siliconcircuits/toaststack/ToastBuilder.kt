@@ -30,7 +30,6 @@ import androidx.compose.runtime.Composable
  * The builder is also useful when constructing toasts conditionally
  * or when toast configuration comes from a data source.
  */
-@ExperimentalToastStackApi
 class ToastBuilder {
     /** Primary text displayed in the toast body. Required. */
     var message: String = ""
@@ -121,7 +120,6 @@ class ToastBuilder {
  * @param block Builder configuration lambda.
  * @return A [ToastHandle] for programmatic control.
  */
-@ExperimentalToastStackApi
 fun ToastStackState.build(block: ToastBuilder.() -> Unit): ToastHandle {
     val toast = ToastBuilder().apply(block).build()
     return enqueue(toast)
@@ -141,7 +139,6 @@ fun ToastStackState.build(block: ToastBuilder.() -> Unit): ToastHandle {
  * @param block Builder configuration lambda.
  * @return A [ToastHandle], or null if no host is registered.
  */
-@ExperimentalToastStackApi
 fun buildToast(
     hostTag: String? = null,
     block: ToastBuilder.() -> Unit

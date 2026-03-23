@@ -27,12 +27,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.siliconcircuits.toaststack.ExperimentalToastStackApi
 import com.siliconcircuits.toaststack.ToastDuration
 import com.siliconcircuits.toaststack.ToastPosition
 import com.siliconcircuits.toaststack.ToastStackState
 
-@OptIn(ExperimentalToastStackApi::class)
 @Composable
 fun PositionTab(toastState: ToastStackState) {
     var counter by remember { mutableIntStateOf(0) }

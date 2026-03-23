@@ -52,7 +52,6 @@ import androidx.compose.ui.unit.Dp
  *   optional title line.
  * @property messageStyle Typography for the main message line.
  */
-@ExperimentalToastStackApi
 data class ToastStackStyle(
     val backgroundColor: Color? = null,
     val contentColor: Color? = null,

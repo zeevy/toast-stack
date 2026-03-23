@@ -48,7 +48,6 @@ import androidx.startup.Initializer
  * </provider>
  * ```
  */
-@ExperimentalToastStackApi
 class ToastStackInitializer : Initializer<Unit> {
 
     override fun create(context: Context) {

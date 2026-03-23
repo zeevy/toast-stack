@@ -18,7 +18,6 @@ package com.siliconcircuits.toaststack
  * at [TopCenter] and another at [BottomEnd], they appear in different
  * corners of the screen simultaneously.
  */
-@ExperimentalToastStackApi
 enum class ToastPosition {
 
     /**

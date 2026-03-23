@@ -65,7 +65,6 @@ private const val DEFAULT_HOST_TAG = "__toaststack_default__"
  * @param contentPadding Space between the screen edges and the toast column.
  *   Defaults to 16dp horizontal / 8dp vertical.
  */
-@ExperimentalToastStackApi
 @Composable
 fun ToastStackHost(
     state: ToastStackState = rememberToastStackState(),
@@ -297,7 +296,6 @@ fun ToastStackHost(
  * @return The physical [Alignment] that places the toast column at the
  *   correct screen corner or edge.
  */
-@ExperimentalToastStackApi
 private fun ToastPosition.toBoxAlignment(layoutDirection: LayoutDirection): Alignment {
     val isRtl = layoutDirection == LayoutDirection.Rtl
     return when (this) {
@@ -323,7 +321,6 @@ private fun ToastPosition.toBoxAlignment(layoutDirection: LayoutDirection): Alig
  * @return The [Alignment.Horizontal] value to pass to the [Column]'s
  *   `horizontalAlignment` parameter.
  */
-@ExperimentalToastStackApi
 private fun ToastPosition.toHorizontalAlignment(layoutDirection: LayoutDirection): Alignment.Horizontal {
     val isRtl = layoutDirection == LayoutDirection.Rtl
     return when (this) {

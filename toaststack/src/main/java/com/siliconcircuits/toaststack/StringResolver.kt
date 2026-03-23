@@ -16,7 +16,6 @@ import androidx.annotation.StringRes
  * For future Compose Multiplatform support, this class would become
  * an `expect/actual` declaration with platform specific implementations.
  */
-@ExperimentalToastStackApi
 internal object StringResolver {
 
     /**

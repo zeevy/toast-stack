@@ -21,14 +21,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.siliconcircuits.toaststack.ExperimentalToastStackApi
 import com.siliconcircuits.toaststack.SwipeDismissDirection
 import com.siliconcircuits.toaststack.ToastAnimation
 import com.siliconcircuits.toaststack.ToastAnimationConfig
 import com.siliconcircuits.toaststack.ToastDuration
 import com.siliconcircuits.toaststack.ToastStackState
 
-@OptIn(ExperimentalToastStackApi::class)
 @Composable
 fun AnimationsTab(toastState: ToastStackState) {
     var counter by remember { mutableIntStateOf(0) }

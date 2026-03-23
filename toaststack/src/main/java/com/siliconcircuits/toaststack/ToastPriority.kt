@@ -13,7 +13,6 @@ package com.siliconcircuits.toaststack
  *
  * Default priority is [Normal], which queues in FIFO order.
  */
-@ExperimentalToastStackApi
 enum class ToastPriority {
 
     /**

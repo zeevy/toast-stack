@@ -29,7 +29,6 @@ package com.siliconcircuits.toaststack
  * @property defaultAnimation Default enter/exit animation style.
  * @property defaultAnimationConfig Default animation timing and easing.
  */
-@ExperimentalToastStackApi
 class ToastStackConfig {
     var maxVisible: Int = 5
     var defaultPosition: ToastPosition = ToastPosition.TopCenter
@@ -73,7 +72,6 @@ class ToastStackConfig {
  * @param config The configuration block with desired defaults.
  * @return A remembered [ToastStackState] instance.
  */
-@ExperimentalToastStackApi
 @androidx.compose.runtime.Composable
 fun rememberToastStackState(config: ToastStackConfig): ToastStackState {
     return rememberToastStackState(
