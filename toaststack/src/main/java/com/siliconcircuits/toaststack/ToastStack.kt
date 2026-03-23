@@ -1,5 +1,7 @@
 package com.siliconcircuits.toaststack
 
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.ui.unit.dp
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -42,6 +44,81 @@ import java.util.concurrent.ConcurrentHashMap
  * ```
  */
 object ToastStack {
+
+    /**
+     * Global defaults applied by the auto-initializer when creating the
+     * [ToastStackHost] overlay. Call [configure] from your Application's
+     * `onCreate` to customize these before any Activity is created.
+     */
+    internal var defaultContentPadding: PaddingValues =
+        PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+        private set
+
+    internal var defaultGlobalStyle: ToastStackStyle? = null
+        private set
+
+    internal var defaultPosition: ToastPosition = ToastPosition.TopCenter
+        private set
+
+    internal var defaultDuration: ToastDuration = ToastDuration.Short
+        private set
+
+    internal var defaultMaxVisible: Int = 5
+        private set
+
+    internal var defaultSwipeDismiss: SwipeDismissDirection = SwipeDismissDirection.Both
+        private set
+
+    internal var defaultAnimation: ToastAnimation = ToastAnimation.Slide
+        private set
+
+    internal var defaultAnimationConfig: ToastAnimationConfig = ToastAnimationConfig()
+        private set
+
+    /**
+     * Configures global defaults for the auto-initialized [ToastStackHost].
+     *
+     * Call this from your [Application.onCreate] before any Activity starts:
+     * ```
+     * class MyApp : Application() {
+     *     override fun onCreate() {
+     *         super.onCreate()
+     *         ToastStack.configure(
+     *             contentPadding = PaddingValues(top = 128.dp, start = 16.dp, end = 16.dp),
+     *             defaultPosition = ToastPosition.TopCenter,
+     *         )
+     *     }
+     * }
+     * ```
+     *
+     * @param contentPadding Space between screen edges and the toast column.
+     * @param globalStyle Optional style applied to every toast.
+     * @param defaultPosition Default screen position for toasts.
+     * @param defaultDuration Default auto-dismiss duration.
+     * @param maxVisible Maximum number of toasts visible simultaneously.
+     * @param defaultSwipeDismiss Which swipe directions dismiss toasts.
+     * @param defaultAnimation Animation style for toast enter/exit.
+     * @param defaultAnimationConfig Timing and easing for animations.
+     */
+    fun configure(
+        contentPadding: PaddingValues = defaultContentPadding,
+        globalStyle: ToastStackStyle? = defaultGlobalStyle,
+        defaultPosition: ToastPosition = this.defaultPosition,
+        defaultDuration: ToastDuration = this.defaultDuration,
+        maxVisible: Int = defaultMaxVisible,
+        defaultSwipeDismiss: SwipeDismissDirection = this.defaultSwipeDismiss,
+        defaultAnimation: ToastAnimation = this.defaultAnimation,
+        defaultAnimationConfig: ToastAnimationConfig = this.defaultAnimationConfig,
+    ) {
+        defaultContentPadding = contentPadding
+        defaultGlobalStyle = globalStyle
+        this.defaultPosition = defaultPosition
+        this.defaultDuration = defaultDuration
+        defaultMaxVisible = maxVisible
+        this.defaultSwipeDismiss = defaultSwipeDismiss
+        this.defaultAnimation = defaultAnimation
+        this.defaultAnimationConfig = defaultAnimationConfig
+    }
 
     /**
      * Thread safe registry of all active [ToastStackHost] instances, keyed

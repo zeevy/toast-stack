@@ -6,9 +6,7 @@ import android.content.Context
 import android.os.Bundle
 import android.view.ViewGroup
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
 import androidx.lifecycle.setViewTreeLifecycleOwner
@@ -56,7 +54,11 @@ class ToastStackInitializer : Initializer<Unit> {
         StringResolver.initialize(context)
 
         app.registerActivityLifecycleCallbacks(object : Application.ActivityLifecycleCallbacks {
-            override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {
+            override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {}
+
+            override fun onActivityStarted(activity: Activity) {}
+
+            override fun onActivityResumed(activity: Activity) {
                 // Only inject into ComponentActivity (which supports Compose).
                 // Plain Activity or AppCompatActivity without Compose are skipped.
                 if (activity !is ComponentActivity) return
@@ -77,15 +79,25 @@ class ToastStackInitializer : Initializer<Unit> {
                     setViewTreeSavedStateRegistryOwner(activity)
                     setContent {
                         ToastStackHost(
-                            modifier = Modifier.fillMaxSize()
+                            state = rememberToastStackState(
+                                defaultPosition = ToastStack.defaultPosition,
+                                defaultDuration = ToastStack.defaultDuration,
+                                maxVisible = ToastStack.defaultMaxVisible,
+                                defaultSwipeDismiss = ToastStack.defaultSwipeDismiss,
+                                defaultAnimation = ToastStack.defaultAnimation,
+                                defaultAnimationConfig = ToastStack.defaultAnimationConfig,
+                            ),
+                            modifier = Modifier.fillMaxSize(),
+                            globalStyle = ToastStack.defaultGlobalStyle,
+                            contentPadding = ToastStack.defaultContentPadding,
                         )
                     }
                 }
                 rootView.addView(overlayView)
+                // Ensure the overlay is on top of the Activity's own content
+                overlayView.bringToFront()
             }
 
-            override fun onActivityStarted(activity: Activity) {}
-            override fun onActivityResumed(activity: Activity) {}
             override fun onActivityPaused(activity: Activity) {}
             override fun onActivityStopped(activity: Activity) {}
             override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) {}

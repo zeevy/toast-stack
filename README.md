@@ -75,7 +75,7 @@ Add the dependency to your module's `build.gradle.kts`:
 
 ```kotlin
 dependencies {
-    implementation("com.github.zeevy:ToastStack:v1.0.0")
+    implementation("com.github.zeevy:toast-stack:v1.0.3")
 }
 ```
 
@@ -83,10 +83,17 @@ Or using a version catalog (`libs.versions.toml`):
 
 ```toml
 [versions]
-toaststack = "v1.0.0"
+toastStack = "v1.0.3"
 
 [libraries]
-toaststack = { group = "com.github.zeevy", name = "ToastStack", version.ref = "toaststack" }
+toast-stack = { group = "com.github.zeevy", name = "toast-stack", version.ref = "toastStack" }
+```
+
+```kotlin
+// build.gradle.kts
+dependencies {
+    implementation(libs.toast.stack)
+}
 ```
 
 ## Quick Start
@@ -104,32 +111,34 @@ ToastStack.show("Plain message")
 
 That's it. No `Scaffold`, no `SnackbarHostState`, no `setContent` wiring.
 
-### Manual Setup (optional)
+### Global Configuration (optional)
 
-If you prefer manual control or need a custom configuration, opt out of auto initialization and place the host yourself:
+Customize defaults once in your `Application.onCreate()`. The auto-initializer picks these up when attaching to each Activity:
 
 ```kotlin
-setContent {
-    MaterialTheme {
-        Box {
-            MyScreen()
-            ToastStackHost()
-        }
+class MyApp : Application() {
+    override fun onCreate() {
+        super.onCreate()
+        ToastStack.configure(
+            defaultPosition = ToastPosition.TopCenter,
+            contentPadding = PaddingValues(
+                start = 16.dp,
+                end = 16.dp,
+                top = 98.dp,
+                bottom = 8.dp,
+            ),
+            defaultDuration = ToastDuration.Short,
+            maxVisible = 5,
+            defaultSwipeDismiss = SwipeDismissDirection.Both,
+            defaultAnimation = ToastAnimation.Slide,
+            defaultAnimationConfig = ToastAnimationConfig(),
+            globalStyle = null, // or a ToastStackStyle for app-wide look
+        )
     }
 }
 ```
 
-Or use the wrapper:
-
-```kotlin
-setContent {
-    MaterialTheme {
-        WithToastStack {
-            MyScreen()
-        }
-    }
-}
-```
+All parameters are optional and have sensible defaults.
 
 ## API Overview
 
@@ -257,19 +266,7 @@ ToastStack.error(R.string.upload_failed, fileName)
 
 ## Configuration
 
-### Global Defaults
-
-```kotlin
-val state = rememberToastStackState(
-    config = ToastStackConfig {
-        maxVisible = 3
-        defaultPosition = ToastPosition.BottomCenter
-        defaultDuration = ToastDuration.Long
-        defaultAnimation = ToastAnimation.Fade
-        defaultSwipeDismiss = SwipeDismissDirection.Both
-    }
-)
-```
+Global defaults are configured via `ToastStack.configure()` in your `Application.onCreate()` (see [Global Configuration](#global-configuration-optional) above).
 
 ### Per Toast Styling
 
