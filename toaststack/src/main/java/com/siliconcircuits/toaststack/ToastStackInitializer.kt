@@ -12,6 +12,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
 import androidx.lifecycle.setViewTreeLifecycleOwner
+import androidx.lifecycle.setViewTreeViewModelStoreOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import androidx.startup.Initializer
 
@@ -72,6 +73,7 @@ class ToastStackInitializer : Initializer<Unit> {
                 val overlayView = ComposeView(activity).apply {
                     this.tag = tag
                     setViewTreeLifecycleOwner(activity)
+                    setViewTreeViewModelStoreOwner(activity)
                     setViewTreeSavedStateRegistryOwner(activity)
                     setContent {
                         ToastStackHost(
