@@ -3,6 +3,9 @@
 A modern, Compose native toast and notification library for Android.
 No Scaffold required. One liner API. Stackable. Themeable. Animated.
 
+[![CI](https://github.com/zeevy/toast-stack/actions/workflows/ci.yml/badge.svg)](https://github.com/zeevy/toast-stack/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/zeevy/toast-stack/actions/workflows/codeql.yml/badge.svg)](https://github.com/zeevy/toast-stack/actions/workflows/codeql.yml)
+[![JitPack](https://jitpack.io/v/zeevy/toast-stack.svg)](https://jitpack.io/#zeevy/toast-stack)
 [![API](https://img.shields.io/badge/API-24%2B-brightgreen.svg)](https://developer.android.com/about/versions/nougat)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
@@ -347,6 +350,14 @@ Consumer rules are bundled with the library. No additional ProGuard configuratio
 - Compile SDK 36
 - Jetpack Compose with Material 3
 - Kotlin 2.0+
+
+## Contributing
+
+Contributions of any size are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for the development setup, coding conventions, and how to run the lint/test suite locally before opening a pull request. By participating you agree to the [Code of Conduct](CODE_OF_CONDUCT.md).
+
+- **Bugs and feature requests**: open an [issue](https://github.com/zeevy/toast-stack/issues) using the templates.
+- **Questions and ideas**: start a [discussion](https://github.com/zeevy/toast-stack/discussions).
+- **Security reports**: follow the [Security Policy](SECURITY.md) - please do not file public issues for vulnerabilities.
 
 ## License
 

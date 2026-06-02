@@ -1,0 +1,42 @@
+# Security Policy
+
+## Supported versions
+
+Security fixes land on the latest released version. Older releases are patched
+on a best-effort basis.
+
+| Version | Supported |
+|---------|-----------|
+| 1.x     | Yes (active development) |
+
+## Reporting a vulnerability
+
+Please **do not** open a public GitHub issue for security reports.
+
+1. Use GitHub's private vulnerability reporting:
+   <https://github.com/zeevy/toast-stack/security/advisories/new>
+2. Include reproduction steps, affected versions, and the impact you observed.
+3. We aim to acknowledge reports within **72 hours** and to publish a fix or
+   mitigation within **30 days** for confirmed issues.
+
+If you cannot use GitHub's private advisory flow, open an issue titled
+`security: please email me` with a contact channel - do not include any
+vulnerability details.
+
+## Scope
+
+In scope:
+
+- The library module (`:toaststack`) published as `com.github.zeevy:toast-stack`
+- The build pipeline (CI workflows in `.github/workflows/`)
+- Dependencies pinned in `gradle/libs.versions.toml`
+
+Out of scope:
+
+- The demo app (`:app`), which exists only to showcase the library
+- Issues that require physical device access to a rooted Android device
+
+## Disclosure
+
+Once a fix is released, we credit reporters in the release notes unless they
+prefer to remain anonymous.

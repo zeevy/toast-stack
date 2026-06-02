@@ -1,0 +1,73 @@
+name: Bug report
+description: Report something that is broken or behaves unexpectedly
+title: "[bug]: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug. Please fill in the details
+        below so we can reproduce it quickly.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear description of the bug.
+      placeholder: Calling ToastStack.show() from a ViewModel does nothing when no Activity is resumed.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Minimal numbered steps that reliably reproduce the bug. A small code snippet helps.
+      placeholder: |
+        1. Add a ToastStackHost (or rely on auto init)
+        2. Call ToastStack.show("Hello") from ...
+        3. Observe that no toast appears
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+      description: What did you expect to see instead?
+    validations:
+      required: true
+
+  - type: input
+    id: library-version
+    attributes:
+      label: ToastStack version
+      description: The com.github.zeevy:toast-stack version you depend on.
+      placeholder: 1.0.4
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Compose / Kotlin versions, Android API level, device or emulator.
+      placeholder: Compose BOM 2026.x, Kotlin 2.3, API 34, Pixel 6a
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / screenshots
+      description: Anything else that helps - logcat snippets, screenshots, screen recordings.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Code of conduct
+      options:
+        - label: I agree to follow this project's [Code of Conduct](../CODE_OF_CONDUCT.md).
+          required: true
