@@ -4,6 +4,18 @@ plugins {
     `maven-publish`
 }
 
+// Pin the JDK used to build, test, and generate docs for this repo to 21
+// (matching CI), regardless of the developer's default JDK. This is scoped to
+// this project only - it does not change any machine-global Gradle setting.
+// JDK 25/26 break Robolectric (ASM cannot read the bytecode) and Dokka
+// (cannot parse the version string), so a toolchain keeps local builds aligned
+// with CI. Gradle auto-provisions JDK 21 if it is not already installed.
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(21))
+    }
+}
+
 android {
     namespace = "com.siliconcircuits.toaststack"
     compileSdk = 36
