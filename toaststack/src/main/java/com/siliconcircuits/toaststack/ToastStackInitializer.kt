@@ -4,7 +4,9 @@ import android.app.Activity
 import android.app.Application
 import android.content.Context
 import android.os.Bundle
+import android.view.MotionEvent
 import android.view.ViewGroup
+import android.widget.FrameLayout
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Modifier
@@ -72,8 +74,13 @@ class ToastStackInitializer : Initializer<Unit> {
                 // Check if we already added our overlay to this Activity.
                 if (rootView.findViewWithTag<ComposeView>(tag) != null) return
 
-                val overlayView = ComposeView(activity).apply {
-                    this.tag = tag
+                // Wrap the ComposeView in a FrameLayout so we can control touch
+                // dispatch (ComposeView is final and cannot be subclassed). The
+                // wrapper forwards each touch to the ComposeView and passes through
+                // its handled/unhandled result, so touches on a toast are consumed
+                // here while touches on empty overlay space fall through to the
+                // Activity's own content underneath. See dispatchTouchEvent below.
+                val composeView = ComposeView(activity).apply {
                     setViewTreeLifecycleOwner(activity)
                     setViewTreeViewModelStoreOwner(activity)
                     setViewTreeSavedStateRegistryOwner(activity)
@@ -93,8 +100,36 @@ class ToastStackInitializer : Initializer<Unit> {
                         )
                     }
                 }
+                val overlayView = object : FrameLayout(activity) {
+                    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
+                        // Let Compose process the touch and report back whether it
+                        // handled it. AndroidComposeView reports the event as handled
+                        // only when it actually lands on a toast (a tap on an action
+                        // button, or a swipe-to-dismiss gesture). Touches over the
+                        // empty, transparent areas of the overlay are reported as
+                        // unhandled.
+                        //
+                        // Returning that result is what makes the overlay "transparent"
+                        // to touches except where a toast is drawn:
+                        //  - On a toast: returns true, so this view becomes the touch
+                        //    target and the whole down/move/up sequence is delivered to
+                        //    Compose (swipe-to-dismiss needs the full sequence), and the
+                        //    event is NOT also passed to the content underneath.
+                        //  - On empty space: returns false, so the Android view system
+                        //    routes the gesture to the Activity's own content below.
+                        return super.dispatchTouchEvent(ev)
+                    }
+                }.apply {
+                    this.tag = tag
+                    addView(
+                        composeView,
+                        FrameLayout.LayoutParams(
+                            FrameLayout.LayoutParams.MATCH_PARENT,
+                            FrameLayout.LayoutParams.MATCH_PARENT,
+                        ),
+                    )
+                }
                 rootView.addView(overlayView)
-                // Ensure the overlay is on top of the Activity's own content
                 overlayView.bringToFront()
             }
 
