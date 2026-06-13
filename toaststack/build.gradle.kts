@@ -18,7 +18,7 @@ java {
 
 android {
     namespace = "com.siliconcircuits.toaststack"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         minSdk = 24

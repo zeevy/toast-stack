@@ -14,7 +14,7 @@ java {
 
 android {
     namespace = "com.siliconcircuits.toaststack.demo"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.siliconcircuits.toaststack.demo"
