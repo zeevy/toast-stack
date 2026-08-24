@@ -6,6 +6,11 @@ on:
   pull_request:
     branches: [ main ]
 
+# Least-privilege default for every job: these workflows only read the
+# repo and upload artifacts, neither of which needs a writable token.
+permissions:
+  contents: read
+
 jobs:
   build:
     name: Build, Lint & Test

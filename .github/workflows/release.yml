@@ -4,6 +4,11 @@ on:
   release:
     types: [ published ]
 
+# Least-privilege default for every job: these workflows only read the
+# repo and upload artifacts, neither of which needs a writable token.
+permissions:
+  contents: read
+
 jobs:
   verify:
     name: Verify Release Build
