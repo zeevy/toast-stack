@@ -3,10 +3,12 @@ package com.siliconcircuits.toaststack
 /**
  * Semantic category of a toast that determines its default visual appearance.
  *
- * Each type maps to a distinct color scheme and leading icon through
- * [ToastStackDefaults.styleForType]. For example, [Success] renders with
- * a green background and a check mark icon, while [Error] renders with
- * a red background and a close icon.
+ * Each type maps to a distinct color pair and leading icon through
+ * [ToastStackDefaults.styleForType]. Which colors depends on
+ * [ToastColorSource]: with `AppTheme` the type maps to a Material 3 color
+ * role from the app theme (for example [Success] uses `primaryContainer`),
+ * with `Library` it uses a fixed hue (for example [Success] is green and
+ * [Error] is red). The icon is the same in both modes.
  *
  * You can override any visual aspect per toast via [ToastStackStyle]
  * while still benefiting from the semantic icon and accessibility label

@@ -64,6 +64,8 @@ private const val DEFAULT_HOST_TAG = "__toaststack_default__"
  *   by this host. Per toast overrides in [ToastData.style] take priority.
  * @param contentPadding Space between the screen edges and the toast column.
  *   Defaults to 16dp horizontal / 8dp vertical.
+ * @param colorSource Where the type default colors come from. Defaults to
+ *   the value set in [ToastStack.configure].
  */
 @Composable
 fun ToastStackHost(
@@ -71,7 +73,8 @@ fun ToastStackHost(
     tag: String = DEFAULT_HOST_TAG,
     modifier: Modifier = Modifier,
     globalStyle: ToastStackStyle? = null,
-    contentPadding: PaddingValues = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+    contentPadding: PaddingValues = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+    colorSource: ToastColorSource = ToastStack.colorSource,
 ) {
     // Capture the application context for string resource resolution.
     // This runs once per host composition and uses the application context
@@ -269,6 +272,7 @@ fun ToastStackHost(
                             ToastItem(
                                 toast = toast,
                                 globalStyle = globalStyle,
+                                colorSource = colorSource,
                                 onDismiss = { reason -> state.dismiss(toast.id, reason) },
                                 onPauseTimer = { state.pauseTimer(toast.id) },
                                 onResumeTimer = { state.resumeTimer(toast.id) }

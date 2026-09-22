@@ -1,6 +1,10 @@
 package com.siliconcircuits.toaststack
 
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.unit.dp
 import java.util.concurrent.ConcurrentHashMap
 
@@ -75,6 +79,22 @@ object ToastStack {
     internal var defaultAnimationConfig: ToastAnimationConfig = ToastAnimationConfig()
         private set
 
+    // Compose state so an already attached overlay recomposes when
+    // configure() is called after the first Activity is shown.
+    internal var colorSource: ToastColorSource by mutableStateOf(ToastColorSource.AppTheme)
+        private set
+
+    internal var theme: (@Composable (content: @Composable () -> Unit) -> Unit)? by mutableStateOf(null)
+        private set
+
+    /**
+     * The color source the auto overlay actually uses. [ToastColorSource.AppTheme]
+     * needs a [theme] wrapper to see the app theme. Without one the overlay
+     * falls back to [ToastColorSource.Library].
+     */
+    internal fun overlayColorSource(): ToastColorSource =
+        if (colorSource == ToastColorSource.AppTheme && theme == null) ToastColorSource.Library else colorSource
+
     /**
      * Configures global defaults for the auto-initialized [ToastStackHost].
      *
@@ -99,6 +119,18 @@ object ToastStack {
      * @param defaultSwipeDismiss Which swipe directions dismiss toasts.
      * @param defaultAnimation Animation style for toast enter/exit.
      * @param defaultAnimationConfig Timing and easing for animations.
+     * @param colorSource Where toast colors come from. See [ToastColorSource].
+     * @param theme The app's theme composable, for example
+     *   `{ content -> MyAppTheme { content() } }`. The auto overlay renders
+     *   toasts inside it so they follow the app's colors, typography, dark
+     *   mode and dynamic color. Needed only for [ToastColorSource.AppTheme]
+     *   with the auto overlay. Two rules:
+     *   - The wrapper must only set the theme. Do not put `Surface`,
+     *     `Scaffold` or any background in it. The overlay covers the whole
+     *     Activity, so a background here hides the app's UI.
+     *   - The lambda is kept for the life of the process. Do not capture an
+     *     Activity, View, ViewModel or Activity Context in it. Call
+     *     [configure] from `Application.onCreate()`.
      */
     fun configure(
         contentPadding: PaddingValues = defaultContentPadding,
@@ -109,6 +141,8 @@ object ToastStack {
         defaultSwipeDismiss: SwipeDismissDirection = this.defaultSwipeDismiss,
         defaultAnimation: ToastAnimation = this.defaultAnimation,
         defaultAnimationConfig: ToastAnimationConfig = this.defaultAnimationConfig,
+        colorSource: ToastColorSource = this.colorSource,
+        theme: (@Composable (content: @Composable () -> Unit) -> Unit)? = this.theme,
     ) {
         defaultContentPadding = contentPadding
         defaultGlobalStyle = globalStyle
@@ -118,6 +152,8 @@ object ToastStack {
         this.defaultSwipeDismiss = defaultSwipeDismiss
         this.defaultAnimation = defaultAnimation
         this.defaultAnimationConfig = defaultAnimationConfig
+        this.colorSource = colorSource
+        this.theme = theme
     }
 
     /**
