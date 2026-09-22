@@ -96,6 +96,7 @@ private const val SETTLE_ANIMATION_MILLIS = 200
  * @param toast The data model describing what to render and how.
  * @param globalStyle Optional host level style overrides applied between type
  *   defaults and per toast overrides.
+ * @param colorSource Where the type default colors come from.
  * @param onDismiss Callback invoked when the toast should be removed, with the
  *   [DismissReason] indicating what triggered the dismissal.
  * @param onPauseTimer Pauses the auto dismiss countdown while the user is
@@ -107,6 +108,7 @@ private const val SETTLE_ANIMATION_MILLIS = 200
 internal fun ToastItem(
     toast: ToastData,
     globalStyle: ToastStackStyle? = null,
+    colorSource: ToastColorSource = ToastStack.colorSource,
     onDismiss: (DismissReason) -> Unit,
     onPauseTimer: () -> Unit,
     onResumeTimer: () -> Unit
@@ -117,7 +119,7 @@ internal fun ToastItem(
     val swipeThresholdPx = with(density) { SWIPE_THRESHOLD_DP.dp.toPx() }
 
     // Resolve the effective style by layering: type defaults -> global -> per toast.
-    val typeDefaults = ToastStackDefaults.styleForType(toast.type)
+    val typeDefaults = ToastStackDefaults.styleForType(toast.type, colorSource)
     val resolvedStyle = typeDefaults.mergeWith(globalStyle).mergeWith(toast.style)
 
     val swipeModifier = buildSwipeModifier(

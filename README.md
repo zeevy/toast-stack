@@ -31,7 +31,7 @@ ToastStack replaces Android's limited native `Toast` and `Snackbar` with a fully
 - **Builder DSL** - `state.build { message = "..."; type = Success }`
 - **ViewModel extensions** - `showToast()`, `showSuccessToast()`, `showToastAndAwait()`
 - **Zero setup** - Auto initializer attaches to every Activity, just call `ToastStack.show()`
-- **Dark mode** - Adapts automatically via Material 3 theme tokens
+- **App theme** - Toasts follow your app's `MaterialTheme` colors, typography and dark mode. Or switch to the library's own fixed colors
 - **Haptic feedback** - Optional vibration per toast type
 - **Sound** - Optional notification sound with per type customization
 - **Accessibility** - TalkBack announcements, type prefixes, reduced motion support, WCAG AA contrast
@@ -136,12 +136,34 @@ class MyApp : Application() {
             defaultAnimation = ToastAnimation.Slide,
             defaultAnimationConfig = ToastAnimationConfig(),
             globalStyle = null, // or a ToastStackStyle for app-wide look
+            colorSource = ToastColorSource.AppTheme,
+            theme = { content -> MyAppTheme { content() } },
         )
     }
 }
 ```
 
 All parameters are optional and have sensible defaults.
+
+### Theming
+
+Toast colors come from one of two sources, set with `colorSource`:
+
+- `ToastColorSource.AppTheme` (default): toasts render inside your app theme. Colors and typography come from your `MaterialTheme`, so dark mode, dynamic color and in app theme switches follow automatically. Typed toasts map to Material 3 color roles:
+
+| Type | Background | Content |
+| --- | --- | --- |
+| Default, Loading | `inverseSurface` | `inverseOnSurface` |
+| Success | `primaryContainer` | `onPrimaryContainer` |
+| Info | `secondaryContainer` | `onSecondaryContainer` |
+| Warning | `tertiaryContainer` | `onTertiaryContainer` |
+| Error | `errorContainer` | `onErrorContainer` |
+
+- `ToastColorSource.Library`: the library's own colors. Default and Loading use the baseline Material 3 inverse surface. Success, Error, Warning and Info use fixed green, red, amber and blue.
+
+The auto overlay is a separate Compose tree, so it cannot see your theme by itself. Pass your theme composable as `theme` in `ToastStack.configure()`. If `colorSource` is `AppTheme` and no `theme` is given, the overlay falls back to `Library` and logs one warning. A `ToastStackHost` placed by hand inside your Compose tree already sits under your theme and needs no `theme` parameter.
+
+Material 3 has no success role, so Success uses `primaryContainer`. If you want a green success toast, override it with `globalStyle` or a per toast style. Global style and per toast style still apply on top of either source.
 
 ## API Overview
 

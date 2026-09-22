@@ -4,11 +4,13 @@ import android.app.Activity
 import android.app.Application
 import android.content.Context
 import android.os.Bundle
+import android.util.Log
 import android.view.MotionEvent
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
 import androidx.lifecycle.setViewTreeLifecycleOwner
@@ -85,19 +87,34 @@ class ToastStackInitializer : Initializer<Unit> {
                     setViewTreeViewModelStoreOwner(activity)
                     setViewTreeSavedStateRegistryOwner(activity)
                     setContent {
-                        ToastStackHost(
-                            state = rememberToastStackState(
-                                defaultPosition = ToastStack.defaultPosition,
-                                defaultDuration = ToastStack.defaultDuration,
-                                maxVisible = ToastStack.defaultMaxVisible,
-                                defaultSwipeDismiss = ToastStack.defaultSwipeDismiss,
-                                defaultAnimation = ToastStack.defaultAnimation,
-                                defaultAnimationConfig = ToastStack.defaultAnimationConfig,
-                            ),
-                            modifier = Modifier.fillMaxSize(),
-                            globalStyle = ToastStack.defaultGlobalStyle,
-                            contentPadding = ToastStack.defaultContentPadding,
-                        )
+                        // The overlay has its own Compose tree, so it cannot see the
+                        // app's MaterialTheme. Wrap the host in the theme the app gave
+                        // us in ToastStack.configure(theme = ...). Without it, AppTheme
+                        // colors would come from the stock baseline scheme, so fall
+                        // back to the library colors and say so once.
+                        val theme = ToastStack.theme
+                        var colorSource = ToastStack.colorSource
+                        if (colorSource == ToastColorSource.AppTheme && theme == null) {
+                            colorSource = ToastColorSource.Library
+                            warnMissingThemeOnce()
+                        }
+                        val host: @Composable () -> Unit = {
+                            ToastStackHost(
+                                state = rememberToastStackState(
+                                    defaultPosition = ToastStack.defaultPosition,
+                                    defaultDuration = ToastStack.defaultDuration,
+                                    maxVisible = ToastStack.defaultMaxVisible,
+                                    defaultSwipeDismiss = ToastStack.defaultSwipeDismiss,
+                                    defaultAnimation = ToastStack.defaultAnimation,
+                                    defaultAnimationConfig = ToastStack.defaultAnimationConfig,
+                                ),
+                                modifier = Modifier.fillMaxSize(),
+                                globalStyle = ToastStack.defaultGlobalStyle,
+                                contentPadding = ToastStack.defaultContentPadding,
+                                colorSource = colorSource,
+                            )
+                        }
+                        if (theme != null) theme(host) else host()
                     }
                 }
                 val overlayView = object : FrameLayout(activity) {
@@ -138,6 +155,18 @@ class ToastStackInitializer : Initializer<Unit> {
             override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) {}
             override fun onActivityDestroyed(activity: Activity) {}
         })
+    }
+
+    private var warnedMissingTheme = false
+
+    private fun warnMissingThemeOnce() {
+        if (warnedMissingTheme) return
+        warnedMissingTheme = true
+        Log.w(
+            "ToastStack",
+            "colorSource is AppTheme but no theme was passed to ToastStack.configure(). " +
+                "Falling back to ToastColorSource.Library for the auto overlay.",
+        )
     }
 
     /**

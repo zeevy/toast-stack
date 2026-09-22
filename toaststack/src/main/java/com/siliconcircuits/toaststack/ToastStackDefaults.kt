@@ -18,15 +18,14 @@ import androidx.compose.ui.unit.dp
  * 3. **Per toast style** - optional overrides set on an individual
  *    [ToastData.style], taking the highest priority.
  *
- * Colors for [ToastType.Default] are read from the Material 3 theme
- * at runtime, so they automatically adapt to:
- * - **Light vs dark mode**: the system or app level theme setting
- * - **Dynamic color (Material You)**: wallpaper based color extraction
- *   available on Android 12+ devices
+ * Which colors a type gets depends on [ToastColorSource]:
+ * - [ToastColorSource.AppTheme]: every type maps to Material 3 color roles
+ *   from the surrounding [MaterialTheme], so toasts follow the app's
+ *   palette, light and dark mode, and dynamic color.
+ * - [ToastColorSource.Library]: Default and Loading use the theme's
+ *   inverse surface. Success, Error, Warning and Info use fixed hues.
  *
- * The remaining types (Success, Error, Warning, Info) use fixed brand
- * colors that provide strong visual contrast regardless of theme, while
- * still pulling typography from the current [MaterialTheme].
+ * Typography always comes from the current [MaterialTheme].
  */
 object ToastStackDefaults {
 
@@ -59,13 +58,43 @@ object ToastStackDefaults {
      * fields unset.
      *
      * @param type The semantic toast type to resolve defaults for.
+     * @param colorSource Where the colors come from. Defaults to the value
+     *   set in [ToastStack.configure].
      * @return A [ToastStackStyle] with all fields populated for the
      *   given type.
      */
     @Composable
-    fun styleForType(type: ToastType): ToastStackStyle {
+    fun styleForType(
+        type: ToastType,
+        colorSource: ToastColorSource = ToastStack.colorSource,
+    ): ToastStackStyle {
         val colorScheme = MaterialTheme.colorScheme
         val typography = MaterialTheme.typography
+
+        if (colorSource == ToastColorSource.AppTheme) {
+            val (background, content) = when (type) {
+                ToastType.Default, ToastType.Loading ->
+                    colorScheme.inverseSurface to colorScheme.inverseOnSurface
+                ToastType.Success ->
+                    colorScheme.primaryContainer to colorScheme.onPrimaryContainer
+                ToastType.Info ->
+                    colorScheme.secondaryContainer to colorScheme.onSecondaryContainer
+                ToastType.Warning ->
+                    colorScheme.tertiaryContainer to colorScheme.onTertiaryContainer
+                ToastType.Error ->
+                    colorScheme.errorContainer to colorScheme.onErrorContainer
+            }
+            return ToastStackStyle(
+                backgroundColor = background,
+                contentColor = content,
+                titleColor = content,
+                iconTint = content,
+                shape = Shape,
+                elevation = Elevation,
+                titleStyle = typography.titleSmall,
+                messageStyle = typography.bodyMedium
+            )
+        }
 
         return when (type) {
             // Default uses M3 inverse surface colors which automatically

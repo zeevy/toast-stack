@@ -21,6 +21,7 @@
 -keep class com.siliconcircuits.toaststack.DismissReason { *; }
 -keep class com.siliconcircuits.toaststack.SwipeDismissDirection { *; }
 -keep class com.siliconcircuits.toaststack.ToastStackStyle { *; }
+-keep class com.siliconcircuits.toaststack.ToastColorSource { *; }
 -keep class com.siliconcircuits.toaststack.ToastStackDefaults { *; }
 -keep class com.siliconcircuits.toaststack.ToastStackConfig { *; }
 -keep class com.siliconcircuits.toaststack.ToastBuilder { *; }

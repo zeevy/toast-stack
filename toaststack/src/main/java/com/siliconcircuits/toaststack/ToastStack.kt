@@ -1,6 +1,7 @@
 package com.siliconcircuits.toaststack
 
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
 import java.util.concurrent.ConcurrentHashMap
 
@@ -75,6 +76,12 @@ object ToastStack {
     internal var defaultAnimationConfig: ToastAnimationConfig = ToastAnimationConfig()
         private set
 
+    internal var colorSource: ToastColorSource = ToastColorSource.AppTheme
+        private set
+
+    internal var theme: (@Composable (content: @Composable () -> Unit) -> Unit)? = null
+        private set
+
     /**
      * Configures global defaults for the auto-initialized [ToastStackHost].
      *
@@ -99,6 +106,12 @@ object ToastStack {
      * @param defaultSwipeDismiss Which swipe directions dismiss toasts.
      * @param defaultAnimation Animation style for toast enter/exit.
      * @param defaultAnimationConfig Timing and easing for animations.
+     * @param colorSource Where toast colors come from. See [ToastColorSource].
+     * @param theme The app's theme composable, for example
+     *   `{ content -> MyAppTheme { content() } }`. The auto overlay renders
+     *   toasts inside it so they follow the app's colors, typography, dark
+     *   mode and dynamic color. Needed only for [ToastColorSource.AppTheme]
+     *   with the auto overlay.
      */
     fun configure(
         contentPadding: PaddingValues = defaultContentPadding,
@@ -109,6 +122,8 @@ object ToastStack {
         defaultSwipeDismiss: SwipeDismissDirection = this.defaultSwipeDismiss,
         defaultAnimation: ToastAnimation = this.defaultAnimation,
         defaultAnimationConfig: ToastAnimationConfig = this.defaultAnimationConfig,
+        colorSource: ToastColorSource = this.colorSource,
+        theme: (@Composable (content: @Composable () -> Unit) -> Unit)? = this.theme,
     ) {
         defaultContentPadding = contentPadding
         defaultGlobalStyle = globalStyle
@@ -118,6 +133,8 @@ object ToastStack {
         this.defaultSwipeDismiss = defaultSwipeDismiss
         this.defaultAnimation = defaultAnimation
         this.defaultAnimationConfig = defaultAnimationConfig
+        this.colorSource = colorSource
+        this.theme = theme
     }
 
     /**
