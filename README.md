@@ -163,6 +163,13 @@ Toast colors come from one of two sources, set with `colorSource`:
 
 The auto overlay is a separate Compose tree, so it cannot see your theme by itself. Pass your theme composable as `theme` in `ToastStack.configure()`. If `colorSource` is `AppTheme` and no `theme` is given, the overlay falls back to `Library` and logs one warning. A `ToastStackHost` placed by hand inside your Compose tree already sits under your theme and needs no `theme` parameter.
 
+Two rules for the `theme` wrapper:
+
+- It must only set the theme. Do not put `Surface`, `Scaffold` or any background inside it. The overlay covers the whole Activity, so a background there hides your app's UI. If your theme function wraps `Surface`, pass a version without it, for example `{ content -> MaterialTheme(colorScheme = myScheme, typography = myTypography, content = content) }`.
+- Call `ToastStack.configure()` from `Application.onCreate()`. The lambda is kept for the life of the process, so do not capture an Activity, View, ViewModel or Activity Context in it.
+
+Upgrading from 1.0.x: `AppTheme` is the default, so a `ToastStackHost` you place by hand now shows typed toasts in your theme's color roles instead of the fixed green, red, amber and blue. To keep the old look, pass `colorSource = ToastColorSource.Library` to the host or set it in `ToastStack.configure()`.
+
 Material 3 has no success role, so Success uses `primaryContainer`. If you want a green success toast, override it with `globalStyle` or a per toast style. Global style and per toast style still apply on top of either source.
 
 ## API Overview

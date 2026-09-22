@@ -71,8 +71,8 @@ object ToastStackDefaults {
         val colorScheme = MaterialTheme.colorScheme
         val typography = MaterialTheme.typography
 
-        if (colorSource == ToastColorSource.AppTheme) {
-            val (background, content) = when (type) {
+        val (background, content) = when (colorSource) {
+            ToastColorSource.AppTheme -> when (type) {
                 ToastType.Default, ToastType.Loading ->
                     colorScheme.inverseSurface to colorScheme.inverseOnSurface
                 ToastType.Success ->
@@ -84,98 +84,30 @@ object ToastStackDefaults {
                 ToastType.Error ->
                     colorScheme.errorContainer to colorScheme.onErrorContainer
             }
-            return ToastStackStyle(
-                backgroundColor = background,
-                contentColor = content,
-                titleColor = content,
-                iconTint = content,
-                shape = Shape,
-                elevation = Elevation,
-                titleStyle = typography.titleSmall,
-                messageStyle = typography.bodyMedium
-            )
+            ToastColorSource.Library -> when (type) {
+                // Inverse surface adapts to light/dark mode: dark card on a
+                // light theme, light card on a dark theme. Loading uses the
+                // same colors since the progress indicator carries the emphasis.
+                ToastType.Default, ToastType.Loading ->
+                    colorScheme.inverseSurface to colorScheme.inverseOnSurface
+                // Green darkened from #2E7D32 to meet WCAG AA 4.5:1 with white text.
+                ToastType.Success -> Color(0xFF1B5E20) to Color.White
+                ToastType.Error -> Color(0xFFC62828) to Color.White
+                // Amber with dark text. White text on yellow has poor contrast.
+                ToastType.Warning -> Color(0xFFF9A825) to Color(0xFF1B1B1B)
+                ToastType.Info -> Color(0xFF1565C0) to Color.White
+            }
         }
 
-        return when (type) {
-            // Default uses M3 inverse surface colors which automatically
-            // adapt to light/dark mode: dark card on light theme, light
-            // card on dark theme.
-            ToastType.Default -> ToastStackStyle(
-                backgroundColor = colorScheme.inverseSurface,
-                contentColor = colorScheme.inverseOnSurface,
-                titleColor = colorScheme.inverseOnSurface,
-                iconTint = colorScheme.inverseOnSurface,
-                shape = Shape,
-                elevation = Elevation,
-                titleStyle = typography.titleSmall,
-                messageStyle = typography.bodyMedium
-            )
-
-            // Green (#1B5E20) with white text for a clear "positive" signal.
-            // Darkened from #2E7D32 to meet WCAG AA 4.5:1 contrast ratio
-            // with white text (now ~5.8:1).
-            ToastType.Success -> ToastStackStyle(
-                backgroundColor = Color(0xFF1B5E20),
-                contentColor = Color.White,
-                titleColor = Color.White,
-                iconTint = Color.White,
-                shape = Shape,
-                elevation = Elevation,
-                titleStyle = typography.titleSmall,
-                messageStyle = typography.bodyMedium
-            )
-
-            // Red (#C62828) with white text for an unmistakable "error" signal.
-            ToastType.Error -> ToastStackStyle(
-                backgroundColor = Color(0xFFC62828),
-                contentColor = Color.White,
-                titleColor = Color.White,
-                iconTint = Color.White,
-                shape = Shape,
-                elevation = Elevation,
-                titleStyle = typography.titleSmall,
-                messageStyle = typography.bodyMedium
-            )
-
-            // Amber/yellow (#F9A825) with dark text. Dark text is used
-            // instead of white because yellow backgrounds have poor contrast
-            // with white text, making it hard to read.
-            ToastType.Warning -> ToastStackStyle(
-                backgroundColor = Color(0xFFF9A825),
-                contentColor = Color(0xFF1B1B1B),
-                titleColor = Color(0xFF1B1B1B),
-                iconTint = Color(0xFF1B1B1B),
-                shape = Shape,
-                elevation = Elevation,
-                titleStyle = typography.titleSmall,
-                messageStyle = typography.bodyMedium
-            )
-
-            // Blue (#1565C0) with white text for a calm "informational" tone.
-            ToastType.Info -> ToastStackStyle(
-                backgroundColor = Color(0xFF1565C0),
-                contentColor = Color.White,
-                titleColor = Color.White,
-                iconTint = Color.White,
-                shape = Shape,
-                elevation = Elevation,
-                titleStyle = typography.titleSmall,
-                messageStyle = typography.bodyMedium
-            )
-
-            // Loading uses the same inverse surface as Default, since
-            // the visual emphasis comes from the progress indicator
-            // rather than from the card color.
-            ToastType.Loading -> ToastStackStyle(
-                backgroundColor = colorScheme.inverseSurface,
-                contentColor = colorScheme.inverseOnSurface,
-                titleColor = colorScheme.inverseOnSurface,
-                iconTint = colorScheme.inverseOnSurface,
-                shape = Shape,
-                elevation = Elevation,
-                titleStyle = typography.titleSmall,
-                messageStyle = typography.bodyMedium
-            )
-        }
+        return ToastStackStyle(
+            backgroundColor = background,
+            contentColor = content,
+            titleColor = content,
+            iconTint = content,
+            shape = Shape,
+            elevation = Elevation,
+            titleStyle = typography.titleSmall,
+            messageStyle = typography.bodyMedium
+        )
     }
 }

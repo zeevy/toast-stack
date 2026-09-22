@@ -31,6 +31,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.siliconcircuits.toaststack.ToastColorSource
 import com.siliconcircuits.toaststack.ToastStackHost
 import com.siliconcircuits.toaststack.rememberToastStackState
 import com.siliconcircuits.toaststack.demo.tabs.ActionsTab
@@ -156,6 +157,7 @@ private fun DemoScreen(
             }
         }
 
-        ToastStackHost(state = toastState)
+        // The demo swatches show the fixed library hues, so keep toasts matching them.
+        ToastStackHost(state = toastState, colorSource = ToastColorSource.Library)
     }
 }

@@ -11,6 +11,7 @@ import android.widget.FrameLayout
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
 import androidx.lifecycle.setViewTreeLifecycleOwner
@@ -93,10 +94,9 @@ class ToastStackInitializer : Initializer<Unit> {
                         // colors would come from the stock baseline scheme, so fall
                         // back to the library colors and say so once.
                         val theme = ToastStack.theme
-                        var colorSource = ToastStack.colorSource
-                        if (colorSource == ToastColorSource.AppTheme && theme == null) {
-                            colorSource = ToastColorSource.Library
-                            warnMissingThemeOnce()
+                        val colorSource = ToastStack.overlayColorSource()
+                        if (colorSource != ToastStack.colorSource) {
+                            SideEffect { warnMissingThemeOnce() }
                         }
                         val host: @Composable () -> Unit = {
                             ToastStackHost(
