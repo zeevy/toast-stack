@@ -121,7 +121,13 @@ class ToastBuilder {
  * @return A [ToastHandle] for programmatic control.
  */
 fun ToastStackState.build(block: ToastBuilder.() -> Unit): ToastHandle {
-    val toast = ToastBuilder().apply(block).build()
+    // Start from this host's defaults, so fields the block does not set
+    // follow the host (and ToastStack.configure() for the auto overlay).
+    val toast = ToastBuilder().apply {
+        duration = defaultDuration
+        position = defaultPosition
+        swipeDismiss = defaultSwipeDismiss
+    }.apply(block).build()
     return enqueue(toast)
 }
 
@@ -142,18 +148,4 @@ fun ToastStackState.build(block: ToastBuilder.() -> Unit): ToastHandle {
 fun buildToast(
     hostTag: String? = null,
     block: ToastBuilder.() -> Unit
-): ToastHandle? {
-    val builder = ToastBuilder().apply(block)
-    return ToastStack.show(
-        message = builder.message,
-        title = builder.title,
-        type = builder.type,
-        duration = builder.duration,
-        position = builder.position,
-        showCloseButton = builder.showCloseButton,
-        swipeDismiss = builder.swipeDismiss,
-        style = builder.style,
-        hostTag = hostTag,
-        onDismiss = builder.onDismiss
-    )
-}
+): ToastHandle? = ToastStack.resolveHost(hostTag)?.build(block)
