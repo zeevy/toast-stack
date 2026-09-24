@@ -135,6 +135,7 @@ class MyApp : Application() {
             defaultSwipeDismiss = SwipeDismissDirection.Both,
             defaultAnimation = ToastAnimation.Slide,
             defaultAnimationConfig = ToastAnimationConfig(),
+            deduplicationWindowMs = 0, // e.g. 3000 to merge repeats into one card
             globalStyle = null, // or a ToastStackStyle for app-wide look
             colorSource = ToastColorSource.AppTheme,
             theme = { content -> MyAppTheme { content() } },
@@ -143,7 +144,7 @@ class MyApp : Application() {
 }
 ```
 
-All parameters are optional and have sensible defaults.
+All parameters are optional and have sensible defaults. `colorSource` and `theme` reach an overlay that is already on screen. The other values are read when an Activity's overlay is first created, so call `configure()` before any Activity starts.
 
 ### Theming
 
@@ -342,11 +343,16 @@ ToastStack.show("Critical!", priority = ToastPriority.Urgent)
 ### Duplicate Detection
 
 ```kotlin
+// Global host (auto overlay): set it in Application.onCreate()
+ToastStack.configure(deduplicationWindowMs = 3000)
+
+// Or on your own state
 val state = ToastStackState(deduplicationWindowMs = 3000)
-// Second call within 3 seconds is suppressed
 state.show("Same message")
-state.show("Same message") // Ignored
+state.show("Same message") // No new card. The first card shows "Same message (x2)"
 ```
+
+While the card is still on screen, each repeat within the window restarts its auto dismiss timer and adds one to the count. The same message after the card has gone shows a new card. Pass `showRepeatCount = false` to hide the "(xN)" count.
 
 ## Haptic and Sound
 

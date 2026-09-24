@@ -154,6 +154,78 @@ class GapFixTest {
         assertEquals(handle1.id, handle2.id)
     }
 
+    @Test
+    fun `duplicates add to the repeat count of one card`() {
+        val state = ToastStackState(deduplicationWindowMs = 60_000)
+        repeat(5) { state.show("Same message") }
+
+        assertEquals(1, state.toasts.size)
+        assertEquals(5, state.toasts.first().repeatCount)
+    }
+
+    @Test
+    fun `duplicate restarts the auto dismiss timer`() {
+        val state = ToastStackState(deduplicationWindowMs = 60_000)
+        state.show("Same message", duration = ToastDuration.Short)
+        testDispatcher.scheduler.advanceTimeBy(1_500)
+        state.show("Same message", duration = ToastDuration.Short)
+
+        // 3 seconds after the first show, past its own 2 second timer.
+        testDispatcher.scheduler.advanceTimeBy(1_500)
+        testDispatcher.scheduler.runCurrent()
+        assertEquals(1, state.toasts.size)
+
+        // 2 seconds after the duplicate, the restarted timer ends.
+        testDispatcher.scheduler.advanceTimeBy(600)
+        testDispatcher.scheduler.runCurrent()
+        assertTrue(state.toasts.isEmpty())
+    }
+
+    @Test
+    fun `same message after the card is gone gives a new card with no count`() {
+        val state = ToastStackState(deduplicationWindowMs = 60_000)
+        val first = state.show("Same message")
+        state.show("Same message")
+        state.dismiss(first.id)
+
+        val second = state.show("Same message")
+
+        assertEquals(1, state.toasts.size)
+        assertTrue(first.id != second.id)
+        assertEquals(1, state.toasts.first().repeatCount)
+    }
+
+    @Test
+    fun `repeat count stays at 1 when showRepeatCount is off`() {
+        val state = ToastStackState(deduplicationWindowMs = 60_000, showRepeatCount = false)
+        repeat(3) { state.show("Same message") }
+
+        assertEquals(1, state.toasts.size)
+        assertEquals(1, state.toasts.first().repeatCount)
+    }
+
+    @Test
+    fun `duplicate of a queued toast adds to its count instead of queueing again`() {
+        val state = ToastStackState(maxVisible = 1, deduplicationWindowMs = 60_000)
+        state.show("Visible")
+        state.show("Queued")
+        val handle = state.show("Queued")
+        state.dismiss(state.toasts.first().id)
+
+        assertEquals(1, state.toasts.size)
+        assertEquals(handle.id, state.toasts.first().id)
+        assertEquals(2, state.toasts.first().repeatCount)
+    }
+
+    @Test
+    fun `repeat count is 1 when dedup is off`() {
+        val state = ToastStackState()
+        repeat(3) { state.show("Same") }
+
+        assertEquals(3, state.toasts.size)
+        assertTrue(state.toasts.all { it.repeatCount == 1 })
+    }
+
     // -- Per type sound URI --
 
     @Test

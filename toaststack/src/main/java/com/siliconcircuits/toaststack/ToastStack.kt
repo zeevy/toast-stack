@@ -79,6 +79,12 @@ object ToastStack {
     internal var defaultAnimationConfig: ToastAnimationConfig = ToastAnimationConfig()
         private set
 
+    internal var deduplicationWindowMs: Long = 0L
+        private set
+
+    internal var showRepeatCount: Boolean = true
+        private set
+
     // Compose state so an already attached overlay recomposes when
     // configure() is called after the first Activity is shown.
     internal var colorSource: ToastColorSource by mutableStateOf(ToastColorSource.AppTheme)
@@ -111,6 +117,11 @@ object ToastStack {
      * }
      * ```
      *
+     * [colorSource] and [theme] reach an overlay that is already on screen.
+     * The other values are read only when an Activity's overlay is first
+     * created, so a later call does not change an Activity that is already
+     * showing.
+     *
      * @param contentPadding Space between screen edges and the toast column.
      * @param globalStyle Optional style applied to every toast.
      * @param defaultPosition Default screen position for toasts.
@@ -119,6 +130,12 @@ object ToastStack {
      * @param defaultSwipeDismiss Which swipe directions dismiss toasts.
      * @param defaultAnimation Animation style for toast enter/exit.
      * @param defaultAnimationConfig Timing and easing for animations.
+     * @param deduplicationWindowMs When more than 0, the same message shown
+     *   again within this many milliseconds, while its card is still on
+     *   screen, restarts that card's timer and adds one to its repeat count
+     *   instead of adding a new card. Defaults to 0 (off).
+     * @param showRepeatCount Whether a repeated card shows "(xN)" after the
+     *   message. Defaults to true.
      * @param colorSource Where toast colors come from. See [ToastColorSource].
      * @param theme The app's theme composable, for example
      *   `{ content -> MyAppTheme { content() } }`. The auto overlay renders
@@ -141,6 +158,8 @@ object ToastStack {
         defaultSwipeDismiss: SwipeDismissDirection = this.defaultSwipeDismiss,
         defaultAnimation: ToastAnimation = this.defaultAnimation,
         defaultAnimationConfig: ToastAnimationConfig = this.defaultAnimationConfig,
+        deduplicationWindowMs: Long = this.deduplicationWindowMs,
+        showRepeatCount: Boolean = this.showRepeatCount,
         colorSource: ToastColorSource = this.colorSource,
         theme: (@Composable (content: @Composable () -> Unit) -> Unit)? = this.theme,
     ) {
@@ -152,6 +171,8 @@ object ToastStack {
         this.defaultSwipeDismiss = defaultSwipeDismiss
         this.defaultAnimation = defaultAnimation
         this.defaultAnimationConfig = defaultAnimationConfig
+        this.deduplicationWindowMs = deduplicationWindowMs
+        this.showRepeatCount = showRepeatCount
         this.colorSource = colorSource
         this.theme = theme
     }

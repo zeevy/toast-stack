@@ -41,6 +41,10 @@ import kotlin.uuid.Uuid
  * @property customIcon Optional composable that replaces the default type icon.
  * @property onDismiss Optional callback invoked when the toast is removed,
  *   with the [DismissReason] explaining why.
+ * @property repeatCount How many times this message was shown while the card
+ *   was on screen. Set by deduplication (see
+ *   [ToastStackState.deduplicationWindowMs]). The card shows "(xN)" when it is
+ *   more than 1.
  */
 data class ToastData(
     @OptIn(ExperimentalUuidApi::class)
@@ -70,5 +74,6 @@ data class ToastData(
     val soundEnabled: Boolean = false,
     val soundUri: android.net.Uri? = null,
     val onShow: (() -> Unit)? = null,
-    val onDismiss: ((DismissReason) -> Unit)? = null
+    val onDismiss: ((DismissReason) -> Unit)? = null,
+    val repeatCount: Int = 1
 )

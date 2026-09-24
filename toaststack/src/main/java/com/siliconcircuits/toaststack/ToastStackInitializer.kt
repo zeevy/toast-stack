@@ -107,6 +107,8 @@ class ToastStackInitializer : Initializer<Unit> {
                                     defaultSwipeDismiss = ToastStack.defaultSwipeDismiss,
                                     defaultAnimation = ToastStack.defaultAnimation,
                                     defaultAnimationConfig = ToastStack.defaultAnimationConfig,
+                                    deduplicationWindowMs = ToastStack.deduplicationWindowMs,
+                                    showRepeatCount = ToastStack.showRepeatCount,
                                 ),
                                 modifier = Modifier.fillMaxSize(),
                                 globalStyle = ToastStack.defaultGlobalStyle,

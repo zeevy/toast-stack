@@ -28,6 +28,9 @@ package com.siliconcircuits.toaststack
  * @property defaultSwipeDismiss Default swipe direction for toasts.
  * @property defaultAnimation Default enter/exit animation style.
  * @property defaultAnimationConfig Default animation timing and easing.
+ * @property deduplicationWindowMs Duplicate message window in milliseconds.
+ *   0 turns it off. See [ToastStackState.deduplicationWindowMs].
+ * @property showRepeatCount Show "(xN)" on repeated cards.
  */
 class ToastStackConfig {
     var maxVisible: Int = 5
@@ -36,6 +39,8 @@ class ToastStackConfig {
     var defaultSwipeDismiss: SwipeDismissDirection = SwipeDismissDirection.Both
     var defaultAnimation: ToastAnimation = ToastAnimation.Slide
     var defaultAnimationConfig: ToastAnimationConfig = ToastAnimationConfig()
+    var deduplicationWindowMs: Long = 0L
+    var showRepeatCount: Boolean = true
 
     companion object {
         /**
@@ -80,6 +85,8 @@ fun rememberToastStackState(config: ToastStackConfig): ToastStackState {
         defaultDuration = config.defaultDuration,
         defaultSwipeDismiss = config.defaultSwipeDismiss,
         defaultAnimation = config.defaultAnimation,
-        defaultAnimationConfig = config.defaultAnimationConfig
+        defaultAnimationConfig = config.defaultAnimationConfig,
+        deduplicationWindowMs = config.deduplicationWindowMs,
+        showRepeatCount = config.showRepeatCount
     )
 }

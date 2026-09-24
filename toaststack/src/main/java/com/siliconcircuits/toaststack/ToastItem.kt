@@ -152,6 +152,9 @@ internal fun ToastItem(
         ToastType.Loading -> "Loading"
         ToastType.Default -> null
     }
+    // Deduplication counts repeats of the same message. Show "(x5)" so the
+    // user can see the event happened more than once.
+    val messageText = if (toast.repeatCount > 1) "${toast.message} (x${toast.repeatCount})" else toast.message
     val accessibilityLabel = buildString {
         if (typePrefix != null) {
             append(typePrefix)
@@ -161,7 +164,7 @@ internal fun ToastItem(
             append(toast.title)
             append(". ")
         }
-        append(toast.message)
+        append(messageText)
     }
 
     // Determine the border stroke. Only drawn when the style specifies a border color.
@@ -304,7 +307,7 @@ internal fun ToastItem(
                         )
                     }
                     Text(
-                        text = toast.message,
+                        text = messageText,
                         style = resolvedStyle.messageStyle!!,
                         color = contentColor
                     )

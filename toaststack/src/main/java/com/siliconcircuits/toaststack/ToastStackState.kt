@@ -45,6 +45,13 @@ import kotlinx.coroutines.sync.withLock
  * @param defaultSwipeDismiss The [SwipeDismissDirection] used when a toast
  *   does not explicitly specify its own swipe behavior. Defaults to
  *   [SwipeDismissDirection.Both] (swipeable in either direction).
+ * @param deduplicationWindowMs When more than 0, a toast with the same message
+ *   as a card still on screen (or waiting in the queue), shown within this many
+ *   milliseconds of the last one, does not add a new card. It restarts the
+ *   existing card's auto dismiss timer and adds one to its repeat count
+ *   instead. Defaults to 0 (off).
+ * @param showRepeatCount Whether a deduplicated card shows its repeat count,
+ *   for example "(x5)" after the message. Defaults to true.
  */
 @Stable
 class ToastStackState(
@@ -54,7 +61,8 @@ class ToastStackState(
     val defaultSwipeDismiss: SwipeDismissDirection = SwipeDismissDirection.Both,
     val defaultAnimation: ToastAnimation = ToastAnimation.Slide,
     val defaultAnimationConfig: ToastAnimationConfig = ToastAnimationConfig(),
-    val deduplicationWindowMs: Long = 0L
+    val deduplicationWindowMs: Long = 0L,
+    val showRepeatCount: Boolean = true
 ) {
     // Snapshot backed list: Compose observes this collection and automatically
     // triggers recomposition when items are added or removed. This is the
@@ -465,21 +473,17 @@ class ToastStackState(
      */
     internal fun enqueue(toast: ToastData): ToastHandle {
         // Duplicate detection: if the same message was shown within the
-        // deduplication window, skip this toast and return a handle to
-        // the existing one instead. This prevents spam when the same
-        // event fires multiple times in quick succession.
+        // deduplication window and its card is still on screen or queued,
+        // update that card instead of adding a new one. This prevents a stack
+        // of identical cards when the same event fires many times in a row.
         if (deduplicationWindowMs > 0 && toast.message.isNotEmpty()) {
             val now = System.currentTimeMillis()
             val lastShown = lastShownTimestamps[toast.message]
-            if (lastShown != null && (now - lastShown) < deduplicationWindowMs) {
-                // Find the existing active toast with this message and return
-                // a handle to it. If it was already dismissed, allow the new one.
-                val existing = activeToasts.find { it.message == toast.message }
-                if (existing != null) {
-                    return ToastHandle(existing.id, this)
-                }
-            }
             lastShownTimestamps[toast.message] = now
+            if (lastShown != null && (now - lastShown) < deduplicationWindowMs) {
+                val existing = bumpRepeat(toast.message)
+                if (existing != null) return ToastHandle(existing.id, this)
+            }
         }
 
         if (activeToasts.size < maxVisible) {
@@ -507,6 +511,40 @@ class ToastStackState(
             }
         }
         return ToastHandle(toast.id, this)
+    }
+
+    /**
+     * Handles a duplicate of an active or queued toast with the same
+     * [message]: adds one to its repeat count (when [showRepeatCount] is on)
+     * and, for an active toast, restarts its auto dismiss timer so it stays
+     * on screen while the event keeps repeating.
+     *
+     * @return The existing toast, or null if no card has this message.
+     */
+    private fun bumpRepeat(message: String): ToastData? {
+        val count = if (showRepeatCount) 1 else 0
+        val activeIndex = activeToasts.indexOfFirst { it.message == message }
+        if (activeIndex != -1) {
+            val current = activeToasts[activeIndex]
+            val updated = current.copy(repeatCount = current.repeatCount + count)
+            activeToasts[activeIndex] = updated
+            if (updated.duration != ToastDuration.Indefinite) {
+                if (updated.id in pausedIds) {
+                    // The user is holding the card. Give it the full time back
+                    // for when the timer resumes.
+                    remainingMillis[updated.id] = updated.duration.millis
+                } else {
+                    launchTimer(updated, updated.duration.millis)
+                }
+            }
+            return updated
+        }
+        val queuedIndex = pendingQueue.indexOfFirst { it.message == message }
+        if (queuedIndex != -1) {
+            val current = pendingQueue[queuedIndex]
+            return current.copy(repeatCount = current.repeatCount + count).also { pendingQueue[queuedIndex] = it }
+        }
+        return null
     }
 
     /**
@@ -834,6 +872,8 @@ class ToastStackState(
  * @param defaultSwipeDismiss Default swipe behavior. See [ToastStackState.defaultSwipeDismiss].
  * @param defaultAnimation Default animation style. See [ToastStackState.defaultAnimation].
  * @param defaultAnimationConfig Default animation timing. See [ToastStackState.defaultAnimationConfig].
+ * @param deduplicationWindowMs Duplicate message window. See [ToastStackState.deduplicationWindowMs].
+ * @param showRepeatCount Show "(xN)" on repeated cards. See [ToastStackState.showRepeatCount].
  * @return A remembered [ToastStackState] instance.
  */
 @Composable
@@ -843,7 +883,9 @@ fun rememberToastStackState(
     defaultDuration: ToastDuration = ToastDuration.Short,
     defaultSwipeDismiss: SwipeDismissDirection = SwipeDismissDirection.Both,
     defaultAnimation: ToastAnimation = ToastAnimation.Slide,
-    defaultAnimationConfig: ToastAnimationConfig = ToastAnimationConfig()
+    defaultAnimationConfig: ToastAnimationConfig = ToastAnimationConfig(),
+    deduplicationWindowMs: Long = 0L,
+    showRepeatCount: Boolean = true
 ): ToastStackState {
     val state = remember {
         ToastStackState(
@@ -852,7 +894,9 @@ fun rememberToastStackState(
             defaultDuration = defaultDuration,
             defaultSwipeDismiss = defaultSwipeDismiss,
             defaultAnimation = defaultAnimation,
-            defaultAnimationConfig = defaultAnimationConfig
+            defaultAnimationConfig = defaultAnimationConfig,
+            deduplicationWindowMs = deduplicationWindowMs,
+            showRepeatCount = showRepeatCount
         )
     }
 
