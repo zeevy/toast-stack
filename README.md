@@ -78,7 +78,7 @@ Add the dependency to your module's `build.gradle.kts`:
 
 ```kotlin
 dependencies {
-    implementation("com.github.zeevy:toast-stack:v1.2.0")
+    implementation("com.github.zeevy:toast-stack:v1.3.0")
 }
 ```
 
@@ -86,7 +86,7 @@ Or using a version catalog (`libs.versions.toml`):
 
 ```toml
 [versions]
-toastStack = "v1.2.0"
+toastStack = "v1.3.0"
 
 [libraries]
 toast-stack = { group = "com.github.zeevy", name = "toast-stack", version.ref = "toastStack" }
@@ -144,7 +144,7 @@ class MyApp : Application() {
 }
 ```
 
-All parameters are optional and have sensible defaults. `colorSource` and `theme` reach an overlay that is already on screen. The other values are read when an Activity's overlay is first created, so call `configure()` before any Activity starts.
+All parameters are optional and have sensible defaults. You can call `configure()` again later, for example when the user changes a toast time setting. The next toast uses the new values, and a toast already on screen keeps its own duration. `contentPadding` and `globalStyle` are the exception: they are read only when an Activity's overlay is first created.
 
 ### Theming
 

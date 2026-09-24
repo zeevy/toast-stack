@@ -55,15 +55,51 @@ import kotlinx.coroutines.sync.withLock
  */
 @Stable
 class ToastStackState(
-    val maxVisible: Int = 5,
-    val defaultPosition: ToastPosition = ToastPosition.TopCenter,
-    val defaultDuration: ToastDuration = ToastDuration.Short,
-    val defaultSwipeDismiss: SwipeDismissDirection = SwipeDismissDirection.Both,
-    val defaultAnimation: ToastAnimation = ToastAnimation.Slide,
-    val defaultAnimationConfig: ToastAnimationConfig = ToastAnimationConfig(),
-    val deduplicationWindowMs: Long = 0L,
-    val showRepeatCount: Boolean = true
+    maxVisible: Int = 5,
+    defaultPosition: ToastPosition = ToastPosition.TopCenter,
+    defaultDuration: ToastDuration = ToastDuration.Short,
+    defaultSwipeDismiss: SwipeDismissDirection = SwipeDismissDirection.Both,
+    defaultAnimation: ToastAnimation = ToastAnimation.Slide,
+    defaultAnimationConfig: ToastAnimationConfig = ToastAnimationConfig(),
+    deduplicationWindowMs: Long = 0L,
+    showRepeatCount: Boolean = true
 ) {
+    /**
+     * When true, the defaults below are read from [ToastStack] each time
+     * they are used, instead of the constructor values. Set by
+     * [ToastStackInitializer] for the auto overlay, so a later
+     * [ToastStack.configure] call reaches an Activity that is already open.
+     * Lowering `maxVisible` this way does not remove cards already on
+     * screen. The new limit applies as they are dismissed.
+     */
+    internal var followsGlobalDefaults = false
+
+    private val ownMaxVisible = maxVisible
+    private val ownDefaultPosition = defaultPosition
+    private val ownDefaultDuration = defaultDuration
+    private val ownDefaultSwipeDismiss = defaultSwipeDismiss
+    private val ownDefaultAnimation = defaultAnimation
+    private val ownDefaultAnimationConfig = defaultAnimationConfig
+    private val ownDeduplicationWindowMs = deduplicationWindowMs
+    private val ownShowRepeatCount = showRepeatCount
+
+    val maxVisible: Int
+        get() = if (followsGlobalDefaults) ToastStack.defaultMaxVisible else ownMaxVisible
+    val defaultPosition: ToastPosition
+        get() = if (followsGlobalDefaults) ToastStack.defaultPosition else ownDefaultPosition
+    val defaultDuration: ToastDuration
+        get() = if (followsGlobalDefaults) ToastStack.defaultDuration else ownDefaultDuration
+    val defaultSwipeDismiss: SwipeDismissDirection
+        get() = if (followsGlobalDefaults) ToastStack.defaultSwipeDismiss else ownDefaultSwipeDismiss
+    val defaultAnimation: ToastAnimation
+        get() = if (followsGlobalDefaults) ToastStack.defaultAnimation else ownDefaultAnimation
+    val defaultAnimationConfig: ToastAnimationConfig
+        get() = if (followsGlobalDefaults) ToastStack.defaultAnimationConfig else ownDefaultAnimationConfig
+    val deduplicationWindowMs: Long
+        get() = if (followsGlobalDefaults) ToastStack.deduplicationWindowMs else ownDeduplicationWindowMs
+    val showRepeatCount: Boolean
+        get() = if (followsGlobalDefaults) ToastStack.showRepeatCount else ownShowRepeatCount
+
     // Snapshot backed list: Compose observes this collection and automatically
     // triggers recomposition when items are added or removed. This is the
     // reactive mechanism that makes toasts appear and disappear on screen.
@@ -471,7 +507,19 @@ class ToastStackState(
      * @param toast The fully configured toast to add.
      * @return A [ToastHandle] wrapping the toast's ID and this state.
      */
-    internal fun enqueue(toast: ToastData): ToastHandle {
+    internal fun enqueue(incoming: ToastData): ToastHandle {
+        // The auto overlay reads its defaults live from ToastStack. Save the
+        // animation on the toast now, so a later configure() call does not
+        // change how a card already on screen animates out.
+        val toast = if (followsGlobalDefaults) {
+            incoming.copy(
+                animation = incoming.animation ?: defaultAnimation,
+                animationConfig = incoming.animationConfig ?: defaultAnimationConfig
+            )
+        } else {
+            incoming
+        }
+
         // Duplicate detection: if the same message was shown within the
         // deduplication window and its card is still on screen or queued,
         // update that card instead of adding a new one. This prevents a stack

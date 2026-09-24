@@ -15,13 +15,14 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Checks that `ToastStack.configure(deduplicationWindowMs = ...)` reaches
- * the host that [ToastStackInitializer] adds to every Activity, and that
- * the repeated card shows its count.
+ * Checks that `ToastStack.configure(...)` reaches the host that
+ * [ToastStackInitializer] adds to every Activity: deduplication with the
+ * repeat count on the card, and a default duration set after the overlay
+ * was created.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
-class GlobalDeduplicationTest {
+class AutoOverlayConfigTest {
 
     // Configure and start the auto initializer before the rule launches the
     // Activity, the same order as Application.onCreate() in a real app.
@@ -40,7 +41,7 @@ class GlobalDeduplicationTest {
     @After
     fun tearDown() {
         ToastStack.dismissAll()
-        ToastStack.configure(deduplicationWindowMs = 0L)
+        ToastStack.configure(deduplicationWindowMs = 0L, defaultDuration = ToastDuration.Short)
     }
 
     @Test
@@ -52,5 +53,17 @@ class GlobalDeduplicationTest {
 
         assertEquals(1, ids.toSet().size)
         composeTestRule.onNodeWithText("Job failed (x5)").assertExists()
+    }
+
+    @Test
+    fun `configure after the overlay is created reaches the next toast`() {
+        composeTestRule.waitForIdle()
+        val duration = composeTestRule.runOnUiThread {
+            ToastStack.configure(defaultDuration = ToastDuration.Custom(8_000))
+            ToastStack.warning("Later")
+            ToastStack.resolveHost(null)?.toasts?.single { it.message == "Later" }?.duration?.millis
+        }
+
+        assertEquals(8_000L, duration)
     }
 }

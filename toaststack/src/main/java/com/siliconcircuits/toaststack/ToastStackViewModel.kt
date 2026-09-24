@@ -45,8 +45,8 @@ fun ViewModel.showToast(
     message: String,
     title: String? = null,
     type: ToastType = ToastType.Default,
-    duration: ToastDuration = ToastDuration.Short,
-    position: ToastPosition = ToastPosition.TopCenter,
+    duration: ToastDuration? = null,
+    position: ToastPosition? = null,
     showCloseButton: Boolean = false,
     hostTag: String? = null,
     onDismiss: ((DismissReason) -> Unit)? = null
@@ -121,7 +121,7 @@ fun ViewModel.showToastAndAwait(
     message: String,
     title: String? = null,
     type: ToastType = ToastType.Default,
-    duration: ToastDuration = ToastDuration.Short,
+    duration: ToastDuration? = null,
     showCloseButton: Boolean = false,
     hostTag: String? = null,
     onResult: (DismissReason) -> Unit = {}

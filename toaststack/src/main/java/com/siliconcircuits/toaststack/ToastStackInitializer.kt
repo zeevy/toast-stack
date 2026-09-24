@@ -100,16 +100,9 @@ class ToastStackInitializer : Initializer<Unit> {
                         }
                         val host: @Composable () -> Unit = {
                             ToastStackHost(
-                                state = rememberToastStackState(
-                                    defaultPosition = ToastStack.defaultPosition,
-                                    defaultDuration = ToastStack.defaultDuration,
-                                    maxVisible = ToastStack.defaultMaxVisible,
-                                    defaultSwipeDismiss = ToastStack.defaultSwipeDismiss,
-                                    defaultAnimation = ToastStack.defaultAnimation,
-                                    defaultAnimationConfig = ToastStack.defaultAnimationConfig,
-                                    deduplicationWindowMs = ToastStack.deduplicationWindowMs,
-                                    showRepeatCount = ToastStack.showRepeatCount,
-                                ),
+                                // Read the defaults from ToastStack on every toast,
+                                // so a later configure() call reaches this overlay.
+                                state = rememberToastStackState().apply { followsGlobalDefaults = true },
                                 modifier = Modifier.fillMaxSize(),
                                 globalStyle = ToastStack.defaultGlobalStyle,
                                 contentPadding = ToastStack.defaultContentPadding,

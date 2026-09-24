@@ -117,10 +117,10 @@ object ToastStack {
      * }
      * ```
      *
-     * [colorSource] and [theme] reach an overlay that is already on screen.
-     * The other values are read only when an Activity's overlay is first
-     * created, so a later call does not change an Activity that is already
-     * showing.
+     * A later call also reaches an overlay that is already on screen. The
+     * toast defaults apply to the next toast shown. A toast already on
+     * screen keeps its own duration. [contentPadding] and [globalStyle] are
+     * read only when an Activity's overlay is first created.
      *
      * @param contentPadding Space between screen edges and the toast column.
      * @param globalStyle Optional style applied to every toast.
@@ -235,10 +235,13 @@ object ToastStack {
      * @param message The primary text displayed in the toast.
      * @param title Optional bold headline above the message.
      * @param type The semantic [ToastType] determining default colors/icon.
-     * @param duration How long the toast stays visible.
-     * @param position Where on screen the toast appears.
+     * @param duration How long the toast stays visible. Null uses the
+     *   host's default duration at the time of the call.
+     * @param position Where on screen the toast appears. Null uses the
+     *   host's default position.
      * @param showCloseButton Whether to show the close (X) button.
-     * @param swipeDismiss Which swipe directions dismiss the toast.
+     * @param swipeDismiss Which swipe directions dismiss the toast. Null
+     *   uses the host's default.
      * @param style Optional per toast visual overrides.
      * @param hostTag Target a specific host by tag. When null, routes to
      *   the most recently attached host.
@@ -249,10 +252,10 @@ object ToastStack {
         message: String,
         title: String? = null,
         type: ToastType = ToastType.Default,
-        duration: ToastDuration = ToastDuration.Short,
-        position: ToastPosition = ToastPosition.TopCenter,
+        duration: ToastDuration? = null,
+        position: ToastPosition? = null,
         showCloseButton: Boolean = false,
-        swipeDismiss: SwipeDismissDirection = SwipeDismissDirection.Both,
+        swipeDismiss: SwipeDismissDirection? = null,
         style: ToastStackStyle? = null,
         hostTag: String? = null,
         onDismiss: ((DismissReason) -> Unit)? = null
@@ -262,10 +265,10 @@ object ToastStack {
             message = message,
             title = title,
             type = type,
-            duration = duration,
-            position = position,
+            duration = duration ?: state.defaultDuration,
+            position = position ?: state.defaultPosition,
             showCloseButton = showCloseButton,
-            swipeDismiss = swipeDismiss,
+            swipeDismiss = swipeDismiss ?: state.defaultSwipeDismiss,
             style = style,
             onDismiss = onDismiss
         )
@@ -369,10 +372,10 @@ object ToastStack {
         message: String,
         title: String? = null,
         type: ToastType = ToastType.Default,
-        duration: ToastDuration = ToastDuration.Short,
-        position: ToastPosition = ToastPosition.TopCenter,
+        duration: ToastDuration? = null,
+        position: ToastPosition? = null,
         showCloseButton: Boolean = false,
-        swipeDismiss: SwipeDismissDirection = SwipeDismissDirection.Both,
+        swipeDismiss: SwipeDismissDirection? = null,
         style: ToastStackStyle? = null,
         hostTag: String? = null
     ): DismissReason? {
@@ -381,10 +384,10 @@ object ToastStack {
             message = message,
             title = title,
             type = type,
-            duration = duration,
-            position = position,
+            duration = duration ?: state.defaultDuration,
+            position = position ?: state.defaultPosition,
             showCloseButton = showCloseButton,
-            swipeDismiss = swipeDismiss,
+            swipeDismiss = swipeDismiss ?: state.defaultSwipeDismiss,
             style = style
         )
     }
@@ -497,7 +500,7 @@ object ToastStack {
      * null if no host is registered at all, which causes the calling
      * method to return null (the toast is silently dropped).
      */
-    private fun resolveHost(tag: String?): ToastStackState? {
+    internal fun resolveHost(tag: String?): ToastStackState? {
         if (tag != null) return hostRegistry[tag]
         val fallback = mostRecentTag ?: return null
         return hostRegistry[fallback]
