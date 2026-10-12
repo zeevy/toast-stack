@@ -74,6 +74,13 @@ class ToastStackState(
      */
     internal var followsGlobalDefaults = false
 
+    /**
+     * Ids of the toasts a host has already shown. A host made after a
+     * configuration change shows these at once, without the enter animation,
+     * haptic, sound or onShow a second time.
+     */
+    internal val shownIds = mutableSetOf<String>()
+
     private val ownMaxVisible = maxVisible
     private val ownDefaultPosition = defaultPosition
     private val ownDefaultDuration = defaultDuration
@@ -715,6 +722,7 @@ class ToastStackState(
         val snapshot = activeToasts.toList() + pendingQueue
         activeToasts.clear()
         pendingQueue.clear()
+        shownIds.clear()
         snapshot.forEach { clearTimerState(it.id) }
         // User code runs last, so a callback that throws cannot leave
         // timers running.
@@ -797,8 +805,9 @@ class ToastStackState(
     }
 
     /**
-     * Cancels all running timer coroutines, clears the toast list, and
-     * shuts down the internal coroutine scope.
+     * Cancels all running timer coroutines, removes every toast (on screen
+     * and queued) with its `onDismiss` called as [DismissReason.Programmatic],
+     * and shuts down the internal coroutine scope.
      *
      * Call this when the [ToastStackState] is no longer needed to prevent
      * memory leaks from orphaned coroutines that would otherwise keep
@@ -811,14 +820,9 @@ class ToastStackState(
      * `onCleared()`.
      */
     fun destroy() {
-        activeToasts.clear()
-        pendingQueue.clear()
-        timerJobs.values.forEach { it.cancel() }
-        timerJobs.clear()
-        remainingMillis.clear()
-        timerStartedAt.clear()
-        pausedIds.clear()
         coroutineScope.cancel()
+        // Fires onDismiss(Programmatic) for every toast, so await() callers resume.
+        dismissAll()
     }
 
     // --- Private helpers ---
@@ -833,6 +837,7 @@ class ToastStackState(
         val toast = active ?: pendingQueue.find { it.id == id } ?: return
         if (active != null) {
             activeToasts.remove(active)
+            shownIds.remove(id)
             clearTimerState(id)
             // A slot opened up. Promote the next queued toast if any.
             promoteFromQueue()

@@ -14,7 +14,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.setViewTreeLifecycleOwner
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.lifecycle.setViewTreeViewModelStoreOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import androidx.startup.Initializer
@@ -74,6 +78,11 @@ class ToastStackInitializer : Initializer<Unit> {
                     ?: return
                 if (rootView.findViewWithTag<View>(tag) != null) return
 
+                // Our own factory, because an app may give its Activity a default
+                // factory that knows only the app's ViewModels.
+                val factory = viewModelFactory { initializer { OverlayStateHolder() } }
+                val state = ViewModelProvider(activity.viewModelStore, factory)[OverlayStateHolder::class.java].state
+
                 // The overlay covers the screen but takes only touches that land
                 // on a toast: AndroidComposeView reports a touch as handled only
                 // when a pointer input takes it, so other touches go to the
@@ -92,9 +101,7 @@ class ToastStackInitializer : Initializer<Unit> {
                         }
                         val host: @Composable () -> Unit = {
                             ToastStackHost(
-                                // Read the defaults from ToastStack on every toast,
-                                // so a later configure() call reaches this overlay.
-                                state = rememberToastStackState().apply { followsGlobalDefaults = true },
+                                state = state,
                                 modifier = Modifier.fillMaxSize(),
                                 globalStyle = ToastStack.defaultGlobalStyle,
                                 contentPadding = ToastStack.defaultContentPadding,
@@ -153,4 +160,18 @@ class ToastStackInitializer : Initializer<Unit> {
      * possible in the app startup sequence.
      */
     override fun dependencies(): List<Class<out Initializer<*>>> = emptyList()
+}
+
+/**
+ * Holds the auto overlay's toasts for one Activity in its ViewModelStore,
+ * so toasts and their handles survive a configuration change such as
+ * rotation. When the Activity finishes, the state is destroyed, which
+ * resumes every `await()` caller with [DismissReason.Programmatic].
+ */
+internal class OverlayStateHolder : ViewModel() {
+    // Reads the defaults from ToastStack on every toast, so a later
+    // configure() call reaches this overlay.
+    val state = ToastStackState().apply { followsGlobalDefaults = true }
+
+    override fun onCleared() = state.destroy()
 }

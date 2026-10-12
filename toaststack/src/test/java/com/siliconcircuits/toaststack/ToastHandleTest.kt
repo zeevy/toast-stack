@@ -128,6 +128,17 @@ class ToastHandleTest {
     }
 
     @Test
+    fun `await returns Programmatic when the state is destroyed`() = runTest {
+        val handle = state.show("Test", duration = ToastDuration.Indefinite)
+        val deferred = async { handle.await() }
+        runCurrent()
+
+        state.destroy()
+
+        assertEquals(DismissReason.Programmatic, deferred.await())
+    }
+
+    @Test
     fun `await auto dismisses toast on coroutine cancellation`() = runTest {
         val handle = state.show("Test", duration = ToastDuration.Indefinite)
         assertEquals(1, state.toasts.size)

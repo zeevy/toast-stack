@@ -159,9 +159,10 @@ fun ToastStackHost(
     state.toasts.forEach { toast ->
         val renderIndex = renderList.indexOfFirst { it.id == toast.id }
         if (renderIndex == -1) {
-            // New toast: add to render list and start invisible for enter animation.
+            // New toast: add to render list and start invisible for enter
+            // animation, unless an earlier host already showed it.
             renderList.add(toast)
-            visibilityMap[toast.id] = false
+            visibilityMap[toast.id] = toast.id in state.shownIds
         } else if (renderList[renderIndex] != toast) {
             // Existing toast was updated (e.g., progress, action, callback).
             // Replace with the latest version so the UI reflects the change.
@@ -244,6 +245,8 @@ fun ToastStackHost(
                         // animation completes.
                         LaunchedEffect(toast.id) {
                             visibilityMap[toast.id] = true
+                            // Shown before a configuration change: no second time.
+                            if (!state.shownIds.add(toast.id)) return@LaunchedEffect
                             // Haptic and sound fire on appearance (before animation ends)
                             // so the user gets immediate sensory feedback.
                             if (toast.hapticEnabled) {

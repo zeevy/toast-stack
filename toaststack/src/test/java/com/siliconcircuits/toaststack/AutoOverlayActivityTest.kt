@@ -6,12 +6,15 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.test.core.app.ApplicationProvider
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -30,6 +33,15 @@ class PlainContentActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContentView(View(this).apply { setOnClickListener { taps++ } })
     }
+}
+
+/** Like a Dagger multibinding factory: it knows only the app's own ViewModels. */
+class StrictFactoryActivity : ComponentActivity() {
+    override val defaultViewModelProviderFactory: ViewModelProvider.Factory =
+        object : ViewModelProvider.Factory {
+            override fun <T : ViewModel> create(modelClass: Class<T>): T =
+                throw IllegalArgumentException("unknown model class $modelClass")
+        }
 }
 
 /**
@@ -123,6 +135,41 @@ class AutoOverlayActivityTest {
         assertEquals(2, content.childCount)
         assertNotNull(ToastStack.show("hello"))
         controller.pause().stop().destroy()
+    }
+
+    @Test
+    fun `rotation keeps a visible toast and its handle`() {
+        val controller = launch()
+        val handle = ToastStack.show("kept", duration = ToastDuration.Indefinite)!!
+
+        controller.recreate()
+        idle()
+
+        val state = ToastStack.resolveHost(null)!!
+        assertEquals("kept", state.toasts.single().message)
+        handle.dismiss()
+        assertTrue(state.toasts.isEmpty())
+        controller.pause().stop().destroy()
+    }
+
+    @Test
+    fun `an Activity with its own default ViewModel factory gets an overlay`() {
+        val controller = Robolectric.buildActivity(StrictFactoryActivity::class.java).setup()
+        idle()
+
+        assertNotNull(ToastStack.show("hello"))
+        controller.pause().stop().destroy()
+    }
+
+    @Test
+    fun `closing the Activity ends its toasts with Programmatic`() {
+        val controller = launch()
+        var reason: DismissReason? = null
+        ToastStack.show("bye", duration = ToastDuration.Indefinite, onDismiss = { reason = it })
+
+        controller.pause().stop().destroy()
+
+        assertEquals(DismissReason.Programmatic, reason)
     }
 
     @Test

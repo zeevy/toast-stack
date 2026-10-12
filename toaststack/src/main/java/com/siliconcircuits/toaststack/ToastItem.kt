@@ -34,6 +34,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -50,6 +51,7 @@ import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlin.math.absoluteValue
@@ -122,6 +124,14 @@ internal fun ToastItem(
     val typeDefaults = ToastStackDefaults.styleForType(toast.type, colorSource)
     val resolvedStyle = typeDefaults.mergeWith(globalStyle).mergeWith(toast.style)
 
+    // True while a finger holds the card. If the card leaves the screen
+    // mid-gesture (for example on rotation), the release code never runs,
+    // so resume the timer here or the toast would never time out.
+    val held = remember { AtomicBoolean(false) }
+    DisposableEffect(toast.id) {
+        onDispose { if (held.get()) onResumeTimer() }
+    }
+
     val swipeModifier = buildSwipeModifier(
         toast = toast,
         horizontalOffset = horizontalOffset,
@@ -129,7 +139,8 @@ internal fun ToastItem(
         coroutineScope = coroutineScope,
         onDismiss = onDismiss,
         onPauseTimer = onPauseTimer,
-        onResumeTimer = onResumeTimer
+        onResumeTimer = onResumeTimer,
+        held = held
     )
 
     // Gradually reduce opacity as the card moves further from center,
@@ -436,7 +447,8 @@ private fun buildSwipeModifier(
     coroutineScope: CoroutineScope,
     onDismiss: (DismissReason) -> Unit,
     onPauseTimer: () -> Unit,
-    onResumeTimer: () -> Unit
+    onResumeTimer: () -> Unit,
+    held: AtomicBoolean
 ): Modifier {
     if (toast.swipeDismiss == SwipeDismissDirection.None) return Modifier
 
@@ -445,6 +457,7 @@ private fun buildSwipeModifier(
             // Wait for the first finger to touch the card.
             val down = awaitFirstDown()
             onPauseTimer()
+            held.set(true)
 
             val velocityTracker = VelocityTracker()
             velocityTracker.addPosition(down.uptimeMillis, down.position)
@@ -507,12 +520,14 @@ private fun buildSwipeModifier(
                 val flyTarget = flyDirection * size.width.toFloat()
                 coroutineScope.launch {
                     horizontalOffset.animateTo(flyTarget, tween(SETTLE_ANIMATION_MILLIS))
+                    held.set(false)
                     onDismiss(DismissReason.Swipe)
                 }
             } else {
                 // Snap back to center and resume the auto dismiss timer.
                 coroutineScope.launch {
                     horizontalOffset.animateTo(0f, tween(SETTLE_ANIMATION_MILLIS))
+                    held.set(false)
                     onResumeTimer()
                 }
             }
