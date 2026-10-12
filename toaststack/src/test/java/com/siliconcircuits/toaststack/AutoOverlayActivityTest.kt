@@ -5,6 +5,7 @@ import android.os.Looper
 import android.view.View
 import android.view.ViewGroup
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
 import androidx.test.core.app.ApplicationProvider
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -21,11 +22,13 @@ import org.robolectric.android.controller.ActivityController
 import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowLog
 
-/** An Activity with plain View content, like most apps before they add Compose. */
+/** An Activity with plain View content that counts the taps reaching it. */
 class PlainContentActivity : ComponentActivity() {
+    var taps = 0
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(View(this))
+        setContentView(View(this).apply { setOnClickListener { taps++ } })
     }
 }
 
@@ -93,6 +96,33 @@ class AutoOverlayActivityTest {
         }
         assertEquals(1, overlays)
         activity.pause().stop().destroy()
+    }
+
+    @Test
+    fun `an Activity with no content view resumes and shows toasts`() {
+        val activity = Robolectric.buildActivity(ComponentActivity::class.java).setup()
+        idle()
+
+        val content = activity.get().findViewById<ViewGroup>(android.R.id.content)
+        assertNotNull(content.findViewWithTag<View>("__toaststack_auto_overlay__"))
+        assertNotNull(ToastStack.show("hello"))
+        activity.pause().stop().destroy()
+    }
+
+    @Test
+    fun `setContent after the first resume does not take over the overlay`() {
+        val controller = Robolectric.buildActivity(ComponentActivity::class.java).setup()
+        idle()
+
+        controller.get().setContent { }
+        controller.pause().resume()
+        idle()
+
+        // The app's ComposeView and the overlay, each with its own tree.
+        val content = controller.get().findViewById<ViewGroup>(android.R.id.content)
+        assertEquals(2, content.childCount)
+        assertNotNull(ToastStack.show("hello"))
+        controller.pause().stop().destroy()
     }
 
     @Test
