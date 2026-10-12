@@ -1,5 +1,6 @@
 package com.siliconcircuits.toaststack
 
+import android.util.Log
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -186,11 +187,15 @@ object ToastStack {
     private val hostRegistry = ConcurrentHashMap<String, ToastStackState>()
 
     /**
-     * Tracks the tag of the most recently registered host. When a caller
-     * does not specify a [hostTag], this is used as the fallback target.
-     * This makes the common single host case work without any tag management.
+     * Registered host tags, oldest first. A call without a [hostTag] goes
+     * to the last one. A tag moves to the end each time its host registers
+     * again, which [ToastStackHost] does on every resume. This makes the
+     * common single host case work without any tag management.
      */
-    private var mostRecentTag: String? = null
+    private val recentTags = ArrayList<String>()
+
+    /** Set after the first "no host" warning, so it is logged once per process. */
+    internal var warnedNoHost = false
 
     /**
      * Registers a host's [state] under the given [tag].
@@ -205,7 +210,10 @@ object ToastStack {
     internal fun registerHost(tag: String, state: ToastStackState) {
         hostRegistry[tag] = state
         state.hostTag = tag
-        mostRecentTag = tag
+        synchronized(recentTags) {
+            recentTags.remove(tag)
+            recentTags.add(tag)
+        }
     }
 
     /**
@@ -213,16 +221,17 @@ object ToastStack {
      *
      * Called internally by [ToastStackHost] when it leaves the composition
      * tree (e.g., the screen it belongs to is removed from the navigation
-     * stack). If the removed host was the most recent, the fallback shifts
-     * to any remaining host.
+     * stack). Nothing happens when another host has taken the [tag] since,
+     * for example the auto overlay of the Activity that is now on top. If
+     * the host is removed, the fallback moves to the host that registered
+     * before it.
      *
      * @param tag The unique identifier of the host to remove.
+     * @param state The state that host registered with.
      */
-    internal fun unregisterHost(tag: String) {
-        hostRegistry.remove(tag)
-        if (mostRecentTag == tag) {
-            mostRecentTag = hostRegistry.keys.firstOrNull()
-        }
+    internal fun unregisterHost(tag: String, state: ToastStackState) {
+        if (!hostRegistry.remove(tag, state)) return
+        synchronized(recentTags) { recentTags.remove(tag) }
     }
 
     /**
@@ -472,7 +481,7 @@ object ToastStack {
      * @param hostTag Target a specific host, or null for the default.
      */
     fun dismiss(id: String, hostTag: String? = null) {
-        resolveHost(hostTag)?.dismiss(id)
+        findHost(hostTag)?.dismiss(id)
     }
 
     /**
@@ -497,12 +506,27 @@ object ToastStack {
      *
      * If an explicit [tag] is provided, looks it up in the registry.
      * Otherwise falls back to the most recently registered host. Returns
-     * null if no host is registered at all, which causes the calling
-     * method to return null (the toast is silently dropped).
+     * null if no such host is registered, which causes the calling show
+     * method to return null and drop the toast. The first drop logs a
+     * warning. Calls that do not show a toast use [findHost].
      */
     internal fun resolveHost(tag: String?): ToastStackState? {
-        if (tag != null) return hostRegistry[tag]
-        val fallback = mostRecentTag ?: return null
-        return hostRegistry[fallback]
+        val state = findHost(tag)
+        if (state == null && !warnedNoHost) {
+            warnedNoHost = true
+            val target = if (tag != null) "with tag \"$tag\"" else "yet"
+            Log.w(
+                "ToastStack",
+                "A toast was dropped because no ToastStackHost is registered $target. " +
+                    "The auto overlay registers when an Activity resumes. Logged once.",
+            )
+        }
+        return state
+    }
+
+    /** The host registered under [tag], or the most recent host when [tag] is null. */
+    internal fun findHost(tag: String?): ToastStackState? {
+        val key = tag ?: synchronized(recentTags) { recentTags.lastOrNull() }
+        return key?.let { hostRegistry[it] }
     }
 }

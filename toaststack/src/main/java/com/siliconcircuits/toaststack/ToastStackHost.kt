@@ -23,6 +23,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlinx.coroutines.delay
 
 /**
@@ -84,12 +87,19 @@ fun ToastStackHost(
 
     // Register this host with the global singleton when it enters composition,
     // and unregister when it leaves. This allows ToastStack.show() to find us.
-    // Also listen for TalkBack (touch exploration) state changes so we can
+    // Register again on every resume: while this host was in the background,
+    // another host with the same tag (the auto overlay of the next Activity)
+    // may have taken the entry. Also listen for TalkBack (touch exploration) state changes so we can
     // pause auto dismiss timers while the screen reader is active. Users
     // relying on TalkBack need time to hear the full announcement before
     // the toast disappears.
-    DisposableEffect(tag, state) {
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(tag, state, lifecycleOwner) {
         ToastStack.registerHost(tag, state)
+        val resumeObserver = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) ToastStack.registerHost(tag, state)
+        }
+        lifecycleOwner.lifecycle.addObserver(resumeObserver)
 
         val accessibilityManager = context.getSystemService(
             android.content.Context.ACCESSIBILITY_SERVICE
@@ -108,8 +118,9 @@ fun ToastStackHost(
         accessibilityManager?.addTouchExplorationStateChangeListener(touchExplorationListener)
 
         onDispose {
+            lifecycleOwner.lifecycle.removeObserver(resumeObserver)
             accessibilityManager?.removeTouchExplorationStateChangeListener(touchExplorationListener)
-            ToastStack.unregisterHost(tag)
+            ToastStack.unregisterHost(tag, state)
         }
     }
 

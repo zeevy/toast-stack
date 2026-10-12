@@ -179,7 +179,7 @@ class ToastHandleTest {
         advanceUntilIdle()
 
         assertEquals(DismissReason.Timeout, deferred.await())
-        ToastStack.unregisterHost("test")
+        ToastStack.unregisterHost("test", state)
     }
 
     // -- Kotlin Duration support --
@@ -255,12 +255,12 @@ class ToastHandleTest {
         assertEquals(1, state.toasts.size)
         handle!!.dismiss()
         assertTrue(state.toasts.isEmpty())
-        ToastStack.unregisterHost("test")
+        ToastStack.unregisterHost("test", state)
     }
 
     @Test
     fun `singleton show returns null when no host`() {
-        ToastStack.unregisterHost("test")
+        ToastStack.unregisterHost("test", state)
         val handle = ToastStack.show("Orphan")
         assertEquals(null, handle)
     }
@@ -277,6 +277,6 @@ class ToastHandleTest {
         assertNotNull(w)
         assertNotNull(i)
         assertEquals(4, state.toasts.size)
-        ToastStack.unregisterHost("test")
+        ToastStack.unregisterHost("test", state)
     }
 }

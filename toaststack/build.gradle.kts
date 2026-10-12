@@ -44,6 +44,8 @@ android {
     testOptions {
         unitTests {
             isIncludeAndroidResources = true
+            // Plain JVM tests reach android.util.Log when a toast is dropped.
+            isReturnDefaultValues = true
         }
     }
 
