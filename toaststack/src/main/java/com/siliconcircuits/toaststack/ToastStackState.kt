@@ -610,71 +610,51 @@ class ToastStackState(
     }
 
     /**
-     * Replaces the onDismiss callback for an active toast.
-     *
-     * Used by [ToastHandle.onDismiss] to chain callbacks after the toast
-     * has already been created. If the toast is no longer active (already
-     * dismissed), this call is silently ignored.
-     *
-     * @param id The toast's unique identifier.
-     * @param callback The new onDismiss callback to set.
+     * Applies [transform] to the toast with [id], whether it is on screen
+     * or still waiting in the queue. Ignored when no toast has that id
+     * (already dismissed). The [ToastHandle] chaining calls go through here.
      */
-    internal fun updateToastCallback(id: String, callback: (DismissReason) -> Unit) {
+    private fun updateToast(id: String, transform: (ToastData) -> ToastData) {
         val index = activeToasts.indexOfFirst { it.id == id }
-        if (index == -1) return
-        activeToasts[index] = activeToasts[index].copy(onDismiss = callback)
-    }
-
-    /**
-     * Adds or replaces the action button on an active toast.
-     *
-     * Used by [ToastHandle.withAction] to configure action buttons via
-     * the chaining API after the toast has been created.
-     *
-     * @param id The toast's unique identifier.
-     * @param label The text to display on the action button.
-     * @param onClick Callback invoked when the button is tapped. The toast
-     *   is automatically dismissed with [DismissReason.Action] after this fires.
-     */
-    /**
-     * Sets the onShow callback for an active toast.
-     * Used by [ToastHandle.onShow] for chaining.
-     */
-    internal fun updateToastOnShow(id: String, callback: () -> Unit) {
-        val index = activeToasts.indexOfFirst { it.id == id }
-        if (index == -1) return
-        activeToasts[index] = activeToasts[index].copy(onShow = callback)
-    }
-
-    internal fun updateToastAction(id: String, label: String, onClick: () -> Unit) {
-        val index = activeToasts.indexOfFirst { it.id == id }
-        if (index == -1) return
-        activeToasts[index] = activeToasts[index].copy(
-            actionLabel = label,
-            onAction = onClick
-        )
-    }
-
-    /**
-     * Updates the progress value on an active toast.
-     *
-     * Used by [ToastHandle.updateProgress] to drive the determinate progress
-     * bar on loading/progress toasts.
-     *
-     * @param id The toast's unique identifier.
-     * @param progress A value between 0f and 1f.
-     * @param label Optional descriptive text for the progress.
-     */
-    internal fun updateToastProgress(id: String, progress: Float, label: String? = null) {
-        val index = activeToasts.indexOfFirst { it.id == id }
-        if (index == -1) return
-        val current = activeToasts[index]
-        activeToasts[index] = if (label != null) {
-            current.copy(progress = progress, progressLabel = label)
-        } else {
-            current.copy(progress = progress)
+        if (index != -1) {
+            activeToasts[index] = transform(activeToasts[index])
+            return
         }
+        val queuedIndex = pendingQueue.indexOfFirst { it.id == id }
+        if (queuedIndex != -1) pendingQueue[queuedIndex] = transform(pendingQueue[queuedIndex])
     }
+
+    /**
+     * Adds [callback] after the toast's current onDismiss callback, so both
+     * run. Used by [ToastHandle.onDismiss] and [ToastHandle.await].
+     */
+    internal fun addOnDismiss(id: String, callback: (DismissReason) -> Unit) = updateToast(id) { toast ->
+        val existing = toast.onDismiss
+        toast.copy(onDismiss = { reason ->
+            existing?.invoke(reason)
+            callback(reason)
+        })
+    }
+
+    /** Sets the onShow callback. Used by [ToastHandle.onShow]. */
+    internal fun updateToastOnShow(id: String, callback: () -> Unit) =
+        updateToast(id) { it.copy(onShow = callback) }
+
+    /**
+     * Adds or replaces the action button. Used by [ToastHandle.withAction].
+     * The toast is dismissed with [DismissReason.Action] after [onClick] fires.
+     */
+    internal fun updateToastAction(id: String, label: String, onClick: () -> Unit) =
+        updateToast(id) { it.copy(actionLabel = label, onAction = onClick) }
+
+    /**
+     * Updates the progress value (0f to 1f) and, when given, the [label].
+     * Used by [ToastHandle.updateProgress].
+     */
+    internal fun updateToastProgress(id: String, progress: Float, label: String? = null) =
+        updateToast(id) {
+            if (label != null) it.copy(progress = progress, progressLabel = label) else it.copy(progress = progress)
+        }
 
     /**
      * Shows a [ToastType.Loading] toast with an indeterminate progress
@@ -710,11 +690,11 @@ class ToastStackState(
     )
 
     /**
-     * Removes a single toast from the screen by its [id].
+     * Removes a single toast by its [id], on screen or still queued.
      *
      * If the toast has an `onDismiss` callback, it will be invoked with
-     * the provided [reason]. If the [id] does not match any active toast,
-     * this call is silently ignored.
+     * the provided [reason]. If the [id] does not match any toast, this
+     * call is silently ignored.
      *
      * @param id The unique identifier returned by [show] when the toast was created.
      * @param reason Why the toast is being dismissed. Defaults to
@@ -725,22 +705,20 @@ class ToastStackState(
     }
 
     /**
-     * Removes every active toast at once.
+     * Removes every toast at once, on screen and queued.
      *
      * Each toast's `onDismiss` callback (if set) is invoked with
      * [DismissReason.Programmatic]. All auto dismiss timers are cancelled.
      * After this call, [toasts] will be empty.
      */
     fun dismissAll() {
-        // Take a snapshot of the current list before clearing it, so we
-        // can still iterate over the toasts to fire their callbacks.
-        val snapshot = activeToasts.toList()
+        val snapshot = activeToasts.toList() + pendingQueue
         activeToasts.clear()
         pendingQueue.clear()
-        snapshot.forEach { toast ->
-            clearTimerState(toast.id)
-            toast.onDismiss?.invoke(DismissReason.Programmatic)
-        }
+        snapshot.forEach { clearTimerState(it.id) }
+        // User code runs last, so a callback that throws cannot leave
+        // timers running.
+        snapshot.forEach { it.onDismiss?.invoke(DismissReason.Programmatic) }
     }
 
     /**
@@ -846,17 +824,24 @@ class ToastStackState(
     // --- Private helpers ---
 
     /**
-     * Removes a toast from the internal list, cancels its timer, and
-     * invokes its `onDismiss` callback. If no toast matches the given
-     * [id], the call is silently ignored.
+     * Removes a toast, on screen or queued, cancels its timer, and invokes
+     * its `onDismiss` callback. If no toast matches the given [id], the
+     * call is silently ignored.
      */
     private fun removeSilently(id: String, reason: DismissReason) {
-        val toast = activeToasts.find { it.id == id } ?: return
-        activeToasts.remove(toast)
-        clearTimerState(id)
+        val active = activeToasts.find { it.id == id }
+        val toast = active ?: pendingQueue.find { it.id == id } ?: return
+        if (active != null) {
+            activeToasts.remove(active)
+            clearTimerState(id)
+            // A slot opened up. Promote the next queued toast if any.
+            promoteFromQueue()
+        } else {
+            pendingQueue.remove(toast)
+        }
+        // User code runs last, so a callback that throws cannot leave the
+        // queue unpromoted.
         toast.onDismiss?.invoke(reason)
-        // A slot opened up. Promote the next queued toast if any.
-        promoteFromQueue()
     }
 
     /**
