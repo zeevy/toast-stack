@@ -58,7 +58,7 @@ class PublicApiTest {
         assertEquals(
             "The public API changed. If that is on purpose, add a CHANGELOG entry and run " +
                 "./gradlew :toaststack:testDebugUnitTest -PupdateApiDump, then commit api/toaststack.api.",
-            dumpFile.readText(),
+            dumpFile.readText().replace("\r\n", "\n"),
             actual,
         )
     }
@@ -66,8 +66,9 @@ class PublicApiTest {
     @Test
     fun `every Kotlin sample in the README is in the compiled samples file`() {
         // Unit tests run in the module folder.
-        val readme = File("../README.md").readText()
-        val samples = File("src/test/java/com/siliconcircuits/toaststack/samples/ReadmeSamples.kt").readText()
+        // Line ends are normalised, so a Windows checkout reads the same text.
+        val readme = File("../README.md").readText().replace("\r\n", "\n")
+        val samples = File("src/test/java/com/siliconcircuits/toaststack/samples/ReadmeSamples.kt").readText().replace("\r\n", "\n")
         fun normalize(text: String) = text.lines().map { it.trim() }
             .filter { it.isNotEmpty() && !it.startsWith("import ") }
             .joinToString("\n")

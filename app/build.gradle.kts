@@ -28,7 +28,8 @@ android {
 
     buildTypes {
         release {
-            // CI builds this, so a missing keep rule in the library shows up under R8.
+            // CI builds this, so R8 shrinks the library like an app would. It only
+            // builds; it does not run the app.
             isMinifyEnabled = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
         }

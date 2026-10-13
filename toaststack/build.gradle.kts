@@ -133,10 +133,11 @@ afterEvaluate {
 
 dependencies {
     // Types from these appear in the public API (Composable, Modifier, Color,
-    // Shape, TextStyle, PaddingValues, Easing, ViewModel), so apps get them too.
+    // Shape, RoundedCornerShape, TextStyle, PaddingValues, Easing, ViewModel), so apps get them too.
     api(platform(libs.androidx.compose.bom))
     api(libs.androidx.compose.runtime)
     api(libs.androidx.ui)
+    api(libs.androidx.foundation)
     api(libs.androidx.foundation.layout)
     api(libs.androidx.compose.animation.core)
     api(libs.androidx.lifecycle.viewmodel)

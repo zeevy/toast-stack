@@ -34,8 +34,8 @@ Changes to the ToastStack library, newest first. "Behavior changes" lists what a
 - `ToastStackInitializer` is internal. AndroidX Startup still finds it. (#55)
 - `ToastData`'s constructor and `copy()` are internal. Only the library creates toasts. (#55)
 - Deprecated: `ToastData.offsetX` and `offsetY` (#50), `ToastStackConfig`, `rememberToastStackState(config)` and `WithToastStack` (#55).
-- The library exposes Compose runtime, ui, foundation-layout, animation-core and lifecycle-viewmodel as `api` dependencies, since their types appear in its public API. (#55)
-- New parameters on `ToastStack.show`, `showAndAwait` and the helpers change their JVM signatures. Source calls keep compiling. (#50)
+- The library exposes Compose runtime, ui, foundation, foundation-layout, animation-core and lifecycle-viewmodel as `api` dependencies, since their types appear in its public API. (#55)
+- New parameters change JVM signatures: `ToastStack.show` and `showAndAwait` (animation, custom icon, haptic, sound, `soundUri`, priority), `ToastStackState.show` (`soundUri`), `ToastStackState.showAndAwait` (custom icon, haptic, sound, `soundUri`, priority), and `onDismiss` on the typed string and ViewModel helpers. Calls with named arguments and a trailing `onDismiss` lambda keep compiling; an `onDismiss` passed by position inside the parentheses does not. (#50)
 
 ## 1.3.0 (2026-09-24)
 
@@ -58,7 +58,7 @@ Changes to the ToastStack library, newest first. "Behavior changes" lists what a
 
 ### API
 
-- `ToastData` has a new `repeatCount` field, and the `ToastStackState` constructor and `rememberToastStackState()` take `showRepeatCount`. These change JVM signatures.
+- `ToastData` has a new `repeatCount` field, and `ToastStack.configure()`, the `ToastStackState` constructor and `rememberToastStackState()` take the new parameters. These change JVM signatures.
 
 ## 1.1.0 (2026-09-22)
 
@@ -72,4 +72,4 @@ Changes to the ToastStack library, newest first. "Behavior changes" lists what a
 
 ### API
 
-- `ToastStackDefaults.styleForType()` takes a `colorSource` parameter, with no overload for the old signature.
+- `ToastStackDefaults.styleForType()` and `ToastStackHost()` take a `colorSource` parameter, and `ToastStack.configure()` takes `colorSource` and `theme`, with no overloads for the old signatures.
