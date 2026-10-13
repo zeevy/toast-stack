@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.compose)
     `maven-publish`
+    signing
 }
 
 // Pin the JDK used to build, test, and generate docs for this repo to 21
@@ -100,7 +101,7 @@ afterEvaluate {
 
                 groupId = "com.siliconcircuits"
                 artifactId = "toaststack"
-                version = "1.4.0"
+                version = "1.4.1"
 
                 pom {
                     name.set("ToastStack")
@@ -108,7 +109,7 @@ afterEvaluate {
                         "A modern, Compose native toast and notification library for Android. " +
                         "No Scaffold required. One liner API. Stackable. Themeable. Animated."
                     )
-                    url.set("https://github.com/zeevy/ToastStack")
+                    url.set("https://github.com/zeevy/toast-stack")
 
                     licenses {
                         license {
@@ -126,12 +127,30 @@ afterEvaluate {
                     }
 
                     scm {
-                        url.set("https://github.com/zeevy/ToastStack")
-                        connection.set("scm:git:git://github.com/zeevy/ToastStack.git")
-                        developerConnection.set("scm:git:ssh://github.com/zeevy/ToastStack.git")
+                        url.set("https://github.com/zeevy/toast-stack")
+                        connection.set("scm:git:git://github.com/zeevy/toast-stack.git")
+                        developerConnection.set("scm:git:ssh://github.com/zeevy/toast-stack.git")
                     }
                 }
             }
+        }
+
+        // release.yml zips the version folder of this repository and uploads
+        // it to Maven Central. CI builds it unsigned.
+        repositories {
+            maven {
+                name = "centralBundle"
+                url = uri(layout.buildDirectory.dir("central-bundle"))
+            }
+        }
+    }
+
+    // Only release.yml has the key (the SIGNING_KEY secret). Local, CI and
+    // JitPack builds publish unsigned.
+    providers.environmentVariable("SIGNING_KEY").orNull?.let { key ->
+        signing {
+            useInMemoryPgpKeys(key, providers.environmentVariable("SIGNING_PASSWORD").orNull)
+            sign(publishing.publications["release"])
         }
     }
 }

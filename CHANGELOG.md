@@ -2,6 +2,12 @@
 
 Changes to the ToastStack library, newest first. "Behavior changes" lists what an app can notice without changing its code. "API" lists changes to public signatures; the public API is kept in `toaststack/api/toaststack.api`, and CI fails when it changes without an update.
 
+## 1.4.1 (2026-10-13)
+
+### Added
+
+- The library is on Maven Central as `com.siliconcircuits:toaststack`, so apps no longer need the JitPack repository. No code changes. (#70)
+
 ## 1.4.0 (2026-10-13)
 
 ### Behavior changes

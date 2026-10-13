@@ -67,3 +67,39 @@ jobs:
         with:
           name: toaststack-release
           path: toaststack/build/outputs/aar/toaststack-release.aar
+
+      # Signs the publication, zips it and sends it to the Central Portal API
+      # (central.sonatype.com). Central publishes it once its checks pass;
+      # this step waits for that and fails when Central rejects the bundle.
+      - name: Publish to Maven Central
+        env:
+          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+          SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
+          CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          ./gradlew :toaststack:publishReleasePublicationToCentralBundleRepository
+          version="${TAG#v}"
+          (cd toaststack/build/central-bundle && zip -r ../central-bundle.zip "com/siliconcircuits/toaststack/$version")
+          auth=$(printf '%s:%s' "$CENTRAL_USERNAME" "$CENTRAL_PASSWORD" | base64 -w0)
+          echo "::add-mask::$auth"
+          api=https://central.sonatype.com/api/v1/publisher
+          # No retry on the upload: a second upload of the same version fails.
+          id=$(curl -sS --fail-with-body --max-time 300 -H "Authorization: Bearer $auth" \
+            -F bundle=@toaststack/build/central-bundle.zip \
+            "$api/upload?name=toaststack-$version&publishingType=AUTOMATIC") || { echo "$id"; exit 1; }
+          echo "Deployment $id"
+          for _ in $(seq 60); do
+            sleep 20
+            status=$(curl -sS --fail-with-body --retry 5 --max-time 60 -X POST \
+              -H "Authorization: Bearer $auth" "$api/status?id=$id") || { echo "$status"; exit 1; }
+            state=$(jq -r .deploymentState <<< "$status")
+            echo "$state"
+            case "$state" in
+              PUBLISHING|PUBLISHED) exit 0 ;;
+              FAILED) jq .errors <<< "$status"; exit 1 ;;
+            esac
+          done
+          echo "Central did not finish its checks in 20 minutes. See deployment $id at central.sonatype.com."
+          exit 1

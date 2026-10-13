@@ -27,7 +27,7 @@ vulnerability details.
 
 In scope:
 
-- The library module (`:toaststack`) published as `com.github.zeevy:toast-stack`
+- The library module (`:toaststack`) published as `com.siliconcircuits:toaststack` on Maven Central (and as `com.github.zeevy:toast-stack` on JitPack)
 - The build pipeline (CI workflows in `.github/workflows/`)
 - Dependencies pinned in `gradle/libs.versions.toml`
 

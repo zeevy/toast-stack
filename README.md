@@ -5,7 +5,7 @@ No Scaffold required. One liner API. Stackable. Themeable. Animated.
 
 [![CI](https://github.com/zeevy/toast-stack/actions/workflows/ci.yml/badge.svg)](https://github.com/zeevy/toast-stack/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/zeevy/toast-stack/actions/workflows/codeql.yml/badge.svg)](https://github.com/zeevy/toast-stack/actions/workflows/codeql.yml)
-[![JitPack](https://jitpack.io/v/zeevy/toast-stack.svg)](https://jitpack.io/#zeevy/toast-stack)
+[![Maven Central](https://img.shields.io/maven-central/v/com.siliconcircuits/toaststack)](https://central.sonatype.com/artifact/com.siliconcircuits/toaststack)
 [![API](https://img.shields.io/badge/API-24%2B-brightgreen.svg)](https://developer.android.com/about/versions/nougat)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
@@ -83,23 +83,11 @@ Any composable as the toast body:
 
 ## Installation
 
-Add JitPack to your project's `settings.gradle.kts`:
-
-```kotlin
-dependencyResolutionManagement {
-    repositories {
-        google()
-        mavenCentral()
-        maven { url = uri("https://jitpack.io") }
-    }
-}
-```
-
-Add the dependency to your module's `build.gradle.kts`:
+ToastStack is on Maven Central. New projects already list `mavenCentral()` in `settings.gradle.kts`, so add the dependency to your module's `build.gradle.kts`:
 
 ```kotlin
 dependencies {
-    implementation("com.github.zeevy:toast-stack:v1.4.0")
+    implementation("com.siliconcircuits:toaststack:1.4.1")
 }
 ```
 
@@ -107,10 +95,10 @@ Or using a version catalog (`libs.versions.toml`):
 
 ```toml
 [versions]
-toastStack = "v1.4.0"
+toastStack = "1.4.1"
 
 [libraries]
-toast-stack = { group = "com.github.zeevy", name = "toast-stack", version.ref = "toastStack" }
+toast-stack = { group = "com.siliconcircuits", name = "toaststack", version.ref = "toastStack" }
 ```
 
 ```kotlin
@@ -119,6 +107,8 @@ dependencies {
     implementation(libs.toast.stack)
 }
 ```
+
+Version 1.4.0 and older are only on JitPack, as `com.github.zeevy:toast-stack:v1.4.0` with the `https://jitpack.io` repository.
 
 ## Quick Start
 
