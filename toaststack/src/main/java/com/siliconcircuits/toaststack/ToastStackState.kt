@@ -75,6 +75,19 @@ class ToastStackState(
     internal var followsGlobalDefaults = false
 
     /**
+     * True while a screen reader (touch exploration) is on. Auto dismiss
+     * timers do not run then, for toasts already on screen and for new or
+     * promoted ones, so each toast stays until it is dismissed. Set by
+     * [ToastStackHost] from the system AccessibilityManager.
+     */
+    internal var pausedForAccessibility = false
+        set(value) {
+            if (field == value) return
+            field = value
+            if (value) pauseAll() else resumeAll()
+        }
+
+    /**
      * Ids of the toasts a host has already shown. A host made after a
      * configuration change shows these at once, without the enter animation,
      * haptic, sound or onShow a second time.
@@ -773,7 +786,8 @@ class ToastStackState(
     fun resumeTimer(id: String) {
         coroutineScope.launch {
             timerMutex.withLock {
-                if (id !in pausedIds) return@launch
+                // A touch release must not undo the screen reader pause.
+                if (id !in pausedIds || pausedForAccessibility) return@launch
                 pausedIds.remove(id)
                 val leftover = remainingMillis[id] ?: return@launch
                 val toast = activeToasts.find { it.id == id } ?: return@launch
@@ -855,6 +869,12 @@ class ToastStackState(
      */
     private fun scheduleAutoDismiss(toast: ToastData) {
         if (toast.duration == ToastDuration.Indefinite) return
+        if (pausedForAccessibility) {
+            // Start paused, with the full time kept for when the screen reader turns off.
+            remainingMillis[toast.id] = toast.duration.millis
+            pausedIds.add(toast.id)
+            return
+        }
         launchTimer(toast, toast.duration.millis)
     }
 

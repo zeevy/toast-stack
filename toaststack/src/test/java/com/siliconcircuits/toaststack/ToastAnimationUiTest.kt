@@ -1,6 +1,10 @@
 package com.siliconcircuits.toaststack
 
+import android.content.Context
+import android.os.Looper
+import android.view.accessibility.AccessibilityManager
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
@@ -8,11 +12,14 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.test.core.app.ApplicationProvider
+import java.time.Duration
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 
 /**
@@ -516,5 +523,32 @@ class ToastAnimationUiTest {
         composeTestRule.onNodeWithText("First").assertIsDisplayed()
         composeTestRule.onNodeWithText("Second").assertIsDisplayed()
         composeTestRule.onNodeWithText("Third").assertDoesNotExist()
+    }
+
+    // --- Screen reader ---
+
+    @Test
+    fun `with TalkBack on before show, the toast stays and has a Dismiss action`() {
+        val manager = ApplicationProvider.getApplicationContext<Context>()
+            .getSystemService(AccessibilityManager::class.java)
+        shadowOf(manager).setTouchExplorationEnabled(true)
+        lateinit var state: ToastStackState
+        composeTestRule.setContent {
+            MaterialTheme {
+                state = rememberToastStackState()
+                ToastStackHost(state = state)
+            }
+        }
+
+        state.show("Read me", duration = ToastDuration.Short)
+        composeTestRule.mainClock.advanceTimeBy(10_000)
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(10))
+        composeTestRule.onNodeWithText("Read me").assertIsDisplayed()
+
+        val dismiss = composeTestRule.onNodeWithContentDescription("Read me", substring = true)
+            .fetchSemanticsNode().config[SemanticsActions.CustomActions].single { it.label == "Dismiss" }
+        composeTestRule.runOnIdle { dismiss.action() }
+        composeTestRule.mainClock.advanceTimeBy(1_000)
+        composeTestRule.onNodeWithText("Read me").assertDoesNotExist()
     }
 }

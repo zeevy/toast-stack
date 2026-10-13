@@ -107,14 +107,9 @@ fun ToastStackHost(
 
         val touchExplorationListener =
             android.view.accessibility.AccessibilityManager.TouchExplorationStateChangeListener { enabled ->
-                if (enabled) state.pauseAll() else state.resumeAll()
+                state.pausedForAccessibility = enabled
             }
-
-        // If TalkBack is already active when the host enters composition,
-        // pause all timers immediately.
-        if (accessibilityManager?.isTouchExplorationEnabled == true) {
-            state.pauseAll()
-        }
+        state.pausedForAccessibility = accessibilityManager?.isTouchExplorationEnabled == true
         accessibilityManager?.addTouchExplorationStateChangeListener(touchExplorationListener)
 
         onDispose {

@@ -372,7 +372,7 @@ Both features respect system settings (haptic toggle, silent mode, Do Not Distur
 ## Accessibility
 
 - **TalkBack**: Toasts announce with type prefix (e.g., "Error notification: Connection failed")
-- **Auto pause**: Auto dismiss timers pause when TalkBack is active
+- **Auto pause**: Auto dismiss timers stop while TalkBack is on, for toasts already on screen and for new ones, so each toast stays until it is dismissed. Every toast has a "Dismiss" accessibility action, so it can be closed without a close button
 - **Reduced motion**: Animations simplify to a short fade when system "Remove animations" is enabled
 - **Color contrast**: All built in types meet WCAG AA 4.5:1 minimum ratio
 - **Focus**: Action buttons are focusable and activatable via accessibility services

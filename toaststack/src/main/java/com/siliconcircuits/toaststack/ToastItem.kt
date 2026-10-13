@@ -43,8 +43,10 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.input.pointer.positionChange
@@ -218,6 +220,14 @@ internal fun ToastItem(
                 .semantics {
                     liveRegion = LiveRegionMode.Polite
                     contentDescription = accessibilityLabel
+                    // Timers stop while TalkBack is on, so give its users a way
+                    // to close any toast, with or without a close button.
+                    customActions = listOf(
+                        CustomAccessibilityAction("Dismiss") {
+                            onDismiss(DismissReason.CloseButton)
+                            true
+                        }
+                    )
                 },
             shape = resolvedStyle.shape ?: ToastStackDefaults.Shape,
             shadowElevation = resolvedStyle.elevation ?: ToastStackDefaults.Elevation,
