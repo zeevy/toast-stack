@@ -2,7 +2,7 @@
 
 Changes to the ToastStack library, newest first. "Behavior changes" lists what an app can notice without changing its code. "API" lists changes to public signatures; the public API is kept in `toaststack/api/toaststack.api`, and CI fails when it changes without an update.
 
-## Unreleased
+## 1.4.0 (2026-10-13)
 
 ### Behavior changes
 

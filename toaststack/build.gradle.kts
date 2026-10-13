@@ -100,7 +100,7 @@ afterEvaluate {
 
                 groupId = "com.siliconcircuits"
                 artifactId = "toaststack"
-                version = "1.3.0"
+                version = "1.4.0"
 
                 pom {
                     name.set("ToastStack")
