@@ -43,6 +43,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.CustomAccessibilityAction
@@ -319,7 +320,7 @@ internal fun ToastItem(
                             contentDescription = null,
                             tint = resolvedStyle.iconTint
                                 ?: contentColor,
-                            modifier = Modifier.size(22.dp)
+                            modifier = Modifier.size(22.dp).testTag("toaststack_type_icon")
                         )
                         Spacer(modifier = Modifier.width(10.dp))
                     }

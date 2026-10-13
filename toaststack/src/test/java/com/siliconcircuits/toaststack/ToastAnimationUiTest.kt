@@ -11,10 +11,12 @@ import android.view.accessibility.AccessibilityManager
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -421,6 +423,8 @@ class ToastAnimationUiTest {
         composeTestRule.onNode(hasContentDescription("Warning notification: Watch out")).assertExists()
         composeTestRule.onNode(hasContentDescription("Information notification: FYI")).assertExists()
         composeTestRule.onNode(hasContentDescription("icon", substring = true)).assertDoesNotExist()
+        // The icon is still drawn for each of the four types.
+        composeTestRule.onAllNodesWithTag("toaststack_type_icon", useUnmergedTree = true).assertCountEquals(4)
     }
 
     // --- Close button fires CloseButton reason ---
