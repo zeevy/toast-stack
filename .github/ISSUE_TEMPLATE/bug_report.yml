@@ -42,8 +42,8 @@ body:
     id: library-version
     attributes:
       label: ToastStack version
-      description: The com.github.zeevy:toast-stack version you depend on.
-      placeholder: 1.0.4
+      description: The com.siliconcircuits:toaststack version you depend on.
+      placeholder: 1.4.1
     validations:
       required: true
 

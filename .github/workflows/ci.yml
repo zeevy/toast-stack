@@ -65,6 +65,10 @@ jobs:
       - name: Verify publish to local Maven (the JitPack command)
         run: ./gradlew :toaststack:publishReleasePublicationToMavenLocal
 
+      # The folder release.yml uploads to Maven Central, built unsigned here.
+      - name: Verify the Maven Central bundle builds
+        run: ./gradlew :toaststack:publishReleasePublicationToCentralBundleRepository
+
       # consumer-check is an app on the oldest setup README "Requirements"
       # promises (AGP 8.6, Kotlin 2.0, compileSdk 35). It needs Gradle 8.
       - name: Set up Gradle 8.7 for the consumer check
