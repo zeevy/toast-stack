@@ -9,6 +9,9 @@ import android.view.HapticFeedbackConstants
 import android.view.View
 import android.view.accessibility.AccessibilityManager
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertCountEquals
@@ -575,5 +578,30 @@ class ToastAnimationUiTest {
 
         composeTestRule.onNode(hasContentDescription("ZZ error: Upload failed [3 times]")).assertExists()
         composeTestRule.onNode(hasContentDescription("ZZ close")).assertExists()
+    }
+
+    // --- Host recreated with the same state ---
+
+    @Test
+    fun `a host recreated with the same state does not run onShow again`() {
+        val state = ToastStackState()
+        var hostShown by mutableStateOf(true)
+        var shows = 0
+        composeTestRule.setContent {
+            if (hostShown) ToastStackHost(state = state)
+        }
+        state.show("Kept", duration = ToastDuration.Indefinite).onShow { shows++ }
+        composeTestRule.mainClock.advanceTimeBy(1_000)
+        composeTestRule.waitForIdle()
+        assertEquals(1, shows)
+
+        hostShown = false
+        composeTestRule.waitForIdle()
+        hostShown = true
+        composeTestRule.mainClock.advanceTimeBy(1_000)
+        composeTestRule.waitForIdle()
+
+        assertEquals(1, shows)
+        composeTestRule.onNodeWithText("Kept").assertIsDisplayed()
     }
 }

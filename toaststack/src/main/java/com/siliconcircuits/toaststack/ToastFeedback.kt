@@ -4,6 +4,7 @@ import android.content.Context
 import android.media.AudioManager
 import android.media.RingtoneManager
 import android.os.Build
+import android.util.Log
 import android.view.HapticFeedbackConstants
 import android.view.View
 
@@ -64,9 +65,16 @@ internal object ToastFeedback {
                 ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
             val ringtone = RingtoneManager.getRingtone(context, uri)
             ringtone?.play()
-        } catch (_: Exception) {
-            // Some devices may not have a default notification sound.
-            // Silently ignore rather than crashing.
+        } catch (e: Exception) {
+            // Some devices have no default notification sound, and a bad
+            // soundUri fails here. Do not crash; say so once.
+            if (!warnedSound) {
+                warnedSound = true
+                Log.w("ToastStack", "Could not play the toast sound. Logged once.", e)
+            }
         }
     }
+
+    @Volatile
+    private var warnedSound = false
 }
