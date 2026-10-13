@@ -18,6 +18,7 @@ Changes to the ToastStack library, newest first. "Behavior changes" lists what a
 - Haptics use the view haptic API ("reject" for errors and warnings, "confirm" for success). The library no longer asks for the VIBRATE permission, so apps lose it from their merged manifest unless they declare it. (#56)
 - The screen reader labels, the close button label and the repeat count are string resources an app can translate. The type icon no longer has its own label, so TalkBack reads the card once. (#57)
 - A toast sound is held back while Do Not Disturb holds back interruptions, as the README already said, and plays as a notification sound. (#61)
+- `maxVisible` below 1 now throws `IllegalArgumentException` in `configure()`, `ToastStackState` and `rememberToastStackState()`, instead of sending every toast to the queue. A NaN progress counts as 0. Deduplication no longer keeps a time per message for the life of the process. (#63)
 
 ### Added
 

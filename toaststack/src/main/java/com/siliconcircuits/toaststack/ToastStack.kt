@@ -151,6 +151,7 @@ object ToastStack {
     ) {
         defaultContentPadding = contentPadding
         defaultGlobalStyle = globalStyle
+        require(maxVisible >= 1) { "maxVisible must be at least 1, was $maxVisible" }
         defaults = ToastDefaults(
             maxVisible, defaultPosition, defaultDuration, defaultSwipeDismiss,
             defaultAnimation, defaultAnimationConfig, deduplicationWindowMs, showRepeatCount,

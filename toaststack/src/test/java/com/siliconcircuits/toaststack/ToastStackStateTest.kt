@@ -39,6 +39,11 @@ class ToastStackStateTest {
         testDispatcher.scheduler.runCurrent()
     }
 
+    @Test(expected = IllegalArgumentException::class)
+    fun `maxVisible below 1 fails fast`() {
+        ToastStackState(maxVisible = 0)
+    }
+
     @Test
     fun `a paused timer keeps the time that was left`() {
         state.now = { testDispatcher.scheduler.currentTime }

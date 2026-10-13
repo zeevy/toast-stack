@@ -88,5 +88,8 @@ data class ToastData internal constructor(
     val soundUri: android.net.Uri? = null,
     val onShow: (() -> Unit)? = null,
     val onDismiss: ((DismissReason) -> Unit)? = null,
-    val repeatCount: Int = 1
+    val repeatCount: Int = 1,
+    // When this card was last shown or repeated, by ToastStackState.now.
+    // Deduplication measures its window from here.
+    internal val lastShownAt: Long = 0L,
 )

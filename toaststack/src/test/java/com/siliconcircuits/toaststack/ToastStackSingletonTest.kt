@@ -276,6 +276,11 @@ class ToastStackSingletonTest {
         assertEquals(ToastPriority.High, toast.priority)
     }
 
+    @Test(expected = IllegalArgumentException::class)
+    fun `configure with maxVisible below 1 fails fast`() {
+        ToastStack.configure(maxVisible = 0)
+    }
+
     @Test
     fun `register sets hostTag on state`() {
         val state = ToastStackState()

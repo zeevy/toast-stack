@@ -102,6 +102,10 @@ class ToastStackState(
      */
     internal var defaults: () -> ToastDefaults = { ownDefaults }
 
+    init {
+        require(maxVisible >= 1) { "maxVisible must be at least 1, was $maxVisible" }
+    }
+
     private val ownDefaults = ToastDefaults(
         maxVisible, defaultPosition, defaultDuration, defaultSwipeDismiss,
         defaultAnimation, defaultAnimationConfig, deduplicationWindowMs, showRepeatCount,
@@ -148,11 +152,6 @@ class ToastStackState(
     // reactive mechanism that makes toasts appear and disappear on screen.
     private val activeToasts = mutableStateListOf<ToastData>()
 
-    // Tracks the wall clock timestamp when each message was last shown.
-    // Used by deduplication to suppress identical messages within the
-    // configured time window (deduplicationWindowMs). A value of 0 disables
-    // deduplication entirely (the default).
-    private val lastShownTimestamps = mutableMapOf<String, Long>()
 
     // Queue for toasts that can't be shown yet because maxVisible is reached.
     // Toasts are ordered by priority (Urgent > High > Normal > Low), then by
@@ -603,27 +602,20 @@ class ToastStackState(
         // Defaults that come from elsewhere can change later (the auto overlay
         // reads them from ToastStack). Save the animation on the toast now, so
         // a card already on screen keeps how it animates out.
-        val toast = if (defaults() !== ownDefaults) {
-            incoming.copy(
-                animation = incoming.animation ?: defaultAnimation,
-                animationConfig = incoming.animationConfig ?: defaultAnimationConfig
-            )
-        } else {
-            incoming
-        }
+        val saveAnimation = defaults() !== ownDefaults
+        val toast = incoming.copy(
+            animation = if (saveAnimation) incoming.animation ?: defaultAnimation else incoming.animation,
+            animationConfig = if (saveAnimation) incoming.animationConfig ?: defaultAnimationConfig else incoming.animationConfig,
+            lastShownAt = now(),
+        )
 
         // Duplicate detection: if the same message was shown within the
         // deduplication window and its card is still on screen or queued,
         // update that card instead of adding a new one. This prevents a stack
         // of identical cards when the same event fires many times in a row.
         if (deduplicationWindowMs > 0 && toast.message.isNotEmpty()) {
-            val now = now()
-            val lastShown = lastShownTimestamps[toast.message]
-            lastShownTimestamps[toast.message] = now
-            if (lastShown != null && (now - lastShown) < deduplicationWindowMs) {
-                val existing = bumpRepeat(toast.message)
-                if (existing != null) return ToastHandle(existing.id, this)
-            }
+            val existing = bumpRepeat(toast.message, toast.lastShownAt)
+            if (existing != null) return ToastHandle(existing.id, this)
         }
 
         if (activeToasts.size < maxVisible) {
@@ -663,12 +655,14 @@ class ToastStackState(
      *
      * @return The existing toast, or null if no card has this message.
      */
-    private fun bumpRepeat(message: String): ToastData? {
+    private fun bumpRepeat(message: String, now: Long): ToastData? {
         val count = if (showRepeatCount) 1 else 0
+        // The window counts from the card's last show or repeat.
+        fun inWindow(card: ToastData) = now - card.lastShownAt < deduplicationWindowMs
         val activeIndex = activeToasts.indexOfFirst { it.message == message }
-        if (activeIndex != -1) {
+        if (activeIndex != -1 && inWindow(activeToasts[activeIndex])) {
             val current = activeToasts[activeIndex]
-            val updated = current.copy(repeatCount = current.repeatCount + count)
+            val updated = current.copy(repeatCount = current.repeatCount + count, lastShownAt = now)
             activeToasts[activeIndex] = updated
             if (updated.duration != ToastDuration.Indefinite) {
                 if (updated.id in pausedIds) {
@@ -682,9 +676,10 @@ class ToastStackState(
             return updated
         }
         val queuedIndex = pendingQueue.indexOfFirst { it.message == message }
-        if (queuedIndex != -1) {
+        if (queuedIndex != -1 && inWindow(pendingQueue[queuedIndex])) {
             val current = pendingQueue[queuedIndex]
-            return current.copy(repeatCount = current.repeatCount + count).also { pendingQueue[queuedIndex] = it }
+            return current.copy(repeatCount = current.repeatCount + count, lastShownAt = now)
+                .also { pendingQueue[queuedIndex] = it }
         }
         return null
     }

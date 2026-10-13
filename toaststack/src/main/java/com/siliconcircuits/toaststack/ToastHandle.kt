@@ -128,7 +128,7 @@ class ToastHandle internal constructor(
      * @param progress A value between 0f and 1f representing completion.
      */
     fun updateProgress(progress: Float) {
-        state.updateToastProgress(id, progress.coerceIn(0f, 1f))
+        state.updateToastProgress(id, progress.clampProgress())
     }
 
     /**
@@ -138,7 +138,7 @@ class ToastHandle internal constructor(
      * @param label Descriptive text like "3 of 10 files uploaded".
      */
     fun updateProgress(progress: Float, label: String) {
-        state.updateToastProgress(id, progress.coerceIn(0f, 1f), label)
+        state.updateToastProgress(id, progress.clampProgress(), label)
     }
 
     /**
@@ -202,4 +202,7 @@ class ToastHandle internal constructor(
             }
         }
     }
+
+    // NaN would reach the progress bar as is, so it counts as 0.
+    private fun Float.clampProgress() = if (isNaN()) 0f else coerceIn(0f, 1f)
 }

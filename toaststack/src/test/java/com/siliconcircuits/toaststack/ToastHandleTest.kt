@@ -115,6 +115,15 @@ class ToastHandleTest {
     }
 
     @Test
+    fun `a NaN progress counts as 0`() {
+        val handle = state.loading("Uploading")
+
+        handle.updateProgress(Float.NaN)
+
+        assertEquals(0f, state.toasts.single().progress)
+    }
+
+    @Test
     fun `withSecondaryAction adds the second button`() {
         state.show("Deleted", duration = ToastDuration.Indefinite).withSecondaryAction("View") {}
 
