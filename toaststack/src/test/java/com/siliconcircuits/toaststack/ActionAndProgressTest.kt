@@ -11,10 +11,14 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ActionAndProgressTest {
+
+    @get:Rule
+    val reset = ToastStackReset()
 
     private val testDispatcher = StandardTestDispatcher()
     private lateinit var state: ToastStackState

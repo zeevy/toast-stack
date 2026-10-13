@@ -35,14 +35,14 @@ enum class ToastType {
 
     /**
      * Indicates a positive outcome or successfully completed action.
-     * Renders with a green background and a check circle icon.
+     * Renders with a check circle icon (green with [ToastColorSource.Library]).
      * Use for confirmations like "File saved" or "Payment processed".
      */
     Success,
 
     /**
      * Indicates a failure, validation error, or critical issue.
-     * Renders with a red background and a close/error icon.
+     * Renders with an error icon (red with [ToastColorSource.Library]).
      * Use for problems like "Upload failed" or "Invalid email address".
      */
     Error,
@@ -50,14 +50,14 @@ enum class ToastType {
     /**
      * Indicates a caution or potential problem that the user should
      * be aware of but that does not block their workflow.
-     * Renders with an amber/yellow background and a warning triangle icon.
+     * Renders with a warning triangle icon (amber with [ToastColorSource.Library]).
      * Use for situations like "Low storage" or "Connection unstable".
      */
     Warning,
 
     /**
      * Provides helpful context or a non critical notice.
-     * Renders with a blue background and an info circle icon.
+     * Renders with an info circle icon (blue with [ToastColorSource.Library]).
      * Use for messages like "New version available" or "Sync complete".
      */
     Info,

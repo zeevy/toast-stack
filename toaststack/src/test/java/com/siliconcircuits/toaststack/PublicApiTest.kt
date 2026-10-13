@@ -1,11 +1,15 @@
 package com.siliconcircuits.toaststack
 
 import java.io.File
+import java.util.jar.JarFile
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.full.memberFunctions
 import kotlin.reflect.full.memberProperties
+import kotlinx.validation.api.dump
+import kotlinx.validation.api.filterOutNonPublic
+import kotlinx.validation.api.loadApiFromJvmClasses
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -34,10 +38,37 @@ class PublicApiTest {
     }
 
     @Test
+    fun `the public API matches the committed dump`() {
+        // The main classes come as a folder or a jar, wherever ToastStack.class is.
+        val classes = File(ToastStack::class.java.protectionDomain.codeSource.location.toURI())
+        val signatures = if (classes.isFile) {
+            JarFile(classes).use { it.loadApiFromJvmClasses() }
+        } else {
+            classes.walk().filter { it.isFile && it.extension == "class" }.map { it.inputStream() }.loadApiFromJvmClasses()
+        }
+        assertTrue("No classes found in $classes", signatures.isNotEmpty())
+        val api = signatures.filterOutNonPublic()
+        val actual = buildString { api.dump(this) }
+        val dumpFile = File("api/toaststack.api")
+
+        if (System.getProperty("updateApiDump") == "true") {
+            dumpFile.writeText(actual)
+            return
+        }
+        assertEquals(
+            "The public API changed. If that is on purpose, add a CHANGELOG entry and run " +
+                "./gradlew :toaststack:testDebugUnitTest -PupdateApiDump, then commit api/toaststack.api.",
+            dumpFile.readText().replace("\r\n", "\n"),
+            actual,
+        )
+    }
+
+    @Test
     fun `every Kotlin sample in the README is in the compiled samples file`() {
         // Unit tests run in the module folder.
-        val readme = File("../README.md").readText()
-        val samples = File("src/test/java/com/siliconcircuits/toaststack/samples/ReadmeSamples.kt").readText()
+        // Line ends are normalised, so a Windows checkout reads the same text.
+        val readme = File("../README.md").readText().replace("\r\n", "\n")
+        val samples = File("src/test/java/com/siliconcircuits/toaststack/samples/ReadmeSamples.kt").readText().replace("\r\n", "\n")
         fun normalize(text: String) = text.lines().map { it.trim() }
             .filter { it.isNotEmpty() && !it.startsWith("import ") }
             .joinToString("\n")

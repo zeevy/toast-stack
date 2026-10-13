@@ -9,7 +9,9 @@ No Scaffold required. One liner API. Stackable. Themeable. Animated.
 [![API](https://img.shields.io/badge/API-24%2B-brightgreen.svg)](https://developer.android.com/about/versions/nougat)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
-![ToastStack Demo](docs/images/hero.gif)
+<p align="center">
+  <img src="docs/images/demo.gif" width="360" alt="Toasts slide in, a progress toast fills up, and the first toast leaves">
+</p>
 
 ## What is ToastStack?
 
@@ -24,41 +26,60 @@ ToastStack replaces Android's limited native `Toast` and `Snackbar` with a fully
 - **Progress toasts** - Indeterminate loading spinner and determinate progress bar
 - **Swipe to dismiss** - Configurable direction with velocity based flick detection
 - **Custom content** - Arbitrary `@Composable` lambda for fully custom toast layouts
-- **Chaining API** - `show("msg").withAction("Undo") { }.onDismiss { }`
+- **Chaining API** - `ToastStack.show("msg")?.withAction("Undo") { }?.onDismiss { }`
 - **Suspend support** - `showAndAwait()` suspends until dismissed
 - **Kotlin Duration** - `ToastDuration(3.seconds)` for arbitrary durations
 - **String resources** - `show(R.string.saved)` with format arguments
 - **Builder DSL** - `state.build { message = "..."; type = Success }`
 - **ViewModel extensions** - `showToast()`, `showSuccessToast()`, `showToastAndAwait()`
-- **Zero setup** - Auto initializer attaches to every Activity, just call `ToastStack.show()`
+- **Zero setup** - Auto initializer attaches to every Activity, just call `ToastStack.show()`. Leave chosen Activities out with one line
 - **App theme** - Toasts follow your app's `MaterialTheme` colors, typography and dark mode. Or switch to the library's own fixed colors
-- **Haptic feedback** - Optional vibration per toast type
+- **Haptic feedback** - Optional haptic per toast type, with no VIBRATE permission
 - **Sound** - Optional notification sound, or your own sound per toast with `soundUri`
-- **Accessibility** - TalkBack announcements, type prefixes, reduced motion support, WCAG AA contrast
+- **Accessibility** - TalkBack announcements with type prefixes, timers that stop while TalkBack is on, a Dismiss action, translatable labels, reduced motion support, WCAG AA contrast
 - **Priority queue** - Low, Normal, High, Urgent with queue overflow handling
-- **Duplicate detection** - Suppresses identical messages within a time window
+- **Duplicate detection** - Repeats of a message within a time window go into one card with an "(xN)" count
 - **RTL support** - Start/End positions mirror correctly
 - **Edge to edge** - Respects system bars, display cutouts, and software keyboard
+- **Thread safe** - Call it from any thread; callbacks run on the main thread
+- **Survives rotation** - Toasts and their handles stay through configuration changes
+- **Older setups** - Works with compileSdk 35, Android Gradle Plugin 8.6 and Kotlin 2.0
 
 ## Screenshots
 
-![Toast Types](docs/images/types.png)
+Toasts follow your app's Material colors by default, in light and dark themes:
 
----
+<p align="center">
+  <img src="docs/images/types-light.png" width="48%" alt="Success, error, warning, info and default toasts in a light theme">
+  <img src="docs/images/types-dark.png" width="48%" alt="The same toasts in a dark theme">
+</p>
 
-![Dark Mode](docs/images/dark.png)
+Or use the library's own fixed colors with `ToastColorSource.Library`:
 
----
+<p align="center">
+  <img src="docs/images/library-light.png" width="48%" alt="Toasts in the library's fixed green, red, amber and blue colors, light theme">
+  <img src="docs/images/library-dark.png" width="48%" alt="The same toasts on a dark background">
+</p>
 
-![Animations](docs/images/anim.gif)
+Action buttons, a progress bar and a close button:
 
----
+<p align="center">
+  <img src="docs/images/actions-light.png" width="48%" alt="Toasts with Undo, Retry and View actions, an upload progress bar and a close button, light theme">
+  <img src="docs/images/actions-dark.png" width="48%" alt="The same toasts in a dark theme">
+</p>
 
-![Actions & Progress](docs/images/actions.gif)
+Seven positions; Start and End swap sides in right to left layouts:
 
----
+<p align="center">
+  <img src="docs/images/positions-light.png" width="96%" alt="Toasts at top start, top end, center, bottom start and bottom end over an inbox screen">
+</p>
 
-![Custom Content](docs/images/custom.png)
+Any composable as the toast body:
+
+<p align="center">
+  <img src="docs/images/custom-light.png" width="48%" alt="A custom toast with an avatar, a name and a line of text, light theme">
+  <img src="docs/images/custom-dark.png" width="48%" alt="The same custom toast in a dark theme">
+</p>
 
 ## Installation
 
@@ -176,6 +197,16 @@ Two rules for the `theme` wrapper:
 Upgrading from 1.0.x: `AppTheme` is the default, so a `ToastStackHost` you place by hand now shows typed toasts in your theme's color roles instead of the fixed green, red, amber and blue. To keep the old look, pass `colorSource = ToastColorSource.Library` to the host or set it in `ToastStack.configure()`.
 
 Material 3 has no success role, so Success uses `primaryContainer`. If you want a green success toast, override it with `globalStyle` or a per toast style. Global style and per toast style still apply on top of either source.
+
+### Leaving an Activity out
+
+The auto overlay goes into every `ComponentActivity`. To leave one out, for example a third-party login, payment or ad screen, pass a filter in `Application.onCreate()`:
+
+```kotlin
+ToastStack.configure(autoOverlay = { activity -> activity !is PaymentActivity })
+```
+
+To turn the overlay off everywhere, remove `ToastStackInitializer` in your manifest with `tools:node="remove"` and place `ToastStackHost` yourself. A hand-placed host with the default tag in an Activity that also has the overlay logs one warning, because both would take toasts sent without a `hostTag`.
 
 ## API Overview
 
@@ -369,7 +400,7 @@ ToastStack.show(
 )
 ```
 
-Haptic intensity varies by type (Error = 80ms, Warning = 60ms, Success = 40ms).
+The haptic depends on the type: Error and Warning use the system "reject" haptic and Success the "confirm" haptic (Android 11 and newer; older versions use a long press or key tap), other types a light key tap. It uses the view haptic API, so the app needs no VIBRATE permission.
 Both features respect system settings (haptic toggle, silent mode, Do Not Disturb).
 
 ## Accessibility
@@ -379,6 +410,7 @@ Both features respect system settings (haptic toggle, silent mode, Do Not Distur
 - **Reduced motion**: Animations simplify to a short fade when system "Remove animations" is enabled
 - **Color contrast**: All built in types meet WCAG AA 4.5:1 minimum ratio
 - **Focus**: Action buttons are focusable and activatable via accessibility services
+- **Translations**: The screen reader prefixes, the close button label and the repeat count are string resources (`toaststack_type_success`, `toaststack_type_error`, `toaststack_type_warning`, `toaststack_type_info`, `toaststack_type_loading`, `toaststack_dismiss`, `toaststack_dismiss_action` and the plural `toaststack_repeat_count`). Give a string with the same name in your app's `res/values-xx/strings.xml` to translate it.
 
 ## ProGuard / R8
 
@@ -393,6 +425,10 @@ Consumer rules are bundled with the library. No additional ProGuard configuratio
 - Jetpack Compose with Material 3. The library brings Compose 1.11 and Material 3 1.4 at runtime, so an app on older versions is moved up to these.
 
 CI builds a small app on exactly these minimums against every change.
+
+## Changelog
+
+What changed in each release, including behavior changes, is in [CHANGELOG.md](CHANGELOG.md).
 
 ## Contributing
 

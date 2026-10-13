@@ -1,0 +1,449 @@
+public final class com/siliconcircuits/toaststack/DismissReason : java/lang/Enum {
+	public static final field Action Lcom/siliconcircuits/toaststack/DismissReason;
+	public static final field CloseButton Lcom/siliconcircuits/toaststack/DismissReason;
+	public static final field Programmatic Lcom/siliconcircuits/toaststack/DismissReason;
+	public static final field Swipe Lcom/siliconcircuits/toaststack/DismissReason;
+	public static final field Timeout Lcom/siliconcircuits/toaststack/DismissReason;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/siliconcircuits/toaststack/DismissReason;
+	public static fun values ()[Lcom/siliconcircuits/toaststack/DismissReason;
+}
+
+public final class com/siliconcircuits/toaststack/SwipeDismissDirection : java/lang/Enum {
+	public static final field Both Lcom/siliconcircuits/toaststack/SwipeDismissDirection;
+	public static final field Left Lcom/siliconcircuits/toaststack/SwipeDismissDirection;
+	public static final field None Lcom/siliconcircuits/toaststack/SwipeDismissDirection;
+	public static final field Right Lcom/siliconcircuits/toaststack/SwipeDismissDirection;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/siliconcircuits/toaststack/SwipeDismissDirection;
+	public static fun values ()[Lcom/siliconcircuits/toaststack/SwipeDismissDirection;
+}
+
+public final class com/siliconcircuits/toaststack/ToastAnimation : java/lang/Enum {
+	public static final field Fade Lcom/siliconcircuits/toaststack/ToastAnimation;
+	public static final field ScaleAndFade Lcom/siliconcircuits/toaststack/ToastAnimation;
+	public static final field Slide Lcom/siliconcircuits/toaststack/ToastAnimation;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/siliconcircuits/toaststack/ToastAnimation;
+	public static fun values ()[Lcom/siliconcircuits/toaststack/ToastAnimation;
+}
+
+public final class com/siliconcircuits/toaststack/ToastAnimationConfig {
+	public static final field $stable I
+	public fun <init> ()V
+	public fun <init> (IILandroidx/compose/animation/core/Easing;Landroidx/compose/animation/core/Easing;I)V
+	public synthetic fun <init> (IILandroidx/compose/animation/core/Easing;Landroidx/compose/animation/core/Easing;IILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()I
+	public final fun component2 ()I
+	public final fun component3 ()Landroidx/compose/animation/core/Easing;
+	public final fun component4 ()Landroidx/compose/animation/core/Easing;
+	public final fun component5 ()I
+	public final fun copy (IILandroidx/compose/animation/core/Easing;Landroidx/compose/animation/core/Easing;I)Lcom/siliconcircuits/toaststack/ToastAnimationConfig;
+	public static synthetic fun copy$default (Lcom/siliconcircuits/toaststack/ToastAnimationConfig;IILandroidx/compose/animation/core/Easing;Landroidx/compose/animation/core/Easing;IILjava/lang/Object;)Lcom/siliconcircuits/toaststack/ToastAnimationConfig;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getEnterDurationMillis ()I
+	public final fun getEnterEasing ()Landroidx/compose/animation/core/Easing;
+	public final fun getExitDurationMillis ()I
+	public final fun getExitEasing ()Landroidx/compose/animation/core/Easing;
+	public final fun getStaggerDelayMillis ()I
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/siliconcircuits/toaststack/ToastBuilder {
+	public static final field $stable I
+	public fun <init> ()V
+	public final fun getActionLabel ()Ljava/lang/String;
+	public final fun getAnimation ()Lcom/siliconcircuits/toaststack/ToastAnimation;
+	public final fun getAnimationConfig ()Lcom/siliconcircuits/toaststack/ToastAnimationConfig;
+	public final fun getCustomIcon ()Lkotlin/jvm/functions/Function2;
+	public final fun getDuration ()Lcom/siliconcircuits/toaststack/ToastDuration;
+	public final fun getHapticEnabled ()Z
+	public final fun getMessage ()Ljava/lang/String;
+	public final fun getOnAction ()Lkotlin/jvm/functions/Function0;
+	public final fun getOnDismiss ()Lkotlin/jvm/functions/Function1;
+	public final fun getOnSecondaryAction ()Lkotlin/jvm/functions/Function0;
+	public final fun getOnShow ()Lkotlin/jvm/functions/Function0;
+	public final fun getPosition ()Lcom/siliconcircuits/toaststack/ToastPosition;
+	public final fun getPriority ()Lcom/siliconcircuits/toaststack/ToastPriority;
+	public final fun getSecondaryActionLabel ()Ljava/lang/String;
+	public final fun getShowCloseButton ()Z
+	public final fun getSoundEnabled ()Z
+	public final fun getSoundUri ()Landroid/net/Uri;
+	public final fun getStyle ()Lcom/siliconcircuits/toaststack/ToastStackStyle;
+	public final fun getSwipeDismiss ()Lcom/siliconcircuits/toaststack/SwipeDismissDirection;
+	public final fun getTitle ()Ljava/lang/String;
+	public final fun getType ()Lcom/siliconcircuits/toaststack/ToastType;
+	public final fun setActionLabel (Ljava/lang/String;)V
+	public final fun setAnimation (Lcom/siliconcircuits/toaststack/ToastAnimation;)V
+	public final fun setAnimationConfig (Lcom/siliconcircuits/toaststack/ToastAnimationConfig;)V
+	public final fun setCustomIcon (Lkotlin/jvm/functions/Function2;)V
+	public final fun setDuration (Lcom/siliconcircuits/toaststack/ToastDuration;)V
+	public final fun setHapticEnabled (Z)V
+	public final fun setMessage (Ljava/lang/String;)V
+	public final fun setOnAction (Lkotlin/jvm/functions/Function0;)V
+	public final fun setOnDismiss (Lkotlin/jvm/functions/Function1;)V
+	public final fun setOnSecondaryAction (Lkotlin/jvm/functions/Function0;)V
+	public final fun setOnShow (Lkotlin/jvm/functions/Function0;)V
+	public final fun setPosition (Lcom/siliconcircuits/toaststack/ToastPosition;)V
+	public final fun setPriority (Lcom/siliconcircuits/toaststack/ToastPriority;)V
+	public final fun setSecondaryActionLabel (Ljava/lang/String;)V
+	public final fun setShowCloseButton (Z)V
+	public final fun setSoundEnabled (Z)V
+	public final fun setSoundUri (Landroid/net/Uri;)V
+	public final fun setStyle (Lcom/siliconcircuits/toaststack/ToastStackStyle;)V
+	public final fun setSwipeDismiss (Lcom/siliconcircuits/toaststack/SwipeDismissDirection;)V
+	public final fun setTitle (Ljava/lang/String;)V
+	public final fun setType (Lcom/siliconcircuits/toaststack/ToastType;)V
+}
+
+public final class com/siliconcircuits/toaststack/ToastBuilderKt {
+	public static final fun build (Lcom/siliconcircuits/toaststack/ToastStackState;Lkotlin/jvm/functions/Function1;)Lcom/siliconcircuits/toaststack/ToastHandle;
+	public static final fun buildToast (Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Lcom/siliconcircuits/toaststack/ToastHandle;
+	public static synthetic fun buildToast$default (Ljava/lang/String;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lcom/siliconcircuits/toaststack/ToastHandle;
+}
+
+public final class com/siliconcircuits/toaststack/ToastColorSource : java/lang/Enum {
+	public static final field AppTheme Lcom/siliconcircuits/toaststack/ToastColorSource;
+	public static final field Library Lcom/siliconcircuits/toaststack/ToastColorSource;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/siliconcircuits/toaststack/ToastColorSource;
+	public static fun values ()[Lcom/siliconcircuits/toaststack/ToastColorSource;
+}
+
+public final class com/siliconcircuits/toaststack/ToastData {
+	public static final field $stable I
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component10 ()Lcom/siliconcircuits/toaststack/SwipeDismissDirection;
+	public final fun component11 ()Lcom/siliconcircuits/toaststack/ToastStackStyle;
+	public final fun component12 ()Lcom/siliconcircuits/toaststack/ToastAnimation;
+	public final fun component13 ()Lcom/siliconcircuits/toaststack/ToastAnimationConfig;
+	public final fun component14 ()Ljava/lang/String;
+	public final fun component15 ()Lkotlin/jvm/functions/Function0;
+	public final fun component16 ()Ljava/lang/String;
+	public final fun component17 ()Lkotlin/jvm/functions/Function0;
+	public final fun component18 ()Ljava/lang/Float;
+	public final fun component19 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component20 ()Lcom/siliconcircuits/toaststack/ToastPriority;
+	public final fun component21 ()Lkotlin/jvm/functions/Function2;
+	public final fun component22 ()Lkotlin/jvm/functions/Function2;
+	public final fun component23 ()Z
+	public final fun component24 ()Z
+	public final fun component25 ()Landroid/net/Uri;
+	public final fun component26 ()Lkotlin/jvm/functions/Function0;
+	public final fun component27 ()Lkotlin/jvm/functions/Function1;
+	public final fun component28 ()I
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()Lcom/siliconcircuits/toaststack/ToastType;
+	public final fun component5 ()Lcom/siliconcircuits/toaststack/ToastDuration;
+	public final fun component6 ()Lcom/siliconcircuits/toaststack/ToastPosition;
+	public final fun component7 ()I
+	public final fun component8 ()I
+	public final fun component9 ()Z
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getActionLabel ()Ljava/lang/String;
+	public final fun getAnimation ()Lcom/siliconcircuits/toaststack/ToastAnimation;
+	public final fun getAnimationConfig ()Lcom/siliconcircuits/toaststack/ToastAnimationConfig;
+	public final fun getCustomContent ()Lkotlin/jvm/functions/Function2;
+	public final fun getCustomIcon ()Lkotlin/jvm/functions/Function2;
+	public final fun getDuration ()Lcom/siliconcircuits/toaststack/ToastDuration;
+	public final fun getHapticEnabled ()Z
+	public final fun getId ()Ljava/lang/String;
+	public final fun getMessage ()Ljava/lang/String;
+	public final fun getOffsetX ()I
+	public final fun getOffsetY ()I
+	public final fun getOnAction ()Lkotlin/jvm/functions/Function0;
+	public final fun getOnDismiss ()Lkotlin/jvm/functions/Function1;
+	public final fun getOnSecondaryAction ()Lkotlin/jvm/functions/Function0;
+	public final fun getOnShow ()Lkotlin/jvm/functions/Function0;
+	public final fun getPosition ()Lcom/siliconcircuits/toaststack/ToastPosition;
+	public final fun getPriority ()Lcom/siliconcircuits/toaststack/ToastPriority;
+	public final fun getProgress ()Ljava/lang/Float;
+	public final fun getProgressLabel ()Ljava/lang/String;
+	public final fun getRepeatCount ()I
+	public final fun getSecondaryActionLabel ()Ljava/lang/String;
+	public final fun getShowCloseButton ()Z
+	public final fun getSoundEnabled ()Z
+	public final fun getSoundUri ()Landroid/net/Uri;
+	public final fun getStyle ()Lcom/siliconcircuits/toaststack/ToastStackStyle;
+	public final fun getSwipeDismiss ()Lcom/siliconcircuits/toaststack/SwipeDismissDirection;
+	public final fun getTitle ()Ljava/lang/String;
+	public final fun getType ()Lcom/siliconcircuits/toaststack/ToastType;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract class com/siliconcircuits/toaststack/ToastDuration {
+	public static final field $stable I
+	public static final field Companion Lcom/siliconcircuits/toaststack/ToastDuration$Companion;
+	public synthetic fun <init> (JLkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun getMillis ()J
+}
+
+public final class com/siliconcircuits/toaststack/ToastDuration$Companion {
+	public final fun invoke-LRDsOJo (J)Lcom/siliconcircuits/toaststack/ToastDuration;
+}
+
+public final class com/siliconcircuits/toaststack/ToastDuration$Custom : com/siliconcircuits/toaststack/ToastDuration {
+	public static final field $stable I
+	public fun <init> (J)V
+}
+
+public final class com/siliconcircuits/toaststack/ToastDuration$Indefinite : com/siliconcircuits/toaststack/ToastDuration {
+	public static final field $stable I
+	public static final field INSTANCE Lcom/siliconcircuits/toaststack/ToastDuration$Indefinite;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/siliconcircuits/toaststack/ToastDuration$Long : com/siliconcircuits/toaststack/ToastDuration {
+	public static final field $stable I
+	public static final field INSTANCE Lcom/siliconcircuits/toaststack/ToastDuration$Long;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/siliconcircuits/toaststack/ToastDuration$Short : com/siliconcircuits/toaststack/ToastDuration {
+	public static final field $stable I
+	public static final field INSTANCE Lcom/siliconcircuits/toaststack/ToastDuration$Short;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/siliconcircuits/toaststack/ToastHandle {
+	public static final field $stable I
+	public final fun await (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun dismiss ()V
+	public final fun getId ()Ljava/lang/String;
+	public final fun onDismiss (Lkotlin/jvm/functions/Function1;)Lcom/siliconcircuits/toaststack/ToastHandle;
+	public final fun onShow (Lkotlin/jvm/functions/Function0;)Lcom/siliconcircuits/toaststack/ToastHandle;
+	public final fun updateProgress (F)V
+	public final fun updateProgress (FLjava/lang/String;)V
+	public final fun withAction (Ljava/lang/String;Lkotlin/jvm/functions/Function0;)Lcom/siliconcircuits/toaststack/ToastHandle;
+	public final fun withSecondaryAction (Ljava/lang/String;Lkotlin/jvm/functions/Function0;)Lcom/siliconcircuits/toaststack/ToastHandle;
+}
+
+public final class com/siliconcircuits/toaststack/ToastPosition : java/lang/Enum {
+	public static final field BottomCenter Lcom/siliconcircuits/toaststack/ToastPosition;
+	public static final field BottomEnd Lcom/siliconcircuits/toaststack/ToastPosition;
+	public static final field BottomStart Lcom/siliconcircuits/toaststack/ToastPosition;
+	public static final field Center Lcom/siliconcircuits/toaststack/ToastPosition;
+	public static final field TopCenter Lcom/siliconcircuits/toaststack/ToastPosition;
+	public static final field TopEnd Lcom/siliconcircuits/toaststack/ToastPosition;
+	public static final field TopStart Lcom/siliconcircuits/toaststack/ToastPosition;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/siliconcircuits/toaststack/ToastPosition;
+	public static fun values ()[Lcom/siliconcircuits/toaststack/ToastPosition;
+}
+
+public final class com/siliconcircuits/toaststack/ToastPriority : java/lang/Enum {
+	public static final field High Lcom/siliconcircuits/toaststack/ToastPriority;
+	public static final field Low Lcom/siliconcircuits/toaststack/ToastPriority;
+	public static final field Normal Lcom/siliconcircuits/toaststack/ToastPriority;
+	public static final field Urgent Lcom/siliconcircuits/toaststack/ToastPriority;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/siliconcircuits/toaststack/ToastPriority;
+	public static fun values ()[Lcom/siliconcircuits/toaststack/ToastPriority;
+}
+
+public final class com/siliconcircuits/toaststack/ToastStack {
+	public static final field $stable I
+	public static final field INSTANCE Lcom/siliconcircuits/toaststack/ToastStack;
+	public final fun configure (Landroidx/compose/foundation/layout/PaddingValues;Lcom/siliconcircuits/toaststack/ToastStackStyle;Lcom/siliconcircuits/toaststack/ToastPosition;Lcom/siliconcircuits/toaststack/ToastDuration;ILcom/siliconcircuits/toaststack/SwipeDismissDirection;Lcom/siliconcircuits/toaststack/ToastAnimation;Lcom/siliconcircuits/toaststack/ToastAnimationConfig;JZLcom/siliconcircuits/toaststack/ToastColorSource;Lkotlin/jvm/functions/Function3;Lkotlin/jvm/functions/Function1;)V
+	public static synthetic fun configure$default (Lcom/siliconcircuits/toaststack/ToastStack;Landroidx/compose/foundation/layout/PaddingValues;Lcom/siliconcircuits/toaststack/ToastStackStyle;Lcom/siliconcircuits/toaststack/ToastPosition;Lcom/siliconcircuits/toaststack/ToastDuration;ILcom/siliconcircuits/toaststack/SwipeDismissDirection;Lcom/siliconcircuits/toaststack/ToastAnimation;Lcom/siliconcircuits/toaststack/ToastAnimationConfig;JZLcom/siliconcircuits/toaststack/ToastColorSource;Lkotlin/jvm/functions/Function3;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)V
+	public final fun dismiss (Ljava/lang/String;Ljava/lang/String;)V
+	public static synthetic fun dismiss$default (Lcom/siliconcircuits/toaststack/ToastStack;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)V
+	public final fun dismissAll (Ljava/lang/String;)V
+	public static synthetic fun dismissAll$default (Lcom/siliconcircuits/toaststack/ToastStack;Ljava/lang/String;ILjava/lang/Object;)V
+	public final fun error (I[Ljava/lang/Object;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Lcom/siliconcircuits/toaststack/ToastHandle;
+	public final fun error (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Lcom/siliconcircuits/toaststack/ToastHandle;
+	public static synthetic fun error$default (Lcom/siliconcircuits/toaststack/ToastStack;I[Ljava/lang/Object;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lcom/siliconcircuits/toaststack/ToastHandle;
+	public static synthetic fun error$default (Lcom/siliconcircuits/toaststack/ToastStack;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lcom/siliconcircuits/toaststack/ToastHandle;
+	public final fun info (I[Ljava/lang/Object;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Lcom/siliconcircuits/toaststack/ToastHandle;
+	public final fun info (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Lcom/siliconcircuits/toaststack/ToastHandle;
+	public static synthetic fun info$default (Lcom/siliconcircuits/toaststack/ToastStack;I[Ljava/lang/Object;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lcom/siliconcircuits/toaststack/ToastHandle;
+	public static synthetic fun info$default (Lcom/siliconcircuits/toaststack/ToastStack;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lcom/siliconcircuits/toaststack/ToastHandle;
+	public final fun loading (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Lcom/siliconcircuits/toaststack/ToastHandle;
+	public static synthetic fun loading$default (Lcom/siliconcircuits/toaststack/ToastStack;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lcom/siliconcircuits/toaststack/ToastHandle;
+	public final fun show (I[Ljava/lang/Object;Ljava/lang/String;Lcom/siliconcircuits/toaststack/ToastType;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Lcom/siliconcircuits/toaststack/ToastHandle;
+	public final fun show (Ljava/lang/String;Ljava/lang/String;Lcom/siliconcircuits/toaststack/ToastType;Lcom/siliconcircuits/toaststack/ToastDuration;Lcom/siliconcircuits/toaststack/ToastPosition;ZLcom/siliconcircuits/toaststack/SwipeDismissDirection;Lcom/siliconcircuits/toaststack/ToastStackStyle;Ljava/lang/String;Lcom/siliconcircuits/toaststack/ToastAnimation;Lcom/siliconcircuits/toaststack/ToastAnimationConfig;Lkotlin/jvm/functions/Function2;ZZLandroid/net/Uri;Lcom/siliconcircuits/toaststack/ToastPriority;Lkotlin/jvm/functions/Function1;)Lcom/siliconcircuits/toaststack/ToastHandle;
+	public static synthetic fun show$default (Lcom/siliconcircuits/toaststack/ToastStack;I[Ljava/lang/Object;Ljava/lang/String;Lcom/siliconcircuits/toaststack/ToastType;Ljava/lang/String;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lcom/siliconcircuits/toaststack/ToastHandle;
+	public static synthetic fun show$default (Lcom/siliconcircuits/toaststack/ToastStack;Ljava/lang/String;Ljava/lang/String;Lcom/siliconcircuits/toaststack/ToastType;Lcom/siliconcircuits/toaststack/ToastDuration;Lcom/siliconcircuits/toaststack/ToastPosition;ZLcom/siliconcircuits/toaststack/SwipeDismissDirection;Lcom/siliconcircuits/toaststack/ToastStackStyle;Ljava/lang/String;Lcom/siliconcircuits/toaststack/ToastAnimation;Lcom/siliconcircuits/toaststack/ToastAnimationConfig;Lkotlin/jvm/functions/Function2;ZZLandroid/net/Uri;Lcom/siliconcircuits/toaststack/ToastPriority;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lcom/siliconcircuits/toaststack/ToastHandle;
+	public final fun showAndAwait (Ljava/lang/String;Ljava/lang/String;Lcom/siliconcircuits/toaststack/ToastType;Lcom/siliconcircuits/toaststack/ToastDuration;Lcom/siliconcircuits/toaststack/ToastPosition;ZLcom/siliconcircuits/toaststack/SwipeDismissDirection;Lcom/siliconcircuits/toaststack/ToastStackStyle;Ljava/lang/String;Lcom/siliconcircuits/toaststack/ToastAnimation;Lcom/siliconcircuits/toaststack/ToastAnimationConfig;Lkotlin/jvm/functions/Function2;ZZLandroid/net/Uri;Lcom/siliconcircuits/toaststack/ToastPriority;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun showAndAwait$default (Lcom/siliconcircuits/toaststack/ToastStack;Ljava/lang/String;Ljava/lang/String;Lcom/siliconcircuits/toaststack/ToastType;Lcom/siliconcircuits/toaststack/ToastDuration;Lcom/siliconcircuits/toaststack/ToastPosition;ZLcom/siliconcircuits/toaststack/SwipeDismissDirection;Lcom/siliconcircuits/toaststack/ToastStackStyle;Ljava/lang/String;Lcom/siliconcircuits/toaststack/ToastAnimation;Lcom/siliconcircuits/toaststack/ToastAnimationConfig;Lkotlin/jvm/functions/Function2;ZZLandroid/net/Uri;Lcom/siliconcircuits/toaststack/ToastPriority;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun success (I[Ljava/lang/Object;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Lcom/siliconcircuits/toaststack/ToastHandle;
+	public final fun success (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Lcom/siliconcircuits/toaststack/ToastHandle;
+	public static synthetic fun success$default (Lcom/siliconcircuits/toaststack/ToastStack;I[Ljava/lang/Object;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lcom/siliconcircuits/toaststack/ToastHandle;
+	public static synthetic fun success$default (Lcom/siliconcircuits/toaststack/ToastStack;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lcom/siliconcircuits/toaststack/ToastHandle;
+	public final fun warning (I[Ljava/lang/Object;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Lcom/siliconcircuits/toaststack/ToastHandle;
+	public final fun warning (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Lcom/siliconcircuits/toaststack/ToastHandle;
+	public static synthetic fun warning$default (Lcom/siliconcircuits/toaststack/ToastStack;I[Ljava/lang/Object;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lcom/siliconcircuits/toaststack/ToastHandle;
+	public static synthetic fun warning$default (Lcom/siliconcircuits/toaststack/ToastStack;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lcom/siliconcircuits/toaststack/ToastHandle;
+}
+
+public final class com/siliconcircuits/toaststack/ToastStackConfig {
+	public static final field $stable I
+	public static final field Companion Lcom/siliconcircuits/toaststack/ToastStackConfig$Companion;
+	public fun <init> ()V
+	public final fun getDeduplicationWindowMs ()J
+	public final fun getDefaultAnimation ()Lcom/siliconcircuits/toaststack/ToastAnimation;
+	public final fun getDefaultAnimationConfig ()Lcom/siliconcircuits/toaststack/ToastAnimationConfig;
+	public final fun getDefaultDuration ()Lcom/siliconcircuits/toaststack/ToastDuration;
+	public final fun getDefaultPosition ()Lcom/siliconcircuits/toaststack/ToastPosition;
+	public final fun getDefaultSwipeDismiss ()Lcom/siliconcircuits/toaststack/SwipeDismissDirection;
+	public final fun getMaxVisible ()I
+	public final fun getShowRepeatCount ()Z
+	public final fun setDeduplicationWindowMs (J)V
+	public final fun setDefaultAnimation (Lcom/siliconcircuits/toaststack/ToastAnimation;)V
+	public final fun setDefaultAnimationConfig (Lcom/siliconcircuits/toaststack/ToastAnimationConfig;)V
+	public final fun setDefaultDuration (Lcom/siliconcircuits/toaststack/ToastDuration;)V
+	public final fun setDefaultPosition (Lcom/siliconcircuits/toaststack/ToastPosition;)V
+	public final fun setDefaultSwipeDismiss (Lcom/siliconcircuits/toaststack/SwipeDismissDirection;)V
+	public final fun setMaxVisible (I)V
+	public final fun setShowRepeatCount (Z)V
+}
+
+public final class com/siliconcircuits/toaststack/ToastStackConfig$Companion {
+	public final fun invoke (Lkotlin/jvm/functions/Function1;)Lcom/siliconcircuits/toaststack/ToastStackConfig;
+}
+
+public final class com/siliconcircuits/toaststack/ToastStackConfigKt {
+	public static final fun rememberToastStackState (Lcom/siliconcircuits/toaststack/ToastStackConfig;Landroidx/compose/runtime/Composer;I)Lcom/siliconcircuits/toaststack/ToastStackState;
+}
+
+public final class com/siliconcircuits/toaststack/ToastStackDefaults {
+	public static final field $stable I
+	public static final field INSTANCE Lcom/siliconcircuits/toaststack/ToastStackDefaults;
+	public final fun getElevation-D9Ej5fM ()F
+	public final fun getShape ()Landroidx/compose/foundation/shape/RoundedCornerShape;
+	public final fun styleForType (Lcom/siliconcircuits/toaststack/ToastType;Lcom/siliconcircuits/toaststack/ToastColorSource;Landroidx/compose/runtime/Composer;II)Lcom/siliconcircuits/toaststack/ToastStackStyle;
+}
+
+public final class com/siliconcircuits/toaststack/ToastStackHostKt {
+	public static final fun ToastStackHost (Lcom/siliconcircuits/toaststack/ToastStackState;Ljava/lang/String;Landroidx/compose/ui/Modifier;Lcom/siliconcircuits/toaststack/ToastStackStyle;Landroidx/compose/foundation/layout/PaddingValues;Lcom/siliconcircuits/toaststack/ToastColorSource;Landroidx/compose/runtime/Composer;II)V
+}
+
+public final class com/siliconcircuits/toaststack/ToastStackModifierKt {
+	public static final fun WithToastStack (Lcom/siliconcircuits/toaststack/ToastStackState;Ljava/lang/String;Landroidx/compose/ui/Modifier;Lcom/siliconcircuits/toaststack/ToastStackStyle;Landroidx/compose/foundation/layout/PaddingValues;Lkotlin/jvm/functions/Function2;Landroidx/compose/runtime/Composer;II)V
+}
+
+public final class com/siliconcircuits/toaststack/ToastStackState {
+	public static final field $stable I
+	public fun <init> ()V
+	public fun <init> (ILcom/siliconcircuits/toaststack/ToastPosition;Lcom/siliconcircuits/toaststack/ToastDuration;Lcom/siliconcircuits/toaststack/SwipeDismissDirection;Lcom/siliconcircuits/toaststack/ToastAnimation;Lcom/siliconcircuits/toaststack/ToastAnimationConfig;JZ)V
+	public synthetic fun <init> (ILcom/siliconcircuits/toaststack/ToastPosition;Lcom/siliconcircuits/toaststack/ToastDuration;Lcom/siliconcircuits/toaststack/SwipeDismissDirection;Lcom/siliconcircuits/toaststack/ToastAnimation;Lcom/siliconcircuits/toaststack/ToastAnimationConfig;JZILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun destroy ()V
+	public final fun dismiss (Ljava/lang/String;Lcom/siliconcircuits/toaststack/DismissReason;)V
+	public static synthetic fun dismiss$default (Lcom/siliconcircuits/toaststack/ToastStackState;Ljava/lang/String;Lcom/siliconcircuits/toaststack/DismissReason;ILjava/lang/Object;)V
+	public final fun dismissAll ()V
+	public final fun error (I[Ljava/lang/Object;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Lcom/siliconcircuits/toaststack/ToastHandle;
+	public final fun error (Ljava/lang/String;Ljava/lang/String;Lcom/siliconcircuits/toaststack/ToastDuration;Lcom/siliconcircuits/toaststack/ToastPosition;Lkotlin/jvm/functions/Function1;)Lcom/siliconcircuits/toaststack/ToastHandle;
+	public static synthetic fun error$default (Lcom/siliconcircuits/toaststack/ToastStackState;I[Ljava/lang/Object;Ljava/lang/String;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lcom/siliconcircuits/toaststack/ToastHandle;
+	public static synthetic fun error$default (Lcom/siliconcircuits/toaststack/ToastStackState;Ljava/lang/String;Ljava/lang/String;Lcom/siliconcircuits/toaststack/ToastDuration;Lcom/siliconcircuits/toaststack/ToastPosition;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lcom/siliconcircuits/toaststack/ToastHandle;
+	public final fun getDeduplicationWindowMs ()J
+	public final fun getDefaultAnimation ()Lcom/siliconcircuits/toaststack/ToastAnimation;
+	public final fun getDefaultAnimationConfig ()Lcom/siliconcircuits/toaststack/ToastAnimationConfig;
+	public final fun getDefaultDuration ()Lcom/siliconcircuits/toaststack/ToastDuration;
+	public final fun getDefaultPosition ()Lcom/siliconcircuits/toaststack/ToastPosition;
+	public final fun getDefaultSwipeDismiss ()Lcom/siliconcircuits/toaststack/SwipeDismissDirection;
+	public final fun getHostTag ()Ljava/lang/String;
+	public final fun getMaxVisible ()I
+	public final fun getShowRepeatCount ()Z
+	public final fun getToasts ()Ljava/util/List;
+	public final fun info (I[Ljava/lang/Object;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Lcom/siliconcircuits/toaststack/ToastHandle;
+	public final fun info (Ljava/lang/String;Ljava/lang/String;Lcom/siliconcircuits/toaststack/ToastDuration;Lcom/siliconcircuits/toaststack/ToastPosition;Lkotlin/jvm/functions/Function1;)Lcom/siliconcircuits/toaststack/ToastHandle;
+	public static synthetic fun info$default (Lcom/siliconcircuits/toaststack/ToastStackState;I[Ljava/lang/Object;Ljava/lang/String;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lcom/siliconcircuits/toaststack/ToastHandle;
+	public static synthetic fun info$default (Lcom/siliconcircuits/toaststack/ToastStackState;Ljava/lang/String;Ljava/lang/String;Lcom/siliconcircuits/toaststack/ToastDuration;Lcom/siliconcircuits/toaststack/ToastPosition;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lcom/siliconcircuits/toaststack/ToastHandle;
+	public final fun loading (Ljava/lang/String;Ljava/lang/String;Lcom/siliconcircuits/toaststack/ToastPosition;Lkotlin/jvm/functions/Function1;)Lcom/siliconcircuits/toaststack/ToastHandle;
+	public static synthetic fun loading$default (Lcom/siliconcircuits/toaststack/ToastStackState;Ljava/lang/String;Ljava/lang/String;Lcom/siliconcircuits/toaststack/ToastPosition;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lcom/siliconcircuits/toaststack/ToastHandle;
+	public final fun pauseAll ()V
+	public final fun pauseTimer (Ljava/lang/String;)V
+	public final fun resumeAll ()V
+	public final fun resumeTimer (Ljava/lang/String;)V
+	public final fun show (I[Ljava/lang/Object;Ljava/lang/String;Lcom/siliconcircuits/toaststack/ToastType;Lcom/siliconcircuits/toaststack/ToastDuration;Lcom/siliconcircuits/toaststack/ToastPosition;ZLkotlin/jvm/functions/Function1;)Lcom/siliconcircuits/toaststack/ToastHandle;
+	public final fun show (Ljava/lang/String;Ljava/lang/String;Lcom/siliconcircuits/toaststack/ToastType;Lcom/siliconcircuits/toaststack/ToastDuration;Lcom/siliconcircuits/toaststack/ToastPosition;ZLcom/siliconcircuits/toaststack/SwipeDismissDirection;Lcom/siliconcircuits/toaststack/ToastStackStyle;Lcom/siliconcircuits/toaststack/ToastAnimation;Lcom/siliconcircuits/toaststack/ToastAnimationConfig;Lkotlin/jvm/functions/Function2;ZZLcom/siliconcircuits/toaststack/ToastPriority;Landroid/net/Uri;Lkotlin/jvm/functions/Function1;)Lcom/siliconcircuits/toaststack/ToastHandle;
+	public static synthetic fun show$default (Lcom/siliconcircuits/toaststack/ToastStackState;I[Ljava/lang/Object;Ljava/lang/String;Lcom/siliconcircuits/toaststack/ToastType;Lcom/siliconcircuits/toaststack/ToastDuration;Lcom/siliconcircuits/toaststack/ToastPosition;ZLkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lcom/siliconcircuits/toaststack/ToastHandle;
+	public static synthetic fun show$default (Lcom/siliconcircuits/toaststack/ToastStackState;Ljava/lang/String;Ljava/lang/String;Lcom/siliconcircuits/toaststack/ToastType;Lcom/siliconcircuits/toaststack/ToastDuration;Lcom/siliconcircuits/toaststack/ToastPosition;ZLcom/siliconcircuits/toaststack/SwipeDismissDirection;Lcom/siliconcircuits/toaststack/ToastStackStyle;Lcom/siliconcircuits/toaststack/ToastAnimation;Lcom/siliconcircuits/toaststack/ToastAnimationConfig;Lkotlin/jvm/functions/Function2;ZZLcom/siliconcircuits/toaststack/ToastPriority;Landroid/net/Uri;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lcom/siliconcircuits/toaststack/ToastHandle;
+	public final fun showAndAwait (Ljava/lang/String;Ljava/lang/String;Lcom/siliconcircuits/toaststack/ToastType;Lcom/siliconcircuits/toaststack/ToastDuration;Lcom/siliconcircuits/toaststack/ToastPosition;ZLcom/siliconcircuits/toaststack/SwipeDismissDirection;Lcom/siliconcircuits/toaststack/ToastStackStyle;Lcom/siliconcircuits/toaststack/ToastAnimation;Lcom/siliconcircuits/toaststack/ToastAnimationConfig;Lkotlin/jvm/functions/Function2;ZZLandroid/net/Uri;Lcom/siliconcircuits/toaststack/ToastPriority;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun showAndAwait$default (Lcom/siliconcircuits/toaststack/ToastStackState;Ljava/lang/String;Ljava/lang/String;Lcom/siliconcircuits/toaststack/ToastType;Lcom/siliconcircuits/toaststack/ToastDuration;Lcom/siliconcircuits/toaststack/ToastPosition;ZLcom/siliconcircuits/toaststack/SwipeDismissDirection;Lcom/siliconcircuits/toaststack/ToastStackStyle;Lcom/siliconcircuits/toaststack/ToastAnimation;Lcom/siliconcircuits/toaststack/ToastAnimationConfig;Lkotlin/jvm/functions/Function2;ZZLandroid/net/Uri;Lcom/siliconcircuits/toaststack/ToastPriority;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun showCustom (Lcom/siliconcircuits/toaststack/ToastDuration;Lcom/siliconcircuits/toaststack/ToastPosition;ZLcom/siliconcircuits/toaststack/SwipeDismissDirection;Lcom/siliconcircuits/toaststack/ToastStackStyle;Lcom/siliconcircuits/toaststack/ToastAnimation;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function2;)Lcom/siliconcircuits/toaststack/ToastHandle;
+	public static synthetic fun showCustom$default (Lcom/siliconcircuits/toaststack/ToastStackState;Lcom/siliconcircuits/toaststack/ToastDuration;Lcom/siliconcircuits/toaststack/ToastPosition;ZLcom/siliconcircuits/toaststack/SwipeDismissDirection;Lcom/siliconcircuits/toaststack/ToastStackStyle;Lcom/siliconcircuits/toaststack/ToastAnimation;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function2;ILjava/lang/Object;)Lcom/siliconcircuits/toaststack/ToastHandle;
+	public final fun success (I[Ljava/lang/Object;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Lcom/siliconcircuits/toaststack/ToastHandle;
+	public final fun success (Ljava/lang/String;Ljava/lang/String;Lcom/siliconcircuits/toaststack/ToastDuration;Lcom/siliconcircuits/toaststack/ToastPosition;Lkotlin/jvm/functions/Function1;)Lcom/siliconcircuits/toaststack/ToastHandle;
+	public static synthetic fun success$default (Lcom/siliconcircuits/toaststack/ToastStackState;I[Ljava/lang/Object;Ljava/lang/String;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lcom/siliconcircuits/toaststack/ToastHandle;
+	public static synthetic fun success$default (Lcom/siliconcircuits/toaststack/ToastStackState;Ljava/lang/String;Ljava/lang/String;Lcom/siliconcircuits/toaststack/ToastDuration;Lcom/siliconcircuits/toaststack/ToastPosition;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lcom/siliconcircuits/toaststack/ToastHandle;
+	public final fun warning (I[Ljava/lang/Object;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Lcom/siliconcircuits/toaststack/ToastHandle;
+	public final fun warning (Ljava/lang/String;Ljava/lang/String;Lcom/siliconcircuits/toaststack/ToastDuration;Lcom/siliconcircuits/toaststack/ToastPosition;Lkotlin/jvm/functions/Function1;)Lcom/siliconcircuits/toaststack/ToastHandle;
+	public static synthetic fun warning$default (Lcom/siliconcircuits/toaststack/ToastStackState;I[Ljava/lang/Object;Ljava/lang/String;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lcom/siliconcircuits/toaststack/ToastHandle;
+	public static synthetic fun warning$default (Lcom/siliconcircuits/toaststack/ToastStackState;Ljava/lang/String;Ljava/lang/String;Lcom/siliconcircuits/toaststack/ToastDuration;Lcom/siliconcircuits/toaststack/ToastPosition;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lcom/siliconcircuits/toaststack/ToastHandle;
+}
+
+public final class com/siliconcircuits/toaststack/ToastStackStateKt {
+	public static final fun rememberToastStackState (ILcom/siliconcircuits/toaststack/ToastPosition;Lcom/siliconcircuits/toaststack/ToastDuration;Lcom/siliconcircuits/toaststack/SwipeDismissDirection;Lcom/siliconcircuits/toaststack/ToastAnimation;Lcom/siliconcircuits/toaststack/ToastAnimationConfig;JZLandroidx/compose/runtime/Composer;II)Lcom/siliconcircuits/toaststack/ToastStackState;
+}
+
+public final class com/siliconcircuits/toaststack/ToastStackStyle {
+	public static final field $stable I
+	public synthetic fun <init> (Landroidx/compose/ui/graphics/Color;Landroidx/compose/ui/graphics/Color;Landroidx/compose/ui/graphics/Color;Landroidx/compose/ui/graphics/Color;Landroidx/compose/ui/graphics/Color;Landroidx/compose/ui/unit/Dp;Landroidx/compose/ui/graphics/Shape;Landroidx/compose/ui/unit/Dp;Landroidx/compose/ui/text/TextStyle;Landroidx/compose/ui/text/TextStyle;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (Landroidx/compose/ui/graphics/Color;Landroidx/compose/ui/graphics/Color;Landroidx/compose/ui/graphics/Color;Landroidx/compose/ui/graphics/Color;Landroidx/compose/ui/graphics/Color;Landroidx/compose/ui/unit/Dp;Landroidx/compose/ui/graphics/Shape;Landroidx/compose/ui/unit/Dp;Landroidx/compose/ui/text/TextStyle;Landroidx/compose/ui/text/TextStyle;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-QN2ZGVo ()Landroidx/compose/ui/graphics/Color;
+	public final fun component10 ()Landroidx/compose/ui/text/TextStyle;
+	public final fun component2-QN2ZGVo ()Landroidx/compose/ui/graphics/Color;
+	public final fun component3-QN2ZGVo ()Landroidx/compose/ui/graphics/Color;
+	public final fun component4-QN2ZGVo ()Landroidx/compose/ui/graphics/Color;
+	public final fun component5-QN2ZGVo ()Landroidx/compose/ui/graphics/Color;
+	public final fun component6-lTKBWiU ()Landroidx/compose/ui/unit/Dp;
+	public final fun component7 ()Landroidx/compose/ui/graphics/Shape;
+	public final fun component8-lTKBWiU ()Landroidx/compose/ui/unit/Dp;
+	public final fun component9 ()Landroidx/compose/ui/text/TextStyle;
+	public final fun copy-X_Nnub8 (Landroidx/compose/ui/graphics/Color;Landroidx/compose/ui/graphics/Color;Landroidx/compose/ui/graphics/Color;Landroidx/compose/ui/graphics/Color;Landroidx/compose/ui/graphics/Color;Landroidx/compose/ui/unit/Dp;Landroidx/compose/ui/graphics/Shape;Landroidx/compose/ui/unit/Dp;Landroidx/compose/ui/text/TextStyle;Landroidx/compose/ui/text/TextStyle;)Lcom/siliconcircuits/toaststack/ToastStackStyle;
+	public static synthetic fun copy-X_Nnub8$default (Lcom/siliconcircuits/toaststack/ToastStackStyle;Landroidx/compose/ui/graphics/Color;Landroidx/compose/ui/graphics/Color;Landroidx/compose/ui/graphics/Color;Landroidx/compose/ui/graphics/Color;Landroidx/compose/ui/graphics/Color;Landroidx/compose/ui/unit/Dp;Landroidx/compose/ui/graphics/Shape;Landroidx/compose/ui/unit/Dp;Landroidx/compose/ui/text/TextStyle;Landroidx/compose/ui/text/TextStyle;ILjava/lang/Object;)Lcom/siliconcircuits/toaststack/ToastStackStyle;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getBackgroundColor-QN2ZGVo ()Landroidx/compose/ui/graphics/Color;
+	public final fun getBorderColor-QN2ZGVo ()Landroidx/compose/ui/graphics/Color;
+	public final fun getBorderWidth-lTKBWiU ()Landroidx/compose/ui/unit/Dp;
+	public final fun getContentColor-QN2ZGVo ()Landroidx/compose/ui/graphics/Color;
+	public final fun getElevation-lTKBWiU ()Landroidx/compose/ui/unit/Dp;
+	public final fun getIconTint-QN2ZGVo ()Landroidx/compose/ui/graphics/Color;
+	public final fun getMessageStyle ()Landroidx/compose/ui/text/TextStyle;
+	public final fun getShape ()Landroidx/compose/ui/graphics/Shape;
+	public final fun getTitleColor-QN2ZGVo ()Landroidx/compose/ui/graphics/Color;
+	public final fun getTitleStyle ()Landroidx/compose/ui/text/TextStyle;
+	public fun hashCode ()I
+	public final fun mergeWith (Lcom/siliconcircuits/toaststack/ToastStackStyle;)Lcom/siliconcircuits/toaststack/ToastStackStyle;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/siliconcircuits/toaststack/ToastStackViewModelKt {
+	public static final fun showErrorToast (Landroidx/lifecycle/ViewModel;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Lcom/siliconcircuits/toaststack/ToastHandle;
+	public static synthetic fun showErrorToast$default (Landroidx/lifecycle/ViewModel;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lcom/siliconcircuits/toaststack/ToastHandle;
+	public static final fun showInfoToast (Landroidx/lifecycle/ViewModel;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Lcom/siliconcircuits/toaststack/ToastHandle;
+	public static synthetic fun showInfoToast$default (Landroidx/lifecycle/ViewModel;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lcom/siliconcircuits/toaststack/ToastHandle;
+	public static final fun showLoadingToast (Landroidx/lifecycle/ViewModel;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Lcom/siliconcircuits/toaststack/ToastHandle;
+	public static synthetic fun showLoadingToast$default (Landroidx/lifecycle/ViewModel;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lcom/siliconcircuits/toaststack/ToastHandle;
+	public static final fun showSuccessToast (Landroidx/lifecycle/ViewModel;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Lcom/siliconcircuits/toaststack/ToastHandle;
+	public static synthetic fun showSuccessToast$default (Landroidx/lifecycle/ViewModel;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lcom/siliconcircuits/toaststack/ToastHandle;
+	public static final fun showToast (Landroidx/lifecycle/ViewModel;Ljava/lang/String;Ljava/lang/String;Lcom/siliconcircuits/toaststack/ToastType;Lcom/siliconcircuits/toaststack/ToastDuration;Lcom/siliconcircuits/toaststack/ToastPosition;ZLjava/lang/String;Lkotlin/jvm/functions/Function1;)Lcom/siliconcircuits/toaststack/ToastHandle;
+	public static synthetic fun showToast$default (Landroidx/lifecycle/ViewModel;Ljava/lang/String;Ljava/lang/String;Lcom/siliconcircuits/toaststack/ToastType;Lcom/siliconcircuits/toaststack/ToastDuration;Lcom/siliconcircuits/toaststack/ToastPosition;ZLjava/lang/String;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lcom/siliconcircuits/toaststack/ToastHandle;
+	public static final fun showToastAndAwait (Landroidx/lifecycle/ViewModel;Ljava/lang/String;Ljava/lang/String;Lcom/siliconcircuits/toaststack/ToastType;Lcom/siliconcircuits/toaststack/ToastDuration;ZLjava/lang/String;Lkotlin/jvm/functions/Function1;)V
+	public static synthetic fun showToastAndAwait$default (Landroidx/lifecycle/ViewModel;Ljava/lang/String;Ljava/lang/String;Lcom/siliconcircuits/toaststack/ToastType;Lcom/siliconcircuits/toaststack/ToastDuration;ZLjava/lang/String;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)V
+	public static final fun showWarningToast (Landroidx/lifecycle/ViewModel;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Lcom/siliconcircuits/toaststack/ToastHandle;
+	public static synthetic fun showWarningToast$default (Landroidx/lifecycle/ViewModel;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lcom/siliconcircuits/toaststack/ToastHandle;
+}
+
+public final class com/siliconcircuits/toaststack/ToastType : java/lang/Enum {
+	public static final field Default Lcom/siliconcircuits/toaststack/ToastType;
+	public static final field Error Lcom/siliconcircuits/toaststack/ToastType;
+	public static final field Info Lcom/siliconcircuits/toaststack/ToastType;
+	public static final field Loading Lcom/siliconcircuits/toaststack/ToastType;
+	public static final field Success Lcom/siliconcircuits/toaststack/ToastType;
+	public static final field Warning Lcom/siliconcircuits/toaststack/ToastType;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/siliconcircuits/toaststack/ToastType;
+	public static fun values ()[Lcom/siliconcircuits/toaststack/ToastType;
+}
+

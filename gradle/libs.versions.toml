@@ -22,6 +22,10 @@ androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecyc
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
 androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
 androidx-ui = { group = "androidx.compose.ui", name = "ui" }
+androidx-compose-runtime = { group = "androidx.compose.runtime", name = "runtime" }
+androidx-foundation = { group = "androidx.compose.foundation", name = "foundation" }
+androidx-foundation-layout = { group = "androidx.compose.foundation", name = "foundation-layout" }
+androidx-compose-animation-core = { group = "androidx.compose.animation", name = "animation-core" }
 androidx-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
 androidx-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
 androidx-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
@@ -34,6 +38,10 @@ androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-co
 kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "coroutines" }
 kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutines" }
 kotlin-reflect = { group = "org.jetbrains.kotlin", name = "kotlin-reflect" }
+binary-compatibility-validator = { group = "org.jetbrains.kotlinx", name = "binary-compatibility-validator", version = "0.18.2" }
+# The validator library needs these at runtime; its Gradle plugin normally brings them.
+kotlin-metadata-jvm = { group = "org.jetbrains.kotlin", name = "kotlin-metadata-jvm" }
+asm-tree = { group = "org.ow2.asm", name = "asm-tree", version = "9.8" }
 androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
 robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }

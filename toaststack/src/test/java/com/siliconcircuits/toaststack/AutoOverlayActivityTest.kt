@@ -16,6 +16,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Robolectric
@@ -35,6 +36,14 @@ class PlainContentActivity : ComponentActivity() {
     }
 }
 
+/** An app screen that places its own ToastStackHost with the default tag. */
+class HandPlacedHostActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContent { ToastStackHost() }
+    }
+}
+
 /** Like a Dagger multibinding factory: it knows only the app's own ViewModels. */
 class StrictFactoryActivity : ComponentActivity() {
     override val defaultViewModelProviderFactory: ViewModelProvider.Factory =
@@ -51,6 +60,9 @@ class StrictFactoryActivity : ComponentActivity() {
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class AutoOverlayActivityTest {
+
+    @get:Rule
+    val reset = ToastStackReset()
 
     @Before
     fun setUp() {
@@ -170,6 +182,42 @@ class AutoOverlayActivityTest {
         controller.pause().stop().destroy()
 
         assertEquals(DismissReason.Programmatic, reason)
+    }
+
+    @Test
+    fun `an Activity left out by the autoOverlay filter gets no overlay`() {
+        ToastStack.configure(autoOverlay = { it !is PlainContentActivity })
+
+        val controller = launch()
+
+        val content = controller.get().findViewById<ViewGroup>(android.R.id.content)
+        assertNull(content.findViewWithTag<View>(AUTO_OVERLAY_TAG))
+        controller.pause().stop().destroy()
+    }
+
+    @Test
+    fun `an Activity with only the overlay logs no shared tag warning`() {
+        ShadowLog.clear()
+
+        val controller = launch()
+        controller.pause().resume()
+        idle()
+
+        assertEquals(0, ShadowLog.getLogsForTag("ToastStack").count { "same Activity" in it.msg })
+        controller.pause().stop().destroy()
+    }
+
+    @Test
+    fun `a hand-placed default host next to the overlay logs one warning`() {
+        ShadowLog.clear()
+
+        val controller = Robolectric.buildActivity(HandPlacedHostActivity::class.java).setup()
+        idle()
+        controller.pause().resume()
+        idle()
+
+        assertEquals(1, ShadowLog.getLogsForTag("ToastStack").count { "same Activity" in it.msg })
+        controller.pause().stop().destroy()
     }
 
     @Test

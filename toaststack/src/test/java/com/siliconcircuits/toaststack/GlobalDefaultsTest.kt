@@ -9,6 +9,7 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 
 /**
@@ -18,13 +19,16 @@ import org.junit.Test
 @OptIn(ExperimentalCoroutinesApi::class)
 class GlobalDefaultsTest {
 
+    @get:Rule
+    val reset = ToastStackReset()
+
     private val testDispatcher = StandardTestDispatcher()
     private lateinit var state: ToastStackState
 
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
-        state = ToastStackState().apply { followsGlobalDefaults = true }
+        state = ToastStackState().apply { defaults = { ToastStack.defaults } }
         ToastStack.registerHost(TAG, state)
     }
 

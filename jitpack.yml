@@ -1,6 +1,9 @@
+# JitPack builds the artifact users download. The build needs JDK 21.
+# SDKMAN keeps only the newest JDK 21 Temurin, so pick whichever it has.
 before_install:
-  - sdk install java 17.0.13-tem
-  - sdk use java 17.0.13-tem
+  - sdk install java $(sdk list java | grep -o "21\.[0-9.+]*-tem" | head -1)
+  - sdk use java $(sdk list java | grep -o "21\.[0-9.+]*-tem" | head -1)
 
+# The same command CI runs, so CI checks the path JitPack takes.
 install:
-  - ./gradlew :toaststack:publishToMavenLocal
+  - ./gradlew :toaststack:publishReleasePublicationToMavenLocal

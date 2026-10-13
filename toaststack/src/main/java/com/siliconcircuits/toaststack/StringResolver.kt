@@ -37,22 +37,9 @@ internal object StringResolver {
     }
 
     /**
-     * Resolves a string resource ID to its [String] value.
+     * Resolves a string resource ID, with optional format arguments.
      *
      * @param resId The string resource ID (e.g., `R.string.my_message`).
-     * @return The resolved string.
-     * @throws IllegalStateException if called before [initialize].
-     */
-    fun resolve(@StringRes resId: Int): String {
-        val ctx = appContext
-            ?: error("StringResolver not initialized. Ensure ToastStackHost is in the composition.")
-        return ctx.getString(resId)
-    }
-
-    /**
-     * Resolves a string resource ID with format arguments.
-     *
-     * @param resId The string resource ID.
      * @param formatArgs Arguments to substitute into the format string.
      * @return The resolved and formatted string.
      * @throws IllegalStateException if called before [initialize].
@@ -60,6 +47,7 @@ internal object StringResolver {
     fun resolve(@StringRes resId: Int, vararg formatArgs: Any): String {
         val ctx = appContext
             ?: error("StringResolver not initialized. Ensure ToastStackHost is in the composition.")
-        return ctx.getString(resId, *formatArgs)
+        // With no arguments, a "%" in the text is shown as it is.
+        return if (formatArgs.isEmpty()) ctx.getString(resId) else ctx.getString(resId, *formatArgs)
     }
 }

@@ -11,10 +11,14 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ToastStackSingletonTest {
+
+    @get:Rule
+    val reset = ToastStackReset()
 
     private val testDispatcher = StandardTestDispatcher()
 
@@ -26,11 +30,6 @@ class ToastStackSingletonTest {
     @After
     fun tearDown() {
         Dispatchers.resetMain()
-        unregisterAll()
-    }
-
-    private fun unregisterAll() = listOf("host_a", "host_b", "__test__").forEach { tag ->
-        ToastStack.findHost(tag)?.let { ToastStack.unregisterHost(tag, it) }
     }
 
     // -- No host registered --
@@ -230,7 +229,7 @@ class ToastStackSingletonTest {
 
     @Test
     fun `dismissAll with no hosts registered does not crash`() {
-        unregisterAll()
+        ToastStack.resetForTest()
         ToastStack.dismissAll()
     }
 
@@ -275,6 +274,16 @@ class ToastStackSingletonTest {
         assertEquals(ToastAnimation.Fade, toast.animation)
         assertTrue(toast.hapticEnabled && toast.soundEnabled)
         assertEquals(ToastPriority.High, toast.priority)
+    }
+
+    @Test
+    fun `configure with maxVisible below 1 fails fast and changes nothing`() {
+        val style = ToastStackStyle(backgroundColor = androidx.compose.ui.graphics.Color.Red)
+
+        val result = runCatching { ToastStack.configure(maxVisible = 0, globalStyle = style) }
+
+        assertTrue(result.exceptionOrNull() is IllegalArgumentException)
+        assertNull(ToastStack.defaultGlobalStyle)
     }
 
     @Test

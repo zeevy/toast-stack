@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Text the library shows or reads out. Apps translate or change any of
+     these by giving a string with the same name in their own res/values-xx.
+     The library ships English only, so missing translations are expected. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <!-- Screen reader prefix before the toast text, for example "Error notification: Upload failed". -->
+    <string name="toaststack_type_success">Success notification</string>
+    <string name="toaststack_type_error">Error notification</string>
+    <string name="toaststack_type_warning">Warning notification</string>
+    <string name="toaststack_type_info">Information notification</string>
+    <string name="toaststack_type_loading">Loading</string>
+
+    <!-- Label of the close (X) button. -->
+    <string name="toaststack_dismiss">Dismiss toast</string>
+    <!-- TalkBack action that closes a toast. -->
+    <string name="toaststack_dismiss_action">Dismiss</string>
+
+    <!-- The message and how many times it was shown, for example "Saved (x3)". -->
+    <plurals name="toaststack_repeat_count">
+        <item quantity="one">%1$s (x%2$d)</item>
+        <item quantity="other">%1$s (x%2$d)</item>
+    </plurals>
+</resources>

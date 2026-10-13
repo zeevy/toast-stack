@@ -1,5 +1,6 @@
 package com.siliconcircuits.toaststack
 
+import android.app.Activity
 import android.util.Log
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
@@ -59,44 +60,21 @@ object ToastStack {
      * `onCreate` to customize these before any Activity is created.
      */
     @Volatile
-    internal var defaultContentPadding: PaddingValues =
-        PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+    internal var defaultContentPadding: PaddingValues = ToastStackDefaults.ContentPadding
         private set
 
     @Volatile
     internal var defaultGlobalStyle: ToastStackStyle? = null
         private set
 
+    /** Which Activities get the auto overlay. Set by [configure]. */
     @Volatile
-    internal var defaultPosition: ToastPosition = ToastPosition.TopCenter
+    internal var autoOverlay: (Activity) -> Boolean = { true }
         private set
 
+    /** The defaults for new toasts on the auto overlay, replaced in one write by [configure]. */
     @Volatile
-    internal var defaultDuration: ToastDuration = ToastDuration.Short
-        private set
-
-    @Volatile
-    internal var defaultMaxVisible: Int = 5
-        private set
-
-    @Volatile
-    internal var defaultSwipeDismiss: SwipeDismissDirection = SwipeDismissDirection.Both
-        private set
-
-    @Volatile
-    internal var defaultAnimation: ToastAnimation = ToastAnimation.Slide
-        private set
-
-    @Volatile
-    internal var defaultAnimationConfig: ToastAnimationConfig = ToastAnimationConfig()
-        private set
-
-    @Volatile
-    internal var deduplicationWindowMs: Long = 0L
-        private set
-
-    @Volatile
-    internal var showRepeatCount: Boolean = true
+    internal var defaults: ToastDefaults = ToastDefaults.Standard
         private set
 
     // Compose state so an already attached overlay recomposes when
@@ -162,33 +140,38 @@ object ToastStack {
      *   - The lambda is kept for the life of the process. Do not capture an
      *     Activity, View, ViewModel or Activity Context in it. Call
      *     [configure] from `Application.onCreate()`.
+     * @param autoOverlay Which Activities get the auto overlay, for example
+     *   `{ it !is PaymentActivity }` to leave out a third-party payment or
+     *   ad screen. Every ComponentActivity by default. It is checked when an
+     *   Activity resumes, so set it before the Activity you want to leave out
+     *   opens. Do not capture an Activity in it.
      */
     fun configure(
         contentPadding: PaddingValues = defaultContentPadding,
         globalStyle: ToastStackStyle? = defaultGlobalStyle,
-        defaultPosition: ToastPosition = this.defaultPosition,
-        defaultDuration: ToastDuration = this.defaultDuration,
-        maxVisible: Int = defaultMaxVisible,
-        defaultSwipeDismiss: SwipeDismissDirection = this.defaultSwipeDismiss,
-        defaultAnimation: ToastAnimation = this.defaultAnimation,
-        defaultAnimationConfig: ToastAnimationConfig = this.defaultAnimationConfig,
-        deduplicationWindowMs: Long = this.deduplicationWindowMs,
-        showRepeatCount: Boolean = this.showRepeatCount,
+        defaultPosition: ToastPosition = defaults.position,
+        defaultDuration: ToastDuration = defaults.duration,
+        maxVisible: Int = defaults.maxVisible,
+        defaultSwipeDismiss: SwipeDismissDirection = defaults.swipeDismiss,
+        defaultAnimation: ToastAnimation = defaults.animation,
+        defaultAnimationConfig: ToastAnimationConfig = defaults.animationConfig,
+        deduplicationWindowMs: Long = defaults.deduplicationWindowMs,
+        showRepeatCount: Boolean = defaults.showRepeatCount,
         colorSource: ToastColorSource = this.colorSource,
         theme: (@Composable (content: @Composable () -> Unit) -> Unit)? = this.theme,
+        autoOverlay: (Activity) -> Boolean = this.autoOverlay,
     ) {
+        // Check first, so a bad value changes nothing.
+        require(maxVisible >= 1) { "maxVisible must be at least 1, was $maxVisible" }
         defaultContentPadding = contentPadding
         defaultGlobalStyle = globalStyle
-        this.defaultPosition = defaultPosition
-        this.defaultDuration = defaultDuration
-        defaultMaxVisible = maxVisible
-        this.defaultSwipeDismiss = defaultSwipeDismiss
-        this.defaultAnimation = defaultAnimation
-        this.defaultAnimationConfig = defaultAnimationConfig
-        this.deduplicationWindowMs = deduplicationWindowMs
-        this.showRepeatCount = showRepeatCount
+        defaults = ToastDefaults(
+            maxVisible, defaultPosition, defaultDuration, defaultSwipeDismiss,
+            defaultAnimation, defaultAnimationConfig, deduplicationWindowMs, showRepeatCount,
+        )
         this.colorSource = colorSource
         this.theme = theme
+        this.autoOverlay = autoOverlay
     }
 
     /**
@@ -249,8 +232,8 @@ object ToastStack {
     }
 
     /**
-     * Shows a toast on the resolved host and returns its unique ID, or
-     * null if no host is currently registered.
+     * Shows a toast on the resolved host and returns a [ToastHandle] for it,
+     * or null if no host is currently registered.
      *
      * This is the most flexible entry point. For simpler calls with a
      * specific type, prefer [success], [error], [warning], or [info].
@@ -319,7 +302,7 @@ object ToastStack {
     }
 
     /**
-     * Shows a [ToastType.Success] toast (green background, check icon).
+     * Shows a [ToastType.Success] toast (check icon; colors follow the [ToastColorSource]).
      *
      * @param message The body text (e.g., "File saved").
      * @param title Optional headline above the message.
@@ -335,7 +318,7 @@ object ToastStack {
     ): ToastHandle? = resolveHost(hostTag)?.success(message, title, onDismiss = onDismiss)
 
     /**
-     * Shows a [ToastType.Error] toast (red background, error icon).
+     * Shows a [ToastType.Error] toast (error icon; colors follow the [ToastColorSource]).
      *
      * @param message The body text (e.g., "Connection failed").
      * @param title Optional headline above the message.
@@ -351,7 +334,7 @@ object ToastStack {
     ): ToastHandle? = resolveHost(hostTag)?.error(message, title, onDismiss = onDismiss)
 
     /**
-     * Shows a [ToastType.Warning] toast (amber background, warning icon).
+     * Shows a [ToastType.Warning] toast (warning icon; colors follow the [ToastColorSource]).
      *
      * @param message The body text (e.g., "Low battery").
      * @param title Optional headline above the message.
@@ -367,7 +350,7 @@ object ToastStack {
     ): ToastHandle? = resolveHost(hostTag)?.warning(message, title, onDismiss = onDismiss)
 
     /**
-     * Shows a [ToastType.Info] toast (blue background, info icon).
+     * Shows a [ToastType.Info] toast (info icon; colors follow the [ToastColorSource]).
      *
      * @param message The body text (e.g., "Update available").
      * @param title Optional headline above the message.
@@ -576,6 +559,24 @@ object ToastStack {
         }
         return state
     }
+
+    /** Puts the singleton back to its start state. For tests only. */
+    internal fun resetForTest() {
+        hostRegistry.clear()
+        synchronized(recentTags) { recentTags.clear() }
+        warnedNoHost = false
+        defaults = ToastDefaults.Standard
+        defaultContentPadding = ToastStackDefaults.ContentPadding
+        defaultGlobalStyle = null
+        colorSource = ToastColorSource.AppTheme
+        theme = null
+        autoOverlay = { true }
+        warnedSharedTag = false
+    }
+
+    // Set after the shared default tag warning, so it is logged once per process.
+    @Volatile
+    internal var warnedSharedTag = false
 
     /** The host registered under [tag], or the most recent host when [tag] is null. */
     internal fun findHost(tag: String?): ToastStackState? {

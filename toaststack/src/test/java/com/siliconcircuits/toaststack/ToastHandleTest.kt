@@ -17,12 +17,16 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ToastHandleTest {
+
+    @get:Rule
+    val reset = ToastStackReset()
 
     private val testDispatcher = StandardTestDispatcher()
     private lateinit var state: ToastStackState
@@ -108,6 +112,15 @@ class ToastHandleTest {
         handle.dismiss()
         // Should not crash even though the toast is gone.
         handle.onDismiss { }
+    }
+
+    @Test
+    fun `a NaN progress counts as 0`() {
+        val handle = state.loading("Uploading")
+
+        handle.updateProgress(Float.NaN)
+
+        assertEquals(0f, state.toasts.single().progress)
     }
 
     @Test

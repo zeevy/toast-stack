@@ -73,6 +73,10 @@ class MyApp : Application() {
     }
 }
 
+private fun leavingAnActivityOut() {
+    ToastStack.configure(autoOverlay = { activity -> activity !is PaymentActivity })
+}
+
 private fun chaining() {
     ToastStack.show("Item deleted", duration = ToastDuration.Long)
         ?.withAction("Undo") { restoreItem() }
@@ -239,6 +243,8 @@ private fun performDelete() {}
 
 @Composable
 private fun MyAppTheme(content: @Composable () -> Unit) = content()
+
+private class PaymentActivity : androidx.activity.ComponentActivity()
 
 private object R {
     object string {

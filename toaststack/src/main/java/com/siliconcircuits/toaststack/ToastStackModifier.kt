@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 
 /**
  * Wraps [content] with a [ToastStackHost] overlay, providing an
@@ -35,13 +34,20 @@ import androidx.compose.ui.unit.dp
  * @param globalStyle Optional style applied to all toasts in this host.
  * @param content The composable content to overlay toasts on.
  */
+@Deprecated(
+    "Place ToastStackHost after your content in a Box.",
+    ReplaceWith(
+        "Box(modifier) { content(); ToastStackHost(state = state, tag = tag, globalStyle = globalStyle, contentPadding = contentPadding) }",
+        "androidx.compose.foundation.layout.Box",
+    ),
+)
 @Composable
 fun WithToastStack(
     state: ToastStackState = rememberToastStackState(),
     tag: String = "__toaststack_wrapper__",
     modifier: Modifier = Modifier,
     globalStyle: ToastStackStyle? = null,
-    contentPadding: PaddingValues = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+    contentPadding: PaddingValues = ToastStackDefaults.ContentPadding,
     content: @Composable () -> Unit
 ) {
     Box(modifier = modifier) {

@@ -1,7 +1,10 @@
 package com.siliconcircuits.toaststack
 
+import android.util.Log
+import android.view.View
+import android.view.ViewGroup
+import android.view.ViewParent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -17,16 +20,17 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.unit.LayoutDirection
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /**
  * Fallback tag assigned when the caller does not provide an explicit host tag.
@@ -76,35 +80,131 @@ fun ToastStackHost(
     tag: String = DEFAULT_HOST_TAG,
     modifier: Modifier = Modifier,
     globalStyle: ToastStackStyle? = null,
-    contentPadding: PaddingValues = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+    contentPadding: PaddingValues = ToastStackDefaults.ContentPadding,
     colorSource: ToastColorSource = ToastStack.colorSource,
 ) {
     // Capture the application context for string resource resolution.
-    // This runs once per host composition and uses the application context
-    // (not the activity) so there is no risk of leaking an activity reference.
+    // This uses the application context (not the activity), so there is no
+    // risk of leaking an activity reference.
     val context = LocalContext.current
     StringResolver.initialize(context)
+    RegisterHost(state, tag)
 
-    // Register this host with the global singleton when it enters composition,
-    // and unregister when it leaves. This allows ToastStack.show() to find us.
-    // Register again on every resume: while this host was in the background,
-    // another host with the same tag (the auto overlay of the next Activity)
-    // may have taken the entry. Also listen for TalkBack (touch exploration) state changes so we can
-    // pause auto dismiss timers while the screen reader is active. Users
-    // relying on TalkBack need time to hear the full announcement before
-    // the toast disappears.
+    // When the system "Remove animations" setting is on (animator scale 0),
+    // every toast uses a short fade, for users who are sensitive to motion.
+    val reduceMotion = remember(context) {
+        android.provider.Settings.Global.getFloat(
+            context.contentResolver,
+            android.provider.Settings.Global.ANIMATOR_DURATION_SCALE,
+            1.0f
+        ) == 0.0f
+    }
+
+    // The render list is a superset of state.toasts: it keeps dismissed
+    // toasts while their exit animation plays. The visibility map says
+    // whether each toast should be visible (true) or animating out (false).
+    // An effect keeps them in step, so the host never writes state while it
+    // draws.
+    val renderList = remember { mutableStateListOf<ToastData>() }
+    val visibilityMap = remember { mutableStateMapOf<String, Boolean>() }
+    LaunchedEffect(state) {
+        snapshotFlow { state.toasts }.collect { toasts ->
+            syncRenderList(toasts, renderList, visibilityMap, state.shownIds)
+        }
+    }
+    val activeIds = state.toasts.mapTo(HashSet()) { it.id }
+
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .systemBarsPadding()
+            .imePadding()
+    ) {
+        renderList.groupBy { it.position }.forEach { (position, toastsAtPosition) ->
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(position.alignment)
+                    .padding(contentPadding),
+                horizontalAlignment = position.horizontalAlignment,
+                verticalArrangement = position.verticalArrangement
+            ) {
+                toastsAtPosition.forEachIndexed { index, toast ->
+                    key(toast.id) {
+                        ToastSlot(
+                            toast = toast,
+                            index = index,
+                            isActive = toast.id in activeIds,
+                            reduceMotion = reduceMotion,
+                            state = state,
+                            renderList = renderList,
+                            visibilityMap = visibilityMap,
+                            globalStyle = globalStyle,
+                            colorSource = colorSource,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Keeps [renderList] and [visibilityMap] in step with [toasts]:
+ *  1. A new toast is added invisible, so its enter animation plays, unless
+ *     an earlier host already showed it ([shownIds]).
+ *  2. An updated toast (progress, action, callback) replaces the old copy.
+ *  3. A removed toast is marked invisible so its exit animation plays. It
+ *     stays in [renderList] until the animation ends.
+ */
+internal fun syncRenderList(
+    toasts: List<ToastData>,
+    renderList: MutableList<ToastData>,
+    visibilityMap: MutableMap<String, Boolean>,
+    shownIds: Set<String>,
+) {
+    val ids = toasts.mapTo(HashSet()) { it.id }
+    toasts.forEach { toast ->
+        val renderIndex = renderList.indexOfFirst { it.id == toast.id }
+        if (renderIndex == -1) {
+            renderList.add(toast)
+            visibilityMap[toast.id] = toast.id in shownIds
+        } else if (renderList[renderIndex] != toast) {
+            renderList[renderIndex] = toast
+        }
+    }
+    renderList.forEach { toast ->
+        if (toast.id !in ids && visibilityMap[toast.id] != false) {
+            visibilityMap[toast.id] = false
+        }
+    }
+}
+
+/**
+ * Registers [state] with the [ToastStack] singleton while this host is in
+ * the composition, so ToastStack.show() finds it, and again on every resume:
+ * while this host was in the background, another host with the same tag
+ * (the auto overlay of the next Activity) may have taken the entry. Also
+ * follows TalkBack (touch exploration), so timers stop while it is on.
+ */
+@Composable
+private fun RegisterHost(state: ToastStackState, tag: String) {
+    val context = LocalContext.current
+    val view = LocalView.current
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(tag, state, lifecycleOwner) {
         ToastStack.registerHost(tag, state)
         val resumeObserver = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) ToastStack.registerHost(tag, state)
+            if (event == Lifecycle.Event.ON_RESUME) {
+                ToastStack.registerHost(tag, state)
+                if (tag == DEFAULT_HOST_TAG) warnIfSharingTagWithOverlay(view)
+            }
         }
         lifecycleOwner.lifecycle.addObserver(resumeObserver)
 
         val accessibilityManager = context.getSystemService(
             android.content.Context.ACCESSIBILITY_SERVICE
         ) as? android.view.accessibility.AccessibilityManager
-
         val touchExplorationListener =
             android.view.accessibility.AccessibilityManager.TouchExplorationStateChangeListener { enabled ->
                 state.pausedForAccessibility = enabled
@@ -118,229 +218,103 @@ fun ToastStackHost(
             ToastStack.unregisterHost(tag, state)
         }
     }
+}
 
-    val layoutDirection = LocalLayoutDirection.current
+/** One toast in the host: its show effects, its exit, and its card. */
+@Composable
+private fun ToastSlot(
+    toast: ToastData,
+    index: Int,
+    isActive: Boolean,
+    reduceMotion: Boolean,
+    state: ToastStackState,
+    renderList: MutableList<ToastData>,
+    visibilityMap: MutableMap<String, Boolean>,
+    globalStyle: ToastStackStyle?,
+    colorSource: ToastColorSource,
+) {
+    val context = LocalContext.current
+    val view = LocalView.current
 
-    // Check if the system's "remove animations" setting is enabled.
-    // When active, all toast animations are simplified to a short fade
-    // regardless of what the toast or state defaults specify. This ensures
-    // users who are sensitive to motion still get a usable experience.
-    // The animator duration scale is 0.0 when animations are disabled.
-    val animatorScale = android.provider.Settings.Global.getFloat(
-        context.contentResolver,
-        android.provider.Settings.Global.ANIMATOR_DURATION_SCALE,
-        1.0f
-    )
-    val reduceMotion = animatorScale == 0.0f
-    val reducedConfig = ToastAnimationConfig(enterDurationMillis = 150, exitDurationMillis = 100)
+    // With reduced motion, a short fade; else the toast's animation or the default.
+    val animation = if (reduceMotion) ToastAnimation.Fade else toast.animation ?: state.defaultAnimation
+    val baseConfig = if (reduceMotion) {
+        ToastAnimationConfig(enterDurationMillis = 150, exitDurationMillis = 100)
+    } else {
+        toast.animationConfig ?: state.defaultAnimationConfig
+    }
+    val staggeredConfig = if (index > 0 && baseConfig.staggerDelayMillis > 0) {
+        baseConfig.copy(enterDurationMillis = baseConfig.enterDurationMillis + index * baseConfig.staggerDelayMillis)
+    } else {
+        baseConfig
+    }
 
-    // --- Render list and visibility tracking ---
-    // The render list is a superset of state.toasts. It includes toasts that
-    // have been dismissed but whose exit animation is still playing.
-    // The visibility map tracks whether each toast should be visible (true)
-    // or animating out (false).
-    val renderList = remember { mutableStateListOf<ToastData>() }
-    val visibilityMap = remember { mutableStateMapOf<String, Boolean>() }
+    // Flip a new toast to visible to start the enter animation. Haptic and
+    // sound fire on appearance, onShow after the enter animation.
+    LaunchedEffect(toast.id) {
+        // Dismissed before this frame: let the exit run, do not show it.
+        if (state.toasts.none { it.id == toast.id }) return@LaunchedEffect
+        visibilityMap[toast.id] = true
+        // Shown before a configuration change: no second time.
+        if (!state.shownIds.add(toast.id)) return@LaunchedEffect
+        if (toast.hapticEnabled) ToastFeedback.haptic(view, toast.type)
+        if (toast.soundEnabled) {
+            // Preparing a ringtone does file and binder work.
+            launch(Dispatchers.IO) { ToastFeedback.playSound(context, toast.soundUri) }
+        }
+        delay(staggeredConfig.enterDurationMillis.toLong())
+        toast.onShow?.invoke()
+    }
 
-    // Sync the render list with state.toasts on every recomposition.
-    // This handles three scenarios:
-    //  1. New toasts: added to the render list as invisible (triggers enter animation)
-    //  2. Updated toasts: replaced in the render list so changes like progress
-    //     values, action labels, or callback updates are reflected in the UI
-    //  3. Removed toasts: marked invisible (triggers exit animation)
-    val activeIds = state.toasts.map { it.id }.toSet()
-    val activeToastsById = state.toasts.associateBy { it.id }
-
-    state.toasts.forEach { toast ->
-        val renderIndex = renderList.indexOfFirst { it.id == toast.id }
-        if (renderIndex == -1) {
-            // New toast: add to render list and start invisible for enter
-            // animation, unless an earlier host already showed it.
-            renderList.add(toast)
-            visibilityMap[toast.id] = toast.id in state.shownIds
-        } else if (renderList[renderIndex] != toast) {
-            // Existing toast was updated (e.g., progress, action, callback).
-            // Replace with the latest version so the UI reflects the change.
-            renderList[renderIndex] = toast
+    val isVisible = visibilityMap[toast.id] ?: false
+    // Dismissed and out of view: drop it once the exit animation has ended,
+    // with a small buffer so the animation finishes first.
+    if (!isActive && !isVisible) {
+        LaunchedEffect(toast.id) {
+            delay(baseConfig.exitDurationMillis.toLong() + 50L)
+            renderList.removeAll { it.id == toast.id }
+            visibilityMap.remove(toast.id)
         }
     }
 
-    // Mark removed toasts as invisible so AnimatedVisibility plays the exit.
-    // They stay in renderList until the exit animation duration passes.
-    renderList.forEach { toast ->
-        if (toast.id !in activeIds && visibilityMap[toast.id] != false) {
-            visibilityMap[toast.id] = false
-        }
-    }
-
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .systemBarsPadding()
-            .imePadding()
+    AnimatedVisibility(
+        visible = isVisible,
+        enter = animation.toEnterTransition(staggeredConfig, toast.position.slideSign),
+        exit = animation.toExitTransition(baseConfig, toast.position.slideSign)
     ) {
-        val toastsByPosition = renderList.groupBy { it.position }
-
-        toastsByPosition.forEach { (position, toastsAtPosition) ->
-            val boxAlignment = position.toBoxAlignment(layoutDirection)
-            val isTopAnchored = position in setOf(
-                ToastPosition.TopCenter,
-                ToastPosition.TopStart,
-                ToastPosition.TopEnd
-            )
-
-            val verticalArrangement = when {
-                isTopAnchored -> Arrangement.Top
-                position == ToastPosition.Center -> Arrangement.Center
-                else -> Arrangement.Bottom
-            }
-
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .align(boxAlignment)
-                    .padding(contentPadding),
-                horizontalAlignment = position.toHorizontalAlignment(layoutDirection),
-                verticalArrangement = verticalArrangement
-            ) {
-                toastsAtPosition.forEachIndexed { index, toast ->
-                    key(toast.id) {
-                        val slideSign = when {
-                            isTopAnchored -> -1
-                            position == ToastPosition.Center -> 0
-                            else -> 1
-                        }
-
-                        // When reduced motion is active, override the animation to
-                        // a simple fade with short duration. Otherwise use the
-                        // toast's configured animation or the state default.
-                        val animation = if (reduceMotion) {
-                            ToastAnimation.Fade
-                        } else {
-                            toast.animation ?: state.defaultAnimation
-                        }
-                        val baseConfig = if (reduceMotion) {
-                            reducedConfig
-                        } else {
-                            toast.animationConfig ?: state.defaultAnimationConfig
-                        }
-
-                        val staggeredConfig = if (index > 0 && baseConfig.staggerDelayMillis > 0) {
-                            val staggerDelay = index * baseConfig.staggerDelayMillis
-                            baseConfig.copy(
-                                enterDurationMillis = baseConfig.enterDurationMillis + staggerDelay
-                            )
-                        } else {
-                            baseConfig
-                        }
-
-                        // Flip new toasts to visible on the next frame to trigger
-                        // the enter animation. Also fire haptic/sound feedback
-                        // immediately on appearance, and onShow after the enter
-                        // animation completes.
-                        LaunchedEffect(toast.id) {
-                            visibilityMap[toast.id] = true
-                            // Shown before a configuration change: no second time.
-                            if (!state.shownIds.add(toast.id)) return@LaunchedEffect
-                            // Haptic and sound fire on appearance (before animation ends)
-                            // so the user gets immediate sensory feedback.
-                            if (toast.hapticEnabled) {
-                                ToastFeedback.vibrate(context, toast.type)
-                            }
-                            if (toast.soundEnabled) {
-                                ToastFeedback.playSound(context, toast.soundUri)
-                            }
-                            // Wait for the enter animation to finish before firing onShow.
-                            delay(staggeredConfig.enterDurationMillis.toLong())
-                            toast.onShow?.invoke()
-                        }
-
-                        val isVisible = visibilityMap[toast.id] ?: false
-                        val isActive = toast.id in activeIds
-
-                        // When a toast becomes invisible (dismissed) and is no longer
-                        // in the active state list, wait for the exit animation to
-                        // finish then remove it from the render list.
-                        if (!isActive && !isVisible) {
-                            LaunchedEffect(toast.id) {
-                                // Wait for the exit animation to complete before
-                                // removing the toast from the render list. Adding
-                                // a small buffer ensures the animation finishes
-                                // before the composable is torn down.
-                                delay(baseConfig.exitDurationMillis.toLong() + 50L)
-                                renderList.removeAll { it.id == toast.id }
-                                visibilityMap.remove(toast.id)
-                            }
-                        }
-
-                        AnimatedVisibility(
-                            visible = isVisible,
-                            enter = animation.toEnterTransition(staggeredConfig, slideSign),
-                            exit = animation.toExitTransition(baseConfig, slideSign)
-                        ) {
-                            ToastItem(
-                                toast = toast,
-                                globalStyle = globalStyle,
-                                colorSource = colorSource,
-                                onDismiss = { reason -> state.dismiss(toast.id, reason) },
-                                onPauseTimer = { state.pauseTimer(toast.id) },
-                                onResumeTimer = { state.resumeTimer(toast.id) }
-                            )
-                        }
-                    }
-                }
-            }
-        }
+        ToastItem(
+            toast = toast,
+            globalStyle = globalStyle,
+            colorSource = colorSource,
+            onDismiss = { reason -> state.dismiss(toast.id, reason) },
+            onPauseTimer = { state.pauseTimer(toast.id) },
+            onResumeTimer = { state.resumeTimer(toast.id) }
+        )
     }
 }
 
 /**
- * Converts a [ToastPosition] to a [Box] [Alignment] value, flipping
- * Start and End when the layout direction is right to left (RTL).
- *
- * Android supports both left to right (LTR) languages like English and
- * right to left (RTL) languages like Arabic and Hebrew. "Start" means
- * the leading edge (left in LTR, right in RTL) and "End" means the
- * trailing edge. This function resolves the logical Start/End to the
- * correct physical alignment so the toast appears on the expected side.
- *
- * @param layoutDirection The current [LayoutDirection] from the composition,
- *   typically provided by [LocalLayoutDirection].
- * @return The physical [Alignment] that places the toast column at the
- *   correct screen corner or edge.
+ * A hand-placed host with the default tag and the auto overlay in the same
+ * Activity share the tag, so toasts without a hostTag go to whichever
+ * registered last. The overlay is added on resume, so this runs on resume.
  */
-private fun ToastPosition.toBoxAlignment(layoutDirection: LayoutDirection): Alignment {
-    val isRtl = layoutDirection == LayoutDirection.Rtl
-    return when (this) {
-        ToastPosition.TopCenter -> Alignment.TopCenter
-        ToastPosition.TopStart -> if (isRtl) Alignment.TopEnd else Alignment.TopStart
-        ToastPosition.TopEnd -> if (isRtl) Alignment.TopStart else Alignment.TopEnd
-        ToastPosition.BottomCenter -> Alignment.BottomCenter
-        ToastPosition.BottomStart -> if (isRtl) Alignment.BottomEnd else Alignment.BottomStart
-        ToastPosition.BottomEnd -> if (isRtl) Alignment.BottomStart else Alignment.BottomEnd
-        ToastPosition.Center -> Alignment.Center
+private fun warnIfSharingTagWithOverlay(hostView: View) {
+    if (ToastStack.warnedSharedTag) return
+    val content = hostView.rootView.findViewById<ViewGroup>(android.R.id.content) ?: return
+    val overlay = content.findViewWithTag<View>(AUTO_OVERLAY_TAG) ?: return
+    // The overlay's own host sits inside the overlay view.
+    var parent: ViewParent? = hostView.parent
+    while (parent != null) {
+        if (parent === overlay) return
+        parent = parent.parent
     }
+    ToastStack.warnedSharedTag = true
+    Log.w(
+        "ToastStack",
+        "A ToastStackHost with the default tag and the auto overlay are in the same Activity, so toasts " +
+            "without a hostTag go to whichever registered last. Give the host its own tag, leave the " +
+            "Activity out with ToastStack.configure(autoOverlay = ...), or turn the overlay off in the " +
+            "manifest. Logged once.",
+    )
 }
 
-/**
- * Determines how toast cards are horizontally aligned within their column.
- *
- * For Start positions the column aligns its children to the leading edge,
- * for End positions to the trailing edge, and for Center/Top/Bottom center
- * positions the children are centered horizontally. RTL flips Start and End
- * so the visual result matches the reading direction.
- *
- * @param layoutDirection The current [LayoutDirection] from the composition.
- * @return The [Alignment.Horizontal] value to pass to the [Column]'s
- *   `horizontalAlignment` parameter.
- */
-private fun ToastPosition.toHorizontalAlignment(layoutDirection: LayoutDirection): Alignment.Horizontal {
-    val isRtl = layoutDirection == LayoutDirection.Rtl
-    return when (this) {
-        ToastPosition.TopStart, ToastPosition.BottomStart ->
-            if (isRtl) Alignment.End else Alignment.Start
-        ToastPosition.TopEnd, ToastPosition.BottomEnd ->
-            if (isRtl) Alignment.Start else Alignment.End
-        else -> Alignment.CenterHorizontally
-    }
-}

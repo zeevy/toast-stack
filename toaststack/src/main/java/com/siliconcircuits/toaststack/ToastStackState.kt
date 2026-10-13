@@ -2,6 +2,7 @@ package com.siliconcircuits.toaststack
 
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Stable
@@ -17,12 +18,33 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
+ * The defaults a host uses for new toasts, in one immutable object: each
+ * value is written once in the source, and [ToastStack.configure] changes
+ * them in one write.
+ */
+internal data class ToastDefaults(
+    val maxVisible: Int = 5,
+    val position: ToastPosition = ToastPosition.TopCenter,
+    val duration: ToastDuration = ToastDuration.Short,
+    val swipeDismiss: SwipeDismissDirection = SwipeDismissDirection.Both,
+    val animation: ToastAnimation = ToastAnimation.Slide,
+    val animationConfig: ToastAnimationConfig = ToastAnimationConfig(),
+    val deduplicationWindowMs: Long = 0L,
+    val showRepeatCount: Boolean = true,
+) {
+    companion object {
+        /** The library's own defaults. */
+        val Standard = ToastDefaults()
+    }
+}
+
+/**
  * Central state holder that manages the lifecycle of all active toasts.
  *
  * This class is the core of ToastStack. It maintains an ordered list of
  * visible toasts, enforces the maximum capacity, runs auto dismiss timers,
  * and supports pausing/resuming those timers during user interaction or
- * when the app moves to the background.
+ * when the app calls [pauseAll] and [resumeAll].
  *
  * Internally, the toast list is backed by Compose's `mutableStateListOf`,
  * which is a "snapshot aware" collection. This means that whenever a toast
@@ -40,9 +62,10 @@ import kotlinx.coroutines.launch
  * which helps Compose skip unnecessary recompositions for better performance.
  *
  * @param maxVisible The maximum number of toasts that can be visible at the
- *   same time. When a new toast is shown and the limit is already reached,
- *   the oldest toast is automatically evicted (dismissed with
- *   [DismissReason.Programmatic]) to make room. Defaults to 5.
+ *   same time. When the limit is reached, a new toast waits in a queue
+ *   (by [ToastPriority]) until a slot opens. An [ToastPriority.Urgent]
+ *   toast evicts the oldest non-urgent one instead (dismissed with
+ *   [DismissReason.Programmatic]). Defaults to 5.
  * @param defaultPosition The [ToastPosition] used when a toast does not
  *   explicitly specify its own position. Defaults to [ToastPosition.TopCenter].
  * @param defaultDuration The [ToastDuration] used when a toast does not
@@ -61,24 +84,32 @@ import kotlinx.coroutines.launch
  */
 @Stable
 class ToastStackState(
-    maxVisible: Int = 5,
-    defaultPosition: ToastPosition = ToastPosition.TopCenter,
-    defaultDuration: ToastDuration = ToastDuration.Short,
-    defaultSwipeDismiss: SwipeDismissDirection = SwipeDismissDirection.Both,
-    defaultAnimation: ToastAnimation = ToastAnimation.Slide,
-    defaultAnimationConfig: ToastAnimationConfig = ToastAnimationConfig(),
-    deduplicationWindowMs: Long = 0L,
-    showRepeatCount: Boolean = true
+    maxVisible: Int = ToastDefaults.Standard.maxVisible,
+    defaultPosition: ToastPosition = ToastDefaults.Standard.position,
+    defaultDuration: ToastDuration = ToastDefaults.Standard.duration,
+    defaultSwipeDismiss: SwipeDismissDirection = ToastDefaults.Standard.swipeDismiss,
+    defaultAnimation: ToastAnimation = ToastDefaults.Standard.animation,
+    defaultAnimationConfig: ToastAnimationConfig = ToastDefaults.Standard.animationConfig,
+    deduplicationWindowMs: Long = ToastDefaults.Standard.deduplicationWindowMs,
+    showRepeatCount: Boolean = ToastDefaults.Standard.showRepeatCount
 ) {
     /**
-     * When true, the defaults below are read from [ToastStack] each time
-     * they are used, instead of the constructor values. Set by
-     * [ToastStackInitializer] for the auto overlay, so a later
-     * [ToastStack.configure] call reaches an Activity that is already open.
-     * Lowering `maxVisible` this way does not remove cards already on
-     * screen. The new limit applies as they are dismissed.
+     * Where the defaults below come from: the constructor values, unless
+     * [ToastStackInitializer] points the auto overlay at [ToastStack.defaults],
+     * so a later [ToastStack.configure] call reaches an Activity that is
+     * already open. Lowering `maxVisible` this way does not remove cards
+     * already on screen. The new limit applies as they are dismissed.
      */
-    internal var followsGlobalDefaults = false
+    internal var defaults: () -> ToastDefaults = { ownDefaults }
+
+    init {
+        require(maxVisible >= 1) { "maxVisible must be at least 1, was $maxVisible" }
+    }
+
+    private val ownDefaults = ToastDefaults(
+        maxVisible, defaultPosition, defaultDuration, defaultSwipeDismiss,
+        defaultAnimation, defaultAnimationConfig, deduplicationWindowMs, showRepeatCount,
+    )
 
     /**
      * True while a screen reader (touch exploration) is on. Auto dismiss
@@ -100,42 +131,27 @@ class ToastStackState(
      */
     internal val shownIds = mutableSetOf<String>()
 
-    private val ownMaxVisible = maxVisible
-    private val ownDefaultPosition = defaultPosition
-    private val ownDefaultDuration = defaultDuration
-    private val ownDefaultSwipeDismiss = defaultSwipeDismiss
-    private val ownDefaultAnimation = defaultAnimation
-    private val ownDefaultAnimationConfig = defaultAnimationConfig
-    private val ownDeduplicationWindowMs = deduplicationWindowMs
-    private val ownShowRepeatCount = showRepeatCount
+    /**
+     * The clock for the dedup window and the timer pause math. A monotonic
+     * clock, so a change of the wall clock does not stretch or cut a timer.
+     * Tests set it to the coroutine test scheduler's time.
+     */
+    internal var now: () -> Long = { SystemClock.uptimeMillis() }
 
-    val maxVisible: Int
-        get() = if (followsGlobalDefaults) ToastStack.defaultMaxVisible else ownMaxVisible
-    val defaultPosition: ToastPosition
-        get() = if (followsGlobalDefaults) ToastStack.defaultPosition else ownDefaultPosition
-    val defaultDuration: ToastDuration
-        get() = if (followsGlobalDefaults) ToastStack.defaultDuration else ownDefaultDuration
-    val defaultSwipeDismiss: SwipeDismissDirection
-        get() = if (followsGlobalDefaults) ToastStack.defaultSwipeDismiss else ownDefaultSwipeDismiss
-    val defaultAnimation: ToastAnimation
-        get() = if (followsGlobalDefaults) ToastStack.defaultAnimation else ownDefaultAnimation
-    val defaultAnimationConfig: ToastAnimationConfig
-        get() = if (followsGlobalDefaults) ToastStack.defaultAnimationConfig else ownDefaultAnimationConfig
-    val deduplicationWindowMs: Long
-        get() = if (followsGlobalDefaults) ToastStack.deduplicationWindowMs else ownDeduplicationWindowMs
-    val showRepeatCount: Boolean
-        get() = if (followsGlobalDefaults) ToastStack.showRepeatCount else ownShowRepeatCount
+    val maxVisible: Int get() = defaults().maxVisible
+    val defaultPosition: ToastPosition get() = defaults().position
+    val defaultDuration: ToastDuration get() = defaults().duration
+    val defaultSwipeDismiss: SwipeDismissDirection get() = defaults().swipeDismiss
+    val defaultAnimation: ToastAnimation get() = defaults().animation
+    val defaultAnimationConfig: ToastAnimationConfig get() = defaults().animationConfig
+    val deduplicationWindowMs: Long get() = defaults().deduplicationWindowMs
+    val showRepeatCount: Boolean get() = defaults().showRepeatCount
 
     // Snapshot backed list: Compose observes this collection and automatically
     // triggers recomposition when items are added or removed. This is the
     // reactive mechanism that makes toasts appear and disappear on screen.
     private val activeToasts = mutableStateListOf<ToastData>()
 
-    // Tracks the wall clock timestamp when each message was last shown.
-    // Used by deduplication to suppress identical messages within the
-    // configured time window (deduplicationWindowMs). A value of 0 disables
-    // deduplication entirely (the default).
-    private val lastShownTimestamps = mutableMapOf<String, Long>()
 
     // Queue for toasts that can't be shown yet because maxVisible is reached.
     // Toasts are ordered by priority (Urgent > High > Normal > Low), then by
@@ -153,19 +169,6 @@ class ToastStackState(
      */
     val toasts: List<ToastData> get() = activeToasts.toList()
 
-    // --- Timer bookkeeping ---
-    // Each toast with a finite duration has a coroutine based timer that
-    // dismisses it when time runs out. To support pause/resume (e.g., when
-    // the user drags a toast or the app goes to background), we track:
-    //   - timerJobs: the running coroutine Job for each toast's delay
-    //   - pausedIds: which toasts currently have their timer paused
-    //   - remainingMillis: how many milliseconds were left when the timer was paused
-    //   - timerStartedAt: wall clock time when the current timer segment began
-    // Like all state here, these are only touched on the main thread.
-    private val timerJobs = mutableMapOf<String, Job>()
-    private val pausedIds = mutableSetOf<String>()
-    private val remainingMillis = mutableMapOf<String, Long>()
-    private val timerStartedAt = mutableMapOf<String, Long>()
 
     // Handles from a background show() whose toast was merged into an
     // existing card by deduplication: new id to the existing card's id.
@@ -199,6 +202,11 @@ class ToastStackState(
     private val supervisorJob = SupervisorJob()
     private val coroutineScope = CoroutineScope(Dispatchers.Main + supervisorJob)
 
+    // The auto dismiss timers. Like all state here, used on the main thread only.
+    private val timers = ToastTimers(coroutineScope, now = { now() }) { id ->
+        removeSilently(id, DismissReason.Timeout)
+    }
+
     /**
      * The host tag assigned to this state when it is registered with the
      * [ToastStack] global singleton. This is set internally by
@@ -208,11 +216,11 @@ class ToastStackState(
         internal set
 
     /**
-     * Displays a new toast and returns its unique ID.
+     * Displays a new toast and returns a [ToastHandle] for it.
      *
-     * The returned ID can be used later to dismiss the toast programmatically
-     * via [dismiss]. If the number of visible toasts is already at
-     * [maxVisible], the oldest toast is evicted to make room.
+     * The handle (or its `id`) can be used later to dismiss or update the
+     * toast. If [maxVisible] toasts are already on screen, the toast waits
+     * in the queue; see [ToastPriority].
      *
      * All parameters except [message] have defaults, so the simplest call
      * is just `show("Hello")`.
@@ -284,7 +292,7 @@ class ToastStackState(
 
     /**
      * Convenience method that shows a [ToastType.Success] toast with a
-     * green background and check circle icon.
+     * check circle icon. Its colors follow the [ToastColorSource].
      *
      * @param message The body text (e.g., "File uploaded successfully").
      * @param title Optional headline above the message.
@@ -300,7 +308,7 @@ class ToastStackState(
 
     /**
      * Convenience method that shows a [ToastType.Error] toast with a
-     * red background and error icon.
+     * error icon. Its colors follow the [ToastColorSource].
      *
      * @param message The body text (e.g., "Connection failed").
      * @param title Optional headline above the message.
@@ -316,7 +324,7 @@ class ToastStackState(
 
     /**
      * Convenience method that shows a [ToastType.Warning] toast with an
-     * amber/yellow background and warning triangle icon.
+     * warning triangle icon. Its colors follow the [ToastColorSource].
      *
      * @param message The body text (e.g., "Low storage space").
      * @param title Optional headline above the message.
@@ -332,7 +340,7 @@ class ToastStackState(
 
     /**
      * Convenience method that shows a [ToastType.Info] toast with a
-     * blue background and info circle icon.
+     * info circle icon. Its colors follow the [ToastColorSource].
      *
      * @param message The body text (e.g., "Update available").
      * @param title Optional headline above the message.
@@ -486,11 +494,7 @@ class ToastStackState(
         showCloseButton: Boolean = false,
         onDismiss: ((DismissReason) -> Unit)? = null
     ): ToastHandle {
-        val message = if (formatArgs.isEmpty()) {
-            StringResolver.resolve(messageRes)
-        } else {
-            StringResolver.resolve(messageRes, *formatArgs)
-        }
+        val message = StringResolver.resolve(messageRes, *formatArgs)
         return show(message, title, type, duration, position, showCloseButton, onDismiss = onDismiss)
     }
 
@@ -503,7 +507,7 @@ class ToastStackState(
         title: String? = null,
         onDismiss: ((DismissReason) -> Unit)? = null
     ): ToastHandle {
-        val message = if (formatArgs.isEmpty()) StringResolver.resolve(messageRes) else StringResolver.resolve(messageRes, *formatArgs)
+        val message = StringResolver.resolve(messageRes, *formatArgs)
         return success(message, title, onDismiss = onDismiss)
     }
 
@@ -516,7 +520,7 @@ class ToastStackState(
         title: String? = null,
         onDismiss: ((DismissReason) -> Unit)? = null
     ): ToastHandle {
-        val message = if (formatArgs.isEmpty()) StringResolver.resolve(messageRes) else StringResolver.resolve(messageRes, *formatArgs)
+        val message = StringResolver.resolve(messageRes, *formatArgs)
         return error(message, title, onDismiss = onDismiss)
     }
 
@@ -529,7 +533,7 @@ class ToastStackState(
         title: String? = null,
         onDismiss: ((DismissReason) -> Unit)? = null
     ): ToastHandle {
-        val message = if (formatArgs.isEmpty()) StringResolver.resolve(messageRes) else StringResolver.resolve(messageRes, *formatArgs)
+        val message = StringResolver.resolve(messageRes, *formatArgs)
         return warning(message, title, onDismiss = onDismiss)
     }
 
@@ -542,7 +546,7 @@ class ToastStackState(
         title: String? = null,
         onDismiss: ((DismissReason) -> Unit)? = null
     ): ToastHandle {
-        val message = if (formatArgs.isEmpty()) StringResolver.resolve(messageRes) else StringResolver.resolve(messageRes, *formatArgs)
+        val message = StringResolver.resolve(messageRes, *formatArgs)
         return info(message, title, onDismiss = onDismiss)
     }
 
@@ -583,30 +587,23 @@ class ToastStackState(
             incoming.onDismiss?.invoke(DismissReason.Programmatic)
             return ToastHandle(incoming.id, this)
         }
-        // The auto overlay reads its defaults live from ToastStack. Save the
-        // animation on the toast now, so a later configure() call does not
-        // change how a card already on screen animates out.
-        val toast = if (followsGlobalDefaults) {
-            incoming.copy(
-                animation = incoming.animation ?: defaultAnimation,
-                animationConfig = incoming.animationConfig ?: defaultAnimationConfig
-            )
-        } else {
-            incoming
-        }
+        // Defaults that come from elsewhere can change later (the auto overlay
+        // reads them from ToastStack). Save the animation on the toast now, so
+        // a card already on screen keeps how it animates out.
+        val saveAnimation = defaults() !== ownDefaults
+        val toast = incoming.copy(
+            animation = if (saveAnimation) incoming.animation ?: defaultAnimation else incoming.animation,
+            animationConfig = if (saveAnimation) incoming.animationConfig ?: defaultAnimationConfig else incoming.animationConfig,
+            lastShownAt = now(),
+        )
 
         // Duplicate detection: if the same message was shown within the
         // deduplication window and its card is still on screen or queued,
         // update that card instead of adding a new one. This prevents a stack
         // of identical cards when the same event fires many times in a row.
         if (deduplicationWindowMs > 0 && toast.message.isNotEmpty()) {
-            val now = System.currentTimeMillis()
-            val lastShown = lastShownTimestamps[toast.message]
-            lastShownTimestamps[toast.message] = now
-            if (lastShown != null && (now - lastShown) < deduplicationWindowMs) {
-                val existing = bumpRepeat(toast.message)
-                if (existing != null) return ToastHandle(existing.id, this)
-            }
+            val existing = bumpRepeat(toast.message, toast.lastShownAt)
+            if (existing != null) return ToastHandle(existing.id, this)
         }
 
         if (activeToasts.size < maxVisible) {
@@ -618,11 +615,13 @@ class ToastStackState(
             // to make room. If all active toasts are urgent, evict the oldest.
             val evictTarget = activeToasts.firstOrNull { it.priority != ToastPriority.Urgent }
                 ?: activeToasts.firstOrNull()
-            if (evictTarget != null) {
-                removeSilently(evictTarget.id, DismissReason.Programmatic)
-            }
+            // The urgent toast takes the freed slot, so nothing is promoted
+            // from the queue. The evicted toast's onDismiss runs once the
+            // urgent toast is in, so a show() from it cannot take the slot.
+            val evicted = evictTarget?.let { takeOut(it.id, promote = false) }
             activeToasts.add(toast)
             scheduleAutoDismiss(toast)
+            evicted?.onDismiss?.invoke(DismissReason.Programmatic)
         } else {
             // At capacity and not urgent: add to the pending queue.
             // Insert based on priority: High before Normal, Normal before Low.
@@ -644,28 +643,25 @@ class ToastStackState(
      *
      * @return The existing toast, or null if no card has this message.
      */
-    private fun bumpRepeat(message: String): ToastData? {
+    private fun bumpRepeat(message: String, now: Long): ToastData? {
         val count = if (showRepeatCount) 1 else 0
-        val activeIndex = activeToasts.indexOfFirst { it.message == message }
+        // The window counts from the card's last show or repeat.
+        fun inWindow(card: ToastData) = now - card.lastShownAt < deduplicationWindowMs
+        // An older card with the same message, out of its window, does not
+        // hide a newer one that is still in it.
+        val activeIndex = activeToasts.indexOfFirst { it.message == message && inWindow(it) }
         if (activeIndex != -1) {
             val current = activeToasts[activeIndex]
-            val updated = current.copy(repeatCount = current.repeatCount + count)
+            val updated = current.copy(repeatCount = current.repeatCount + count, lastShownAt = now)
             activeToasts[activeIndex] = updated
-            if (updated.duration != ToastDuration.Indefinite) {
-                if (updated.id in pausedIds) {
-                    // The user is holding the card. Give it the full time back
-                    // for when the timer resumes.
-                    remainingMillis[updated.id] = updated.duration.millis
-                } else {
-                    launchTimer(updated, updated.duration.millis)
-                }
-            }
+            if (updated.duration != ToastDuration.Indefinite) timers.restart(updated.id, updated.duration.millis)
             return updated
         }
-        val queuedIndex = pendingQueue.indexOfFirst { it.message == message }
+        val queuedIndex = pendingQueue.indexOfFirst { it.message == message && inWindow(it) }
         if (queuedIndex != -1) {
             val current = pendingQueue[queuedIndex]
-            return current.copy(repeatCount = current.repeatCount + count).also { pendingQueue[queuedIndex] = it }
+            return current.copy(repeatCount = current.repeatCount + count, lastShownAt = now)
+                .also { pendingQueue[queuedIndex] = it }
         }
         return null
     }
@@ -805,7 +801,7 @@ class ToastStackState(
         pendingQueue.clear()
         shownIds.clear()
         aliases.clear()
-        snapshot.forEach { clearTimerState(it.id) }
+        snapshot.forEach { timers.clear(it.id) }
         // User code runs last, so a callback that throws cannot leave
         // timers running.
         snapshot.forEach { it.onDismiss?.invoke(DismissReason.Programmatic) }
@@ -824,20 +820,7 @@ class ToastStackState(
      *
      * @param id The unique identifier of the toast whose timer should pause.
      */
-    fun pauseTimer(id: String) = onMain {
-        if (id in pausedIds) return@onMain
-        val job = timerJobs[id] ?: return@onMain
-        val startedAt = timerStartedAt[id] ?: return@onMain
-        val total = remainingMillis[id] ?: return@onMain
-
-        // Calculate how much time has elapsed since the timer started
-        // (or was last resumed) and subtract it from the remaining time.
-        val elapsed = System.currentTimeMillis() - startedAt
-        remainingMillis[id] = (total - elapsed).coerceAtLeast(0L)
-        pausedIds.add(id)
-        job.cancel()
-        timerJobs.remove(id)
-    }
+    fun pauseTimer(id: String) = onMain { timers.pause(id) }
 
     /**
      * Resumes a previously paused auto dismiss timer.
@@ -850,19 +833,16 @@ class ToastStackState(
      */
     fun resumeTimer(id: String) = onMain {
         // A touch release must not undo the screen reader pause.
-        if (id !in pausedIds || pausedForAccessibility) return@onMain
-        pausedIds.remove(id)
-        val leftover = remainingMillis[id] ?: return@onMain
-        val toast = activeToasts.find { it.id == id } ?: return@onMain
-        launchTimer(toast, leftover)
+        if (pausedForAccessibility || activeToasts.none { it.id == id }) return@onMain
+        timers.resume(id)
     }
 
     /**
      * Pauses the auto dismiss timer for every active toast.
      *
-     * Useful when the app moves to the background (Activity's onPause)
-     * so toasts don't expire while the user can't see them. Call
-     * [resumeAll] when the app returns to the foreground.
+     * The library does not call this by itself. An app can call it, for
+     * example from Activity.onPause, so toasts don't expire while the user
+     * can't see them, and call [resumeAll] when the app returns.
      */
     fun pauseAll() = onMain {
         activeToasts.forEach { pauseTimer(it.id) }
@@ -909,21 +889,30 @@ class ToastStackState(
      * call is silently ignored.
      */
     private fun removeSilently(id: String, reason: DismissReason) {
+        val toast = takeOut(id, promote = true) ?: return
+        // User code runs last, so a callback that throws cannot leave the
+        // queue unpromoted.
+        toast.onDismiss?.invoke(reason)
+    }
+
+    /**
+     * Removes a toast, on screen or queued, and its timer, without calling
+     * user code. When [promote] is true, a toast leaving the screen lets
+     * the next queued toast in. Returns the removed toast, or null.
+     */
+    private fun takeOut(id: String, promote: Boolean): ToastData? {
         val active = activeToasts.find { it.id == id }
-        val toast = active ?: pendingQueue.find { it.id == id } ?: return
+        val toast = active ?: pendingQueue.find { it.id == id } ?: return null
         aliases.values.removeAll { it == id }
         if (active != null) {
             activeToasts.remove(active)
             shownIds.remove(id)
-            clearTimerState(id)
-            // A slot opened up. Promote the next queued toast if any.
-            promoteFromQueue()
+            timers.clear(id)
+            if (promote) promoteFromQueue()
         } else {
             pendingQueue.remove(toast)
         }
-        // User code runs last, so a callback that throws cannot leave the
-        // queue unpromoted.
-        toast.onDismiss?.invoke(reason)
+        return toast
     }
 
     /**
@@ -932,44 +921,76 @@ class ToastStackState(
      */
     private fun scheduleAutoDismiss(toast: ToastData) {
         if (toast.duration == ToastDuration.Indefinite) return
-        if (pausedForAccessibility) {
-            // Start paused, with the full time kept for when the screen reader turns off.
-            remainingMillis[toast.id] = toast.duration.millis
-            pausedIds.add(toast.id)
-            return
-        }
-        launchTimer(toast, toast.duration.millis)
+        // While a screen reader is on, start paused with the full time kept.
+        if (pausedForAccessibility) timers.startPaused(toast.id, toast.duration.millis)
+        else timers.start(toast.id, toast.duration.millis)
     }
+}
 
-    /**
-     * Launches (or relaunches) a coroutine that waits [millis] milliseconds
-     * and then dismisses the toast with [DismissReason.Timeout].
-     *
-     * This is the only place where timer coroutines are created. Both
-     * the initial schedule and pause/resume flow converge here.
-     */
-    private fun launchTimer(toast: ToastData, millis: Long) {
-        clearTimerState(toast.id)
-        remainingMillis[toast.id] = millis
-        timerStartedAt[toast.id] = System.currentTimeMillis()
-        timerJobs[toast.id] = coroutineScope.launch {
+/**
+ * The auto dismiss timers of one [ToastStackState]. Each toast with a finite
+ * duration gets a coroutine that calls [onExpire] when its time runs out.
+ * A timer can pause and later resume with the time that was left. Used on
+ * the main thread only.
+ */
+internal class ToastTimers(
+    private val scope: CoroutineScope,
+    private val now: () -> Long,
+    private val onExpire: (id: String) -> Unit,
+) {
+    private val jobs = mutableMapOf<String, Job>()
+    private val paused = mutableSetOf<String>()
+    private val remaining = mutableMapOf<String, Long>()
+    private val startedAt = mutableMapOf<String, Long>()
+
+    /** Starts (or restarts) the timer for [id] with [millis] to run. */
+    fun start(id: String, millis: Long) {
+        clear(id)
+        remaining[id] = millis
+        startedAt[id] = now()
+        jobs[id] = scope.launch {
             delay(millis)
-            removeSilently(toast.id, DismissReason.Timeout)
+            onExpire(id)
         }
     }
 
-    /**
-     * Cancels any running timer coroutine and removes all bookkeeping
-     * entries (remaining time, start time, paused flag) for the given toast.
-     * Called both when a timer completes normally and when a toast is
-     * dismissed by other means.
-     */
-    private fun clearTimerState(id: String) {
-        timerJobs[id]?.cancel()
-        timerJobs.remove(id)
-        remainingMillis.remove(id)
-        timerStartedAt.remove(id)
-        pausedIds.remove(id)
+    /** Sets up the timer for [id] paused, with [millis] for when it resumes. */
+    fun startPaused(id: String, millis: Long) {
+        clear(id)
+        remaining[id] = millis
+        paused += id
+    }
+
+    /** Pauses a running timer and keeps the time that was left. */
+    fun pause(id: String) {
+        if (id in paused) return
+        val job = jobs[id] ?: return
+        val started = startedAt[id] ?: return
+        val total = remaining[id] ?: return
+        remaining[id] = (total - (now() - started)).coerceAtLeast(0L)
+        paused += id
+        job.cancel()
+        jobs.remove(id)
+    }
+
+    /** Resumes a paused timer with the time that was left. */
+    fun resume(id: String) {
+        if (id !in paused) return
+        val left = remaining[id] ?: return
+        start(id, left)
+    }
+
+    /** Gives [id] the full [millis] again; a paused timer stays paused. */
+    fun restart(id: String, millis: Long) {
+        if (id in paused) remaining[id] = millis else start(id, millis)
+    }
+
+    /** Stops the timer for [id] and forgets it. */
+    fun clear(id: String) {
+        jobs.remove(id)?.cancel()
+        remaining.remove(id)
+        startedAt.remove(id)
+        paused.remove(id)
     }
 }
 
@@ -999,14 +1020,14 @@ class ToastStackState(
  */
 @Composable
 fun rememberToastStackState(
-    maxVisible: Int = 5,
-    defaultPosition: ToastPosition = ToastPosition.TopCenter,
-    defaultDuration: ToastDuration = ToastDuration.Short,
-    defaultSwipeDismiss: SwipeDismissDirection = SwipeDismissDirection.Both,
-    defaultAnimation: ToastAnimation = ToastAnimation.Slide,
-    defaultAnimationConfig: ToastAnimationConfig = ToastAnimationConfig(),
-    deduplicationWindowMs: Long = 0L,
-    showRepeatCount: Boolean = true
+    maxVisible: Int = ToastDefaults.Standard.maxVisible,
+    defaultPosition: ToastPosition = ToastDefaults.Standard.position,
+    defaultDuration: ToastDuration = ToastDefaults.Standard.duration,
+    defaultSwipeDismiss: SwipeDismissDirection = ToastDefaults.Standard.swipeDismiss,
+    defaultAnimation: ToastAnimation = ToastDefaults.Standard.animation,
+    defaultAnimationConfig: ToastAnimationConfig = ToastDefaults.Standard.animationConfig,
+    deduplicationWindowMs: Long = ToastDefaults.Standard.deduplicationWindowMs,
+    showRepeatCount: Boolean = ToastDefaults.Standard.showRepeatCount
 ): ToastStackState {
     val state = remember {
         ToastStackState(
