@@ -110,6 +110,13 @@ class ToastHandleTest {
         handle.onDismiss { }
     }
 
+    @Test
+    fun `withSecondaryAction adds the second button`() {
+        state.show("Deleted", duration = ToastDuration.Indefinite).withSecondaryAction("View") {}
+
+        assertEquals("View", state.toasts.single().secondaryActionLabel)
+    }
+
     // -- Suspend: await --
 
     @Test

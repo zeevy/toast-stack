@@ -33,7 +33,7 @@ ToastStack replaces Android's limited native `Toast` and `Snackbar` with a fully
 - **Zero setup** - Auto initializer attaches to every Activity, just call `ToastStack.show()`
 - **App theme** - Toasts follow your app's `MaterialTheme` colors, typography and dark mode. Or switch to the library's own fixed colors
 - **Haptic feedback** - Optional vibration per toast type
-- **Sound** - Optional notification sound with per type customization
+- **Sound** - Optional notification sound, or your own sound per toast with `soundUri`
 - **Accessibility** - TalkBack announcements, type prefixes, reduced motion support, WCAG AA contrast
 - **Priority queue** - Low, Normal, High, Urgent with queue overflow handling
 - **Duplicate detection** - Suppresses identical messages within a time window
@@ -183,8 +183,8 @@ Material 3 has no success role, so Success uses `primaryContainer`. If you want 
 
 ```kotlin
 ToastStack.show("Item deleted", duration = ToastDuration.Long)
-    .withAction("Undo") { restoreItem() }
-    .onDismiss { reason -> log("dismissed: $reason") }
+    ?.withAction("Undo") { restoreItem() }
+    ?.onDismiss { reason -> log("dismissed: $reason") }
 ```
 
 ### Suspend
@@ -223,10 +223,10 @@ ToastStack.show("Custom millis", duration = ToastDuration.Custom(1500))
 val handle = ToastStack.loading("Uploading files...")
 
 // Update progress
-handle.updateProgress(0.5f, "5 of 10 files")
+handle?.updateProgress(0.5f, "5 of 10 files")
 
 // Complete
-handle.dismiss()
+handle?.dismiss()
 ToastStack.success("Upload complete")
 ```
 
@@ -234,9 +234,10 @@ ToastStack.success("Upload complete")
 
 ```kotlin
 ToastStack.show("Message sent")
-    .withAction("Undo") {
+    ?.withAction("Undo") {
         unsendMessage()
     }
+    ?.withSecondaryAction("View") { openMessage() }
 ```
 
 ### Custom Content
@@ -247,7 +248,7 @@ toastState.showCustom(
     showCloseButton = true
 ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Image(painter = painterResource(R.drawable.avatar), ...)
+        Image(painter = painterResource(R.drawable.avatar), contentDescription = null)
         Column {
             Text("Custom Layout", fontWeight = FontWeight.Bold)
             Text("Any composable content you want")

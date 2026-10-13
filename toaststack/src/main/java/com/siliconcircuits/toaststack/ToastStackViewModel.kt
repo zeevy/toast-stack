@@ -67,8 +67,9 @@ fun ViewModel.showToast(
 fun ViewModel.showSuccessToast(
     message: String,
     title: String? = null,
-    hostTag: String? = null
-): ToastHandle? = ToastStack.success(message, title, hostTag)
+    hostTag: String? = null,
+    onDismiss: ((DismissReason) -> Unit)? = null
+): ToastHandle? = ToastStack.success(message, title, hostTag, onDismiss)
 
 /**
  * Shows a [ToastType.Error] toast from a ViewModel.
@@ -76,8 +77,9 @@ fun ViewModel.showSuccessToast(
 fun ViewModel.showErrorToast(
     message: String,
     title: String? = null,
-    hostTag: String? = null
-): ToastHandle? = ToastStack.error(message, title, hostTag)
+    hostTag: String? = null,
+    onDismiss: ((DismissReason) -> Unit)? = null
+): ToastHandle? = ToastStack.error(message, title, hostTag, onDismiss)
 
 /**
  * Shows a [ToastType.Warning] toast from a ViewModel.
@@ -85,8 +87,9 @@ fun ViewModel.showErrorToast(
 fun ViewModel.showWarningToast(
     message: String,
     title: String? = null,
-    hostTag: String? = null
-): ToastHandle? = ToastStack.warning(message, title, hostTag)
+    hostTag: String? = null,
+    onDismiss: ((DismissReason) -> Unit)? = null
+): ToastHandle? = ToastStack.warning(message, title, hostTag, onDismiss)
 
 /**
  * Shows a [ToastType.Info] toast from a ViewModel.
@@ -94,8 +97,9 @@ fun ViewModel.showWarningToast(
 fun ViewModel.showInfoToast(
     message: String,
     title: String? = null,
-    hostTag: String? = null
-): ToastHandle? = ToastStack.info(message, title, hostTag)
+    hostTag: String? = null,
+    onDismiss: ((DismissReason) -> Unit)? = null
+): ToastHandle? = ToastStack.info(message, title, hostTag, onDismiss)
 
 /**
  * Shows a [ToastType.Loading] toast from a ViewModel.
@@ -103,8 +107,9 @@ fun ViewModel.showInfoToast(
 fun ViewModel.showLoadingToast(
     message: String,
     title: String? = null,
-    hostTag: String? = null
-): ToastHandle? = ToastStack.loading(message, title, hostTag)
+    hostTag: String? = null,
+    onDismiss: ((DismissReason) -> Unit)? = null
+): ToastHandle? = ToastStack.loading(message, title, hostTag, onDismiss)
 
 /**
  * Shows a toast and suspends until it is dismissed, launching the

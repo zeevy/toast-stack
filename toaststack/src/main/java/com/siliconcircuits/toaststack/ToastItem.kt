@@ -202,9 +202,10 @@ internal fun ToastItem(
     }
 
     // Apply per toast offset on top of the swipe horizontal offset.
-    // offsetX/offsetY let callers nudge individual toasts from their
-    // default position (e.g., shift 16dp down from the top edge).
+    // offsetX/offsetY are deprecated and still honoured until they are removed.
+    @Suppress("DEPRECATION")
     val toastOffsetX = toast.offsetX
+    @Suppress("DEPRECATION")
     val toastOffsetY = toast.offsetY
 
     Box(

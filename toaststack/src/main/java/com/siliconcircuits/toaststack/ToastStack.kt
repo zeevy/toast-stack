@@ -268,6 +268,13 @@ object ToastStack {
      * @param style Optional per toast visual overrides.
      * @param hostTag Target a specific host by tag. When null, routes to
      *   the most recently attached host.
+     * @param animation Enter and exit animation. Null uses the host default.
+     * @param animationConfig Animation timing. Null uses the host default.
+     * @param customIcon Replaces the type's default icon.
+     * @param hapticEnabled Vibrate when the toast appears.
+     * @param soundEnabled Play a sound when the toast appears.
+     * @param soundUri The sound to play. Null uses the system notification sound.
+     * @param priority Where the toast goes when the stack is full.
      * @param onDismiss Optional callback with the [DismissReason].
      * @return A [ToastHandle], or null if no host was available.
      */
@@ -281,6 +288,13 @@ object ToastStack {
         swipeDismiss: SwipeDismissDirection? = null,
         style: ToastStackStyle? = null,
         hostTag: String? = null,
+        animation: ToastAnimation? = null,
+        animationConfig: ToastAnimationConfig? = null,
+        customIcon: (@Composable () -> Unit)? = null,
+        hapticEnabled: Boolean = false,
+        soundEnabled: Boolean = false,
+        soundUri: android.net.Uri? = null,
+        priority: ToastPriority = ToastPriority.Normal,
         onDismiss: ((DismissReason) -> Unit)? = null
     ): ToastHandle? {
         val state = resolveHost(hostTag) ?: return null
@@ -293,6 +307,13 @@ object ToastStack {
             showCloseButton = showCloseButton,
             swipeDismiss = swipeDismiss ?: state.defaultSwipeDismiss,
             style = style,
+            animation = animation,
+            animationConfig = animationConfig,
+            customIcon = customIcon,
+            hapticEnabled = hapticEnabled,
+            soundEnabled = soundEnabled,
+            soundUri = soundUri,
+            priority = priority,
             onDismiss = onDismiss
         )
     }
@@ -368,8 +389,8 @@ object ToastStack {
      * Use the returned [ToastHandle] to update progress or dismiss:
      * ```
      * val handle = ToastStack.loading("Uploading...")
-     * handle.updateProgress(0.5f)
-     * handle.dismiss()
+     * handle?.updateProgress(0.5f)
+     * handle?.dismiss()
      * ToastStack.success("Done")
      * ```
      *
@@ -400,7 +421,14 @@ object ToastStack {
         showCloseButton: Boolean = false,
         swipeDismiss: SwipeDismissDirection? = null,
         style: ToastStackStyle? = null,
-        hostTag: String? = null
+        hostTag: String? = null,
+        animation: ToastAnimation? = null,
+        animationConfig: ToastAnimationConfig? = null,
+        customIcon: (@Composable () -> Unit)? = null,
+        hapticEnabled: Boolean = false,
+        soundEnabled: Boolean = false,
+        soundUri: android.net.Uri? = null,
+        priority: ToastPriority = ToastPriority.Normal
     ): DismissReason? {
         val state = resolveHost(hostTag) ?: return null
         return state.showAndAwait(
@@ -411,7 +439,14 @@ object ToastStack {
             position = position ?: state.defaultPosition,
             showCloseButton = showCloseButton,
             swipeDismiss = swipeDismiss ?: state.defaultSwipeDismiss,
-            style = style
+            style = style,
+            animation = animation,
+            animationConfig = animationConfig,
+            customIcon = customIcon,
+            hapticEnabled = hapticEnabled,
+            soundEnabled = soundEnabled,
+            soundUri = soundUri,
+            priority = priority
         )
     }
 
@@ -445,8 +480,9 @@ object ToastStack {
         @androidx.annotation.StringRes messageRes: Int,
         vararg formatArgs: Any,
         title: String? = null,
-        hostTag: String? = null
-    ): ToastHandle? = resolveHost(hostTag)?.success(messageRes, *formatArgs, title = title)
+        hostTag: String? = null,
+        onDismiss: ((DismissReason) -> Unit)? = null
+    ): ToastHandle? = resolveHost(hostTag)?.success(messageRes, *formatArgs, title = title, onDismiss = onDismiss)
 
     /**
      * Shows a [ToastType.Error] toast using an Android string resource ID.
@@ -457,8 +493,9 @@ object ToastStack {
         @androidx.annotation.StringRes messageRes: Int,
         vararg formatArgs: Any,
         title: String? = null,
-        hostTag: String? = null
-    ): ToastHandle? = resolveHost(hostTag)?.error(messageRes, *formatArgs, title = title)
+        hostTag: String? = null,
+        onDismiss: ((DismissReason) -> Unit)? = null
+    ): ToastHandle? = resolveHost(hostTag)?.error(messageRes, *formatArgs, title = title, onDismiss = onDismiss)
 
     /**
      * Shows a [ToastType.Warning] toast using an Android string resource ID.
@@ -469,8 +506,9 @@ object ToastStack {
         @androidx.annotation.StringRes messageRes: Int,
         vararg formatArgs: Any,
         title: String? = null,
-        hostTag: String? = null
-    ): ToastHandle? = resolveHost(hostTag)?.warning(messageRes, *formatArgs, title = title)
+        hostTag: String? = null,
+        onDismiss: ((DismissReason) -> Unit)? = null
+    ): ToastHandle? = resolveHost(hostTag)?.warning(messageRes, *formatArgs, title = title, onDismiss = onDismiss)
 
     /**
      * Shows a [ToastType.Info] toast using an Android string resource ID.
@@ -481,8 +519,9 @@ object ToastStack {
         @androidx.annotation.StringRes messageRes: Int,
         vararg formatArgs: Any,
         title: String? = null,
-        hostTag: String? = null
-    ): ToastHandle? = resolveHost(hostTag)?.info(messageRes, *formatArgs, title = title)
+        hostTag: String? = null,
+        onDismiss: ((DismissReason) -> Unit)? = null
+    ): ToastHandle? = resolveHost(hostTag)?.info(messageRes, *formatArgs, title = title, onDismiss = onDismiss)
 
     /**
      * Removes a single toast by its [id].

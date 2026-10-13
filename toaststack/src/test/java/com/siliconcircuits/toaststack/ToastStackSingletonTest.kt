@@ -259,6 +259,25 @@ class ToastStackSingletonTest {
     }
 
     @Test
+    fun `show passes every option through to the toast`() {
+        val state = ToastStackState()
+        ToastStack.registerHost("__test__", state)
+
+        ToastStack.show(
+            "All options",
+            animation = ToastAnimation.Fade,
+            hapticEnabled = true,
+            soundEnabled = true,
+            priority = ToastPriority.High
+        )
+
+        val toast = state.toasts.single()
+        assertEquals(ToastAnimation.Fade, toast.animation)
+        assertTrue(toast.hapticEnabled && toast.soundEnabled)
+        assertEquals(ToastPriority.High, toast.priority)
+    }
+
+    @Test
     fun `register sets hostTag on state`() {
         val state = ToastStackState()
         ToastStack.registerHost("my_tag", state)

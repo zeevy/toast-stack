@@ -54,7 +54,9 @@ data class ToastData(
     val type: ToastType = ToastType.Default,
     val duration: ToastDuration = ToastDuration.Short,
     val position: ToastPosition = ToastPosition.TopCenter,
+    @Deprecated("Nothing public sets it. It will be removed in a later major version.")
     val offsetX: Int = 0,
+    @Deprecated("Nothing public sets it. It will be removed in a later major version.")
     val offsetY: Int = 0,
     val showCloseButton: Boolean = false,
     val swipeDismiss: SwipeDismissDirection = SwipeDismissDirection.Both,

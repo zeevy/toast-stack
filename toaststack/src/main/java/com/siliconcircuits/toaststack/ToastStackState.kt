@@ -258,6 +258,7 @@ class ToastStackState(
         hapticEnabled: Boolean = false,
         soundEnabled: Boolean = false,
         priority: ToastPriority = ToastPriority.Normal,
+        soundUri: android.net.Uri? = null,
         onDismiss: ((DismissReason) -> Unit)? = null
     ): ToastHandle {
         val toast = ToastData(
@@ -274,6 +275,7 @@ class ToastStackState(
             customIcon = customIcon,
             hapticEnabled = hapticEnabled,
             soundEnabled = soundEnabled,
+            soundUri = soundUri,
             priority = priority,
             onDismiss = onDismiss
         )
@@ -436,7 +438,12 @@ class ToastStackState(
         swipeDismiss: SwipeDismissDirection = defaultSwipeDismiss,
         style: ToastStackStyle? = null,
         animation: ToastAnimation? = null,
-        animationConfig: ToastAnimationConfig? = null
+        animationConfig: ToastAnimationConfig? = null,
+        customIcon: (@Composable () -> Unit)? = null,
+        hapticEnabled: Boolean = false,
+        soundEnabled: Boolean = false,
+        soundUri: android.net.Uri? = null,
+        priority: ToastPriority = ToastPriority.Normal
     ): DismissReason {
         val handle = show(
             message = message,
@@ -448,7 +455,12 @@ class ToastStackState(
             swipeDismiss = swipeDismiss,
             style = style,
             animation = animation,
-            animationConfig = animationConfig
+            animationConfig = animationConfig,
+            customIcon = customIcon,
+            hapticEnabled = hapticEnabled,
+            soundEnabled = soundEnabled,
+            soundUri = soundUri,
+            priority = priority
         )
         return handle.await()
     }
@@ -718,6 +730,10 @@ class ToastStackState(
      */
     internal fun updateToastAction(id: String, label: String, onClick: () -> Unit) =
         updateToast(id) { it.copy(actionLabel = label, onAction = onClick) }
+
+    /** Adds or replaces the secondary action. Used by [ToastHandle.withSecondaryAction]. */
+    internal fun updateToastSecondaryAction(id: String, label: String, onClick: () -> Unit) =
+        updateToast(id) { it.copy(secondaryActionLabel = label, onSecondaryAction = onClick) }
 
     /**
      * Updates the progress value (0f to 1f) and, when given, the [label].

@@ -15,14 +15,14 @@ import kotlin.coroutines.resume
  * **Chaining example:**
  * ```
  * ToastStack.show("File deleted")
- *     .onDismiss { reason -> log("dismissed: $reason") }
+ *     ?.onDismiss { reason -> log("dismissed: $reason") }
  * ```
  *
  * **Programmatic dismissal:**
  * ```
  * val handle = ToastStack.show("Uploading...")
  * // Later...
- * handle.dismiss()
+ * handle?.dismiss()
  * ```
  *
  * **Suspend until dismissed:**
@@ -64,8 +64,8 @@ class ToastHandle internal constructor(
      * This is a chaining method:
      * ```
      * ToastStack.show("Processing")
-     *     .onShow { startBackgroundWork() }
-     *     .onDismiss { stopBackgroundWork() }
+     *     ?.onShow { startBackgroundWork() }
+     *     ?.onDismiss { stopBackgroundWork() }
      * ```
      *
      * @param callback Invoked when the toast appears on screen.
@@ -86,8 +86,8 @@ class ToastHandle internal constructor(
      * This is a chaining method:
      * ```
      * ToastStack.show("File deleted")
-     *     .withAction("Undo") { restoreFile() }
-     *     .onDismiss { reason -> log(reason) }
+     *     ?.withAction("Undo") { restoreFile() }
+     *     ?.onDismiss { reason -> log(reason) }
      * ```
      *
      * @param label The text displayed on the action button.
@@ -100,6 +100,18 @@ class ToastHandle internal constructor(
     }
 
     /**
+     * Adds a second action button next to the primary one, for example
+     * "View" next to "Undo". Tapping it calls [onClick] and dismisses the
+     * toast with [DismissReason.Action].
+     *
+     * @return This handle for further chaining.
+     */
+    fun withSecondaryAction(label: String, onClick: () -> Unit): ToastHandle {
+        state.updateToastSecondaryAction(id, label, onClick)
+        return this
+    }
+
+    /**
      * Updates the progress value on a loading/progress toast.
      *
      * The progress drives a determinate [LinearProgressIndicator] on the
@@ -108,9 +120,9 @@ class ToastHandle internal constructor(
      * Typically used with [ToastType.Loading] toasts:
      * ```
      * val handle = ToastStack.loading("Uploading...")
-     * handle.updateProgress(0.5f)  // 50%
-     * handle.updateProgress(1.0f)  // Done
-     * handle.dismiss()
+     * handle?.updateProgress(0.5f)  // 50%
+     * handle?.updateProgress(1.0f)  // Done
+     * handle?.dismiss()
      * ```
      *
      * @param progress A value between 0f and 1f representing completion.
