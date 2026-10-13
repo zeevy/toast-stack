@@ -33,7 +33,7 @@ ToastStack replaces Android's limited native `Toast` and `Snackbar` with a fully
 - **Zero setup** - Auto initializer attaches to every Activity, just call `ToastStack.show()`
 - **App theme** - Toasts follow your app's `MaterialTheme` colors, typography and dark mode. Or switch to the library's own fixed colors
 - **Haptic feedback** - Optional vibration per toast type
-- **Sound** - Optional notification sound with per type customization
+- **Sound** - Optional notification sound, or your own sound per toast with `soundUri`
 - **Accessibility** - TalkBack announcements, type prefixes, reduced motion support, WCAG AA contrast
 - **Priority queue** - Low, Normal, High, Urgent with queue overflow handling
 - **Duplicate detection** - Suppresses identical messages within a time window
@@ -114,6 +114,10 @@ ToastStack.show("Plain message")
 
 That's it. No `Scaffold`, no `SnackbarHostState`, no `setContent` wiring.
 
+These calls are safe from any thread. The toast is added on the main thread, and callbacks such as `onDismiss` and actions run on the main thread.
+
+The toast goes to the Activity on screen. These calls return null and drop the toast when no host is registered: before the first Activity resumes, or when `hostTag` names a host that does not exist. The first drop logs one warning under the tag `ToastStack`.
+
 ### Global Configuration (optional)
 
 Customize defaults once in your `Application.onCreate()`. The auto-initializer picks these up when attaching to each Activity:
@@ -179,8 +183,8 @@ Material 3 has no success role, so Success uses `primaryContainer`. If you want 
 
 ```kotlin
 ToastStack.show("Item deleted", duration = ToastDuration.Long)
-    .withAction("Undo") { restoreItem() }
-    .onDismiss { reason -> log("dismissed: $reason") }
+    ?.withAction("Undo") { restoreItem() }
+    ?.onDismiss { reason -> log("dismissed: $reason") }
 ```
 
 ### Suspend
@@ -219,10 +223,10 @@ ToastStack.show("Custom millis", duration = ToastDuration.Custom(1500))
 val handle = ToastStack.loading("Uploading files...")
 
 // Update progress
-handle.updateProgress(0.5f, "5 of 10 files")
+handle?.updateProgress(0.5f, "5 of 10 files")
 
 // Complete
-handle.dismiss()
+handle?.dismiss()
 ToastStack.success("Upload complete")
 ```
 
@@ -230,9 +234,10 @@ ToastStack.success("Upload complete")
 
 ```kotlin
 ToastStack.show("Message sent")
-    .withAction("Undo") {
+    ?.withAction("Undo") {
         unsendMessage()
     }
+    ?.withSecondaryAction("View") { openMessage() }
 ```
 
 ### Custom Content
@@ -243,7 +248,7 @@ toastState.showCustom(
     showCloseButton = true
 ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Image(painter = painterResource(R.drawable.avatar), ...)
+        Image(painter = painterResource(R.drawable.avatar), contentDescription = null)
         Column {
             Text("Custom Layout", fontWeight = FontWeight.Bold)
             Text("Any composable content you want")
@@ -370,7 +375,7 @@ Both features respect system settings (haptic toggle, silent mode, Do Not Distur
 ## Accessibility
 
 - **TalkBack**: Toasts announce with type prefix (e.g., "Error notification: Connection failed")
-- **Auto pause**: Auto dismiss timers pause when TalkBack is active
+- **Auto pause**: Auto dismiss timers stop while TalkBack is on, for toasts already on screen and for new ones, so each toast stays until it is dismissed. Every toast has a "Dismiss" accessibility action, so it can be closed without a close button
 - **Reduced motion**: Animations simplify to a short fade when system "Remove animations" is enabled
 - **Color contrast**: All built in types meet WCAG AA 4.5:1 minimum ratio
 - **Focus**: Action buttons are focusable and activatable via accessibility services
@@ -382,9 +387,12 @@ Consumer rules are bundled with the library. No additional ProGuard configuratio
 ## Requirements
 
 - Min SDK 24 (Android 7.0)
-- Compile SDK 36
-- Jetpack Compose with Material 3
-- Kotlin 2.0+
+- Compile SDK 35 or higher
+- Android Gradle Plugin 8.6 or higher
+- Kotlin 2.0 or higher
+- Jetpack Compose with Material 3. The library brings Compose 1.11 and Material 3 1.4 at runtime, so an app on older versions is moved up to these.
+
+CI builds a small app on exactly these minimums against every change.
 
 ## Contributing
 

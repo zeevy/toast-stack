@@ -23,6 +23,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlinx.coroutines.delay
 
 /**
@@ -84,12 +87,19 @@ fun ToastStackHost(
 
     // Register this host with the global singleton when it enters composition,
     // and unregister when it leaves. This allows ToastStack.show() to find us.
-    // Also listen for TalkBack (touch exploration) state changes so we can
+    // Register again on every resume: while this host was in the background,
+    // another host with the same tag (the auto overlay of the next Activity)
+    // may have taken the entry. Also listen for TalkBack (touch exploration) state changes so we can
     // pause auto dismiss timers while the screen reader is active. Users
     // relying on TalkBack need time to hear the full announcement before
     // the toast disappears.
-    DisposableEffect(tag, state) {
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(tag, state, lifecycleOwner) {
         ToastStack.registerHost(tag, state)
+        val resumeObserver = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) ToastStack.registerHost(tag, state)
+        }
+        lifecycleOwner.lifecycle.addObserver(resumeObserver)
 
         val accessibilityManager = context.getSystemService(
             android.content.Context.ACCESSIBILITY_SERVICE
@@ -97,19 +107,15 @@ fun ToastStackHost(
 
         val touchExplorationListener =
             android.view.accessibility.AccessibilityManager.TouchExplorationStateChangeListener { enabled ->
-                if (enabled) state.pauseAll() else state.resumeAll()
+                state.pausedForAccessibility = enabled
             }
-
-        // If TalkBack is already active when the host enters composition,
-        // pause all timers immediately.
-        if (accessibilityManager?.isTouchExplorationEnabled == true) {
-            state.pauseAll()
-        }
+        state.pausedForAccessibility = accessibilityManager?.isTouchExplorationEnabled == true
         accessibilityManager?.addTouchExplorationStateChangeListener(touchExplorationListener)
 
         onDispose {
+            lifecycleOwner.lifecycle.removeObserver(resumeObserver)
             accessibilityManager?.removeTouchExplorationStateChangeListener(touchExplorationListener)
-            ToastStack.unregisterHost(tag)
+            ToastStack.unregisterHost(tag, state)
         }
     }
 
@@ -148,9 +154,10 @@ fun ToastStackHost(
     state.toasts.forEach { toast ->
         val renderIndex = renderList.indexOfFirst { it.id == toast.id }
         if (renderIndex == -1) {
-            // New toast: add to render list and start invisible for enter animation.
+            // New toast: add to render list and start invisible for enter
+            // animation, unless an earlier host already showed it.
             renderList.add(toast)
-            visibilityMap[toast.id] = false
+            visibilityMap[toast.id] = toast.id in state.shownIds
         } else if (renderList[renderIndex] != toast) {
             // Existing toast was updated (e.g., progress, action, callback).
             // Replace with the latest version so the UI reflects the change.
@@ -233,6 +240,8 @@ fun ToastStackHost(
                         // animation completes.
                         LaunchedEffect(toast.id) {
                             visibilityMap[toast.id] = true
+                            // Shown before a configuration change: no second time.
+                            if (!state.shownIds.add(toast.id)) return@LaunchedEffect
                             // Haptic and sound fire on appearance (before animation ends)
                             // so the user gets immediate sensory feedback.
                             if (toast.hapticEnabled) {

@@ -23,9 +23,9 @@ We follow the [Contributor Covenant](CODE_OF_CONDUCT.md). Be kind, be welcoming,
 
 1. **Fork** the repository and clone your fork.
 2. **Install prerequisites**:
-   - JDK 17 or newer (Temurin or any other distribution)
-   - Android Studio Ladybug or newer
-   - Android SDK with platform 36 installed
+   - JDK 17 or newer to run Gradle (Temurin or any other distribution). The build itself uses JDK 21, which Gradle downloads if it is missing.
+   - An Android Studio version that supports the Android Gradle Plugin in `gradle/libs.versions.toml` (9.4)
+   - Android SDK with platform 37 installed (the build uses compileSdk 37; apps that use the library need only 35)
 3. **Verify the build**:
    ```bash
    ./gradlew :toaststack:assembleDebug :toaststack:testDebugUnitTest

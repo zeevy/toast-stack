@@ -5,7 +5,7 @@ import android.app.Application
 import android.content.Context
 import android.os.Bundle
 import android.util.Log
-import android.view.MotionEvent
+import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import androidx.activity.ComponentActivity
@@ -14,7 +14,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.setViewTreeLifecycleOwner
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.lifecycle.setViewTreeViewModelStoreOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import androidx.startup.Initializer
@@ -68,25 +72,22 @@ class ToastStackInitializer : Initializer<Unit> {
                 // Plain Activity or AppCompatActivity without Compose are skipped.
                 if (activity !is ComponentActivity) return
 
-                // Avoid double injection if the developer is also placing
-                // ToastStackHost manually in their Compose tree.
+                // onActivityResumed runs on every resume, so add the overlay only once.
                 val tag = "__toaststack_auto_overlay__"
                 val rootView = activity.window?.decorView?.findViewById<ViewGroup>(android.R.id.content)
                     ?: return
+                if (rootView.findViewWithTag<View>(tag) != null) return
 
-                // Check if we already added our overlay to this Activity.
-                if (rootView.findViewWithTag<ComposeView>(tag) != null) return
+                // Our own factory, because an app may give its Activity a default
+                // factory that knows only the app's ViewModels.
+                val factory = viewModelFactory { initializer { OverlayStateHolder() } }
+                val state = ViewModelProvider(activity.viewModelStore, factory)[OverlayStateHolder::class.java].state
 
-                // Wrap the ComposeView in a FrameLayout so we can control touch
-                // dispatch (ComposeView is final and cannot be subclassed). The
-                // wrapper forwards each touch to the ComposeView and passes through
-                // its handled/unhandled result, so touches on a toast are consumed
-                // here while touches on empty overlay space fall through to the
-                // Activity's own content underneath. See dispatchTouchEvent below.
+                // The overlay covers the screen but takes only touches that land
+                // on a toast: AndroidComposeView reports a touch as handled only
+                // when a pointer input takes it, so other touches go to the
+                // Activity content below.
                 val composeView = ComposeView(activity).apply {
-                    setViewTreeLifecycleOwner(activity)
-                    setViewTreeViewModelStoreOwner(activity)
-                    setViewTreeSavedStateRegistryOwner(activity)
                     setContent {
                         // The overlay has its own Compose tree, so it cannot see the
                         // app's MaterialTheme. Wrap the host in the theme the app gave
@@ -100,9 +101,7 @@ class ToastStackInitializer : Initializer<Unit> {
                         }
                         val host: @Composable () -> Unit = {
                             ToastStackHost(
-                                // Read the defaults from ToastStack on every toast,
-                                // so a later configure() call reaches this overlay.
-                                state = rememberToastStackState().apply { followsGlobalDefaults = true },
+                                state = state,
                                 modifier = Modifier.fillMaxSize(),
                                 globalStyle = ToastStack.defaultGlobalStyle,
                                 contentPadding = ToastStack.defaultContentPadding,
@@ -112,27 +111,19 @@ class ToastStackInitializer : Initializer<Unit> {
                         if (theme != null) theme(host) else host()
                     }
                 }
-                val overlayView = object : FrameLayout(activity) {
-                    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
-                        // Let Compose process the touch and report back whether it
-                        // handled it. AndroidComposeView reports the event as handled
-                        // only when it actually lands on a toast (a tap on an action
-                        // button, or a swipe-to-dismiss gesture). Touches over the
-                        // empty, transparent areas of the overlay are reported as
-                        // unhandled.
-                        //
-                        // Returning that result is what makes the overlay "transparent"
-                        // to touches except where a toast is drawn:
-                        //  - On a toast: returns true, so this view becomes the touch
-                        //    target and the whole down/move/up sequence is delivered to
-                        //    Compose (swipe-to-dismiss needs the full sequence), and the
-                        //    event is NOT also passed to the content underneath.
-                        //  - On empty space: returns false, so the Android view system
-                        //    routes the gesture to the Activity's own content below.
-                        return super.dispatchTouchEvent(ev)
-                    }
-                }.apply {
+                // The ComposeView sits in a plain FrameLayout for two reasons.
+                // ComponentActivity.setContent reuses child 0 of
+                // android.R.id.content when it is a ComposeView, so a bare
+                // overlay would be taken over by an Activity that calls
+                // setContent after its first resume. And Compose looks for the
+                // ViewTree owners from the direct child of android.R.id.content
+                // upward, so they go on the wrapper: an Activity that never
+                // called setContentView has none higher up.
+                val overlayView = FrameLayout(activity).apply {
                     this.tag = tag
+                    setViewTreeLifecycleOwner(activity)
+                    setViewTreeViewModelStoreOwner(activity)
+                    setViewTreeSavedStateRegistryOwner(activity)
                     addView(
                         composeView,
                         FrameLayout.LayoutParams(
@@ -169,4 +160,18 @@ class ToastStackInitializer : Initializer<Unit> {
      * possible in the app startup sequence.
      */
     override fun dependencies(): List<Class<out Initializer<*>>> = emptyList()
+}
+
+/**
+ * Holds the auto overlay's toasts for one Activity in its ViewModelStore,
+ * so toasts and their handles survive a configuration change such as
+ * rotation. When the Activity finishes, the state is destroyed, which
+ * resumes every `await()` caller with [DismissReason.Programmatic].
+ */
+internal class OverlayStateHolder : ViewModel() {
+    // Reads the defaults from ToastStack on every toast, so a later
+    // configure() call reaches this overlay.
+    val state = ToastStackState().apply { followsGlobalDefaults = true }
+
+    override fun onCleared() = state.destroy()
 }

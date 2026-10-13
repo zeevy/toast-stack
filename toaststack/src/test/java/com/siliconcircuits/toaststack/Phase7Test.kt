@@ -129,12 +129,12 @@ class Phase7Test {
         }
         assertNotNull(handle)
         assertEquals(ToastType.Warning, state.toasts.first().type)
-        ToastStack.unregisterHost("test")
+        ToastStack.unregisterHost("test", state)
     }
 
     @Test
     fun `buildToast returns null without host`() {
-        ToastStack.unregisterHost("test")
+        ToastStack.unregisterHost("test", state)
         val handle = buildToast {
             message = "orphan"
         }
@@ -162,6 +162,6 @@ class Phase7Test {
         val handle = ToastStack.show("via singleton")
         assertNotNull(handle)
         assertEquals(1, state.toasts.size)
-        ToastStack.unregisterHost("test")
+        ToastStack.unregisterHost("test", state)
     }
 }

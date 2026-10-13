@@ -26,9 +26,11 @@ class ToastStackSingletonTest {
     @After
     fun tearDown() {
         Dispatchers.resetMain()
-        ToastStack.unregisterHost("host_a")
-        ToastStack.unregisterHost("host_b")
-        ToastStack.unregisterHost("__test__")
+        unregisterAll()
+    }
+
+    private fun unregisterAll() = listOf("host_a", "host_b", "__test__").forEach { tag ->
+        ToastStack.findHost(tag)?.let { ToastStack.unregisterHost(tag, it) }
     }
 
     // -- No host registered --
@@ -228,9 +230,7 @@ class ToastStackSingletonTest {
 
     @Test
     fun `dismissAll with no hosts registered does not crash`() {
-        ToastStack.unregisterHost("host_a")
-        ToastStack.unregisterHost("host_b")
-        ToastStack.unregisterHost("__test__")
+        unregisterAll()
         ToastStack.dismissAll()
     }
 
@@ -243,7 +243,7 @@ class ToastStackSingletonTest {
         ToastStack.registerHost("host_a", stateA)
         ToastStack.registerHost("host_b", stateB)
 
-        ToastStack.unregisterHost("host_b")
+        ToastStack.unregisterHost("host_b", stateB)
         ToastStack.show("Fallback")
 
         assertEquals(1, stateA.toasts.size)
@@ -254,8 +254,27 @@ class ToastStackSingletonTest {
     fun `unregister all hosts causes show to return null`() {
         val state = ToastStackState()
         ToastStack.registerHost("__test__", state)
-        ToastStack.unregisterHost("__test__")
+        ToastStack.unregisterHost("__test__", state)
         assertNull(ToastStack.show("Nowhere"))
+    }
+
+    @Test
+    fun `show passes every option through to the toast`() {
+        val state = ToastStackState()
+        ToastStack.registerHost("__test__", state)
+
+        ToastStack.show(
+            "All options",
+            animation = ToastAnimation.Fade,
+            hapticEnabled = true,
+            soundEnabled = true,
+            priority = ToastPriority.High
+        )
+
+        val toast = state.toasts.single()
+        assertEquals(ToastAnimation.Fade, toast.animation)
+        assertTrue(toast.hapticEnabled && toast.soundEnabled)
+        assertEquals(ToastPriority.High, toast.priority)
     }
 
     @Test
@@ -263,6 +282,6 @@ class ToastStackSingletonTest {
         val state = ToastStackState()
         ToastStack.registerHost("my_tag", state)
         assertEquals("my_tag", state.hostTag)
-        ToastStack.unregisterHost("my_tag")
+        ToastStack.unregisterHost("my_tag", state)
     }
 }

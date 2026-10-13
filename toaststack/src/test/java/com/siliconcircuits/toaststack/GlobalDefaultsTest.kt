@@ -30,7 +30,7 @@ class GlobalDefaultsTest {
 
     @After
     fun tearDown() {
-        ToastStack.unregisterHost(TAG)
+        ToastStack.unregisterHost(TAG, state)
         ToastStack.configure(
             defaultDuration = ToastDuration.Short,
             defaultPosition = ToastPosition.TopCenter,
@@ -92,7 +92,7 @@ class GlobalDefaultsTest {
         ToastStack.show("x", hostTag = OWN_TAG)
 
         assertEquals(ToastDuration.Long, own.toasts.single().duration)
-        ToastStack.unregisterHost(OWN_TAG)
+        ToastStack.unregisterHost(OWN_TAG, own)
         own.destroy()
     }
 
