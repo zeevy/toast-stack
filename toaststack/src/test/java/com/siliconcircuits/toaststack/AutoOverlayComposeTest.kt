@@ -29,6 +29,9 @@ import java.time.Duration
 @Config(sdk = [34])
 class AutoOverlayComposeTest {
 
+    @get:Rule
+    val reset = ToastStackReset()
+
     // Finds the overlay's Compose tree for the toast node lookups.
     @get:Rule
     val composeTestRule = createEmptyComposeRule()

@@ -11,7 +11,7 @@ import kotlin.uuid.Uuid
  * host composable for rendering. The [id] is auto generated and
  * returned to the caller for later programmatic dismissal or updates.
  *
- * @property id Unique identifier, generated via [UUID] to avoid collisions
+ * @property id Unique identifier, a random UUID, to avoid collisions
  *   across rapid sequential calls.
  * @property message Primary text displayed inside the toast.
  * @property title Optional bold headline rendered above [message].
@@ -38,7 +38,15 @@ import kotlin.uuid.Uuid
  *   is Loading, which shows an indeterminate indicator).
  * @property progressLabel Optional text shown alongside the progress bar
  *   (e.g., "3 of 10 files").
+ * @property offsetX Deprecated. Horizontal shift of the card in dp.
+ * @property offsetY Deprecated. Vertical shift of the card in dp.
+ * @property priority Where the toast goes when the stack is full. See [ToastPriority].
  * @property customIcon Optional composable that replaces the default type icon.
+ * @property customContent Optional composable drawn instead of the icon and text.
+ * @property hapticEnabled Play a haptic when the toast appears.
+ * @property soundEnabled Play a sound when the toast appears.
+ * @property soundUri The sound to play. Null uses the system notification sound.
+ * @property onShow Called once, after the enter animation, when the toast first appears.
  * @property onDismiss Optional callback invoked when the toast is removed,
  *   with the [DismissReason] explaining why.
  * @property repeatCount How many times this message was shown while the card
@@ -46,7 +54,10 @@ import kotlin.uuid.Uuid
  *   [ToastStackState.deduplicationWindowMs]). The card shows "(xN)" when it is
  *   more than 1.
  */
-data class ToastData(
+// Only the library creates toasts, so the constructor and copy() are internal.
+// A new field then does not change the public API.
+@ConsistentCopyVisibility
+data class ToastData internal constructor(
     @OptIn(ExperimentalUuidApi::class)
     val id: String = Uuid.random().toString(),
     val message: String,
@@ -77,5 +88,8 @@ data class ToastData(
     val soundUri: android.net.Uri? = null,
     val onShow: (() -> Unit)? = null,
     val onDismiss: ((DismissReason) -> Unit)? = null,
-    val repeatCount: Int = 1
+    val repeatCount: Int = 1,
+    // When this card was last shown or repeated, by ToastStackState.now.
+    // Deduplication measures its window from here.
+    internal val lastShownAt: Long = 0L,
 )

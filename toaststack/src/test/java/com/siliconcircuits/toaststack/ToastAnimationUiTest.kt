@@ -1,20 +1,38 @@
 package com.siliconcircuits.toaststack
 
+import android.Manifest
+import android.app.NotificationManager
 import android.content.Context
+import android.content.pm.PackageManager
+import android.media.AudioManager
+import android.os.Build
 import android.os.Looper
+import android.view.HapticFeedbackConstants
+import android.view.View
 import android.view.accessibility.AccessibilityManager
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.Snapshot
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeRight
 import androidx.test.core.app.ApplicationProvider
 import java.time.Duration
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -38,6 +56,9 @@ class ToastAnimationUiTest {
 
     @get:Rule
     val composeTestRule = createComposeRule()
+
+    @get:Rule
+    val reset = ToastStackReset()
 
     // --- Enter animations: each type should make the toast visible ---
 
@@ -391,10 +412,10 @@ class ToastAnimationUiTest {
         composeTestRule.onNode(hasContentDescription("Alert. Details here")).assertExists()
     }
 
-    // --- Type icon content descriptions ---
+    // --- Type announced in the card label; the icon is decorative ---
 
     @Test
-    fun `success toast has icon with content description`() {
+    fun `each typed toast announces its type and its icon has no label`() {
         lateinit var state: ToastStackState
         composeTestRule.setContent {
             MaterialTheme {
@@ -404,53 +425,18 @@ class ToastAnimationUiTest {
         }
 
         state.success("Done", duration = ToastDuration.Indefinite)
-        composeTestRule.mainClock.advanceTimeBy(500)
-        composeTestRule.onNodeWithContentDescription("Success icon").assertExists()
-    }
-
-    @Test
-    fun `error toast has icon with content description`() {
-        lateinit var state: ToastStackState
-        composeTestRule.setContent {
-            MaterialTheme {
-                state = rememberToastStackState()
-                ToastStackHost(state = state)
-            }
-        }
-
         state.error("Failed", duration = ToastDuration.Indefinite)
-        composeTestRule.mainClock.advanceTimeBy(500)
-        composeTestRule.onNodeWithContentDescription("Error icon").assertExists()
-    }
-
-    @Test
-    fun `warning toast has icon with content description`() {
-        lateinit var state: ToastStackState
-        composeTestRule.setContent {
-            MaterialTheme {
-                state = rememberToastStackState()
-                ToastStackHost(state = state)
-            }
-        }
-
         state.warning("Watch out", duration = ToastDuration.Indefinite)
-        composeTestRule.mainClock.advanceTimeBy(500)
-        composeTestRule.onNodeWithContentDescription("Warning icon").assertExists()
-    }
-
-    @Test
-    fun `info toast has icon with content description`() {
-        lateinit var state: ToastStackState
-        composeTestRule.setContent {
-            MaterialTheme {
-                state = rememberToastStackState()
-                ToastStackHost(state = state)
-            }
-        }
-
         state.info("FYI", duration = ToastDuration.Indefinite)
         composeTestRule.mainClock.advanceTimeBy(500)
-        composeTestRule.onNodeWithContentDescription("Info icon").assertExists()
+
+        composeTestRule.onNode(hasContentDescription("Success notification: Done")).assertExists()
+        composeTestRule.onNode(hasContentDescription("Error notification: Failed")).assertExists()
+        composeTestRule.onNode(hasContentDescription("Warning notification: Watch out")).assertExists()
+        composeTestRule.onNode(hasContentDescription("Information notification: FYI")).assertExists()
+        composeTestRule.onNode(hasContentDescription("icon", substring = true)).assertDoesNotExist()
+        // The icon is still drawn for each of the four types.
+        composeTestRule.onAllNodesWithTag("toaststack_type_icon", useUnmergedTree = true).assertCountEquals(4)
     }
 
     // --- Close button fires CloseButton reason ---
@@ -550,5 +536,183 @@ class ToastAnimationUiTest {
         composeTestRule.runOnIdle { dismiss.action() }
         composeTestRule.mainClock.advanceTimeBy(1_000)
         composeTestRule.onNodeWithText("Read me").assertDoesNotExist()
+    }
+
+    // --- Haptic ---
+
+    @Test
+    @Config(sdk = [24, 34])
+    fun `a haptic toast plays the view haptic for its type`() {
+        lateinit var state: ToastStackState
+        lateinit var view: View
+        composeTestRule.setContent {
+            view = LocalView.current
+            state = rememberToastStackState()
+            ToastStackHost(state = state)
+        }
+
+        state.show("Saved", type = ToastType.Error, hapticEnabled = true)
+        composeTestRule.waitForIdle()
+
+        val expected = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            HapticFeedbackConstants.REJECT
+        } else {
+            HapticFeedbackConstants.LONG_PRESS
+        }
+        assertEquals(expected, shadowOf(view).lastHapticFeedbackPerformed())
+    }
+
+    @Test
+    fun `the library asks for no VIBRATE permission`() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val info = context.packageManager.getPackageInfo(context.packageName, PackageManager.GET_PERMISSIONS)
+
+        assertFalse(info.requestedPermissions.orEmpty().contains(Manifest.permission.VIBRATE))
+    }
+
+    // --- Translatable labels ---
+
+    @Test
+    @Config(qualifiers = "zz")
+    fun `an app can translate the labels and the repeat count`() {
+        lateinit var state: ToastStackState
+        composeTestRule.setContent {
+            state = rememberToastStackState(deduplicationWindowMs = 60_000)
+            ToastStackHost(state = state)
+        }
+
+        composeTestRule.runOnIdle {
+            repeat(3) { state.show("Upload failed", type = ToastType.Error, showCloseButton = true) }
+        }
+
+        composeTestRule.onNode(hasContentDescription("ZZ error: Upload failed [3 times]")).assertExists()
+        composeTestRule.onNode(hasContentDescription("ZZ close")).assertExists()
+    }
+
+    // --- Host recreated with the same state ---
+
+    @Test
+    fun `a host recreated with the same state does not run onShow again`() {
+        val state = ToastStackState()
+        var hostShown by mutableStateOf(true)
+        var shows = 0
+        composeTestRule.setContent {
+            if (hostShown) ToastStackHost(state = state)
+        }
+        state.show("Kept", duration = ToastDuration.Indefinite).onShow { shows++ }
+        composeTestRule.mainClock.advanceTimeBy(1_000)
+        composeTestRule.waitForIdle()
+        assertEquals(1, shows)
+
+        hostShown = false
+        composeTestRule.waitForIdle()
+        hostShown = true
+        composeTestRule.mainClock.advanceTimeBy(1_000)
+        composeTestRule.waitForIdle()
+
+        assertEquals(1, shows)
+        composeTestRule.onNodeWithText("Kept").assertIsDisplayed()
+    }
+
+    // --- Gestures and actions ---
+
+    @Test
+    fun `a swipe dismisses the toast with the Swipe reason`() {
+        lateinit var state: ToastStackState
+        var reason: DismissReason? = null
+        composeTestRule.setContent {
+            state = rememberToastStackState()
+            ToastStackHost(state = state)
+        }
+        composeTestRule.runOnIdle {
+            state.show("Swipe me", duration = ToastDuration.Indefinite, onDismiss = { reason = it })
+        }
+
+        composeTestRule.onNode(hasContentDescription("Swipe me")).performTouchInput { swipeRight() }
+        composeTestRule.mainClock.advanceTimeBy(1_000)
+        composeTestRule.waitForIdle()
+
+        assertEquals(DismissReason.Swipe, reason)
+    }
+
+    @Test
+    fun `tapping the action runs it and dismisses with the Action reason`() {
+        lateinit var state: ToastStackState
+        var reason: DismissReason? = null
+        var undone = false
+        composeTestRule.setContent {
+            state = rememberToastStackState()
+            ToastStackHost(state = state)
+        }
+        composeTestRule.runOnIdle {
+            state.show("Deleted", duration = ToastDuration.Indefinite, onDismiss = { reason = it })
+                .withAction("Undo") { undone = true }
+        }
+
+        composeTestRule.onNodeWithText("Undo").performClick()
+        composeTestRule.waitForIdle()
+
+        assertTrue(undone)
+        assertEquals(DismissReason.Action, reason)
+    }
+
+    @Test
+    fun `the string resource overloads resolve the text`() {
+        lateinit var state: ToastStackState
+        composeTestRule.setContent {
+            state = rememberToastStackState()
+            ToastStackHost(state = state, tag = "resources")
+        }
+
+        composeTestRule.runOnIdle {
+            state.show(R.string.toaststack_type_error)
+            ToastStack.success(R.string.toaststack_dismiss, hostTag = "resources")
+        }
+
+        assertEquals(listOf("Error notification", "Dismiss toast"), state.toasts.map { it.message })
+    }
+
+    // --- Sound ---
+
+    @Test
+    fun `sound is held back in silent mode and in Do Not Disturb`() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val audio = context.getSystemService(AudioManager::class.java)
+        val notifications = context.getSystemService(NotificationManager::class.java)
+        assertTrue(ToastFeedback.soundAllowed(context))
+
+        notifications.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_PRIORITY)
+        assertFalse(ToastFeedback.soundAllowed(context))
+
+        notifications.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_ALL)
+        audio.ringerMode = AudioManager.RINGER_MODE_SILENT
+        assertFalse(ToastFeedback.soundAllowed(context))
+    }
+
+    @Test
+    fun `a toast dismissed before the first frame leaves no card and no onShow`() {
+        val state = ToastStackState()
+        var shows = 0
+        composeTestRule.mainClock.autoAdvance = false
+        composeTestRule.setContent { ToastStackHost(state = state) }
+        composeTestRule.waitForIdle()
+        lateinit var handle: ToastHandle
+        composeTestRule.runOnUiThread {
+            handle = state.show("Ghost", duration = ToastDuration.Indefinite).onShow { shows++ }
+            Snapshot.sendApplyNotifications()
+        }
+        // Let the effects run without producing a frame, then dismiss.
+        composeTestRule.mainClock.advanceTimeBy(0, ignoreFrameDuration = true)
+        composeTestRule.runOnUiThread {
+            handle.dismiss()
+            Snapshot.sendApplyNotifications()
+        }
+        composeTestRule.mainClock.advanceTimeBy(0, ignoreFrameDuration = true)
+        composeTestRule.mainClock.autoAdvance = true
+        composeTestRule.mainClock.advanceTimeBy(5_000)
+        composeTestRule.waitForIdle()
+
+        composeTestRule.onNodeWithText("Ghost").assertDoesNotExist()
+        assertEquals(0, shows)
     }
 }

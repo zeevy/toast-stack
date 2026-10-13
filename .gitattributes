@@ -1,0 +1,2 @@
+# The API dump is compared byte for byte, so keep LF line ends on every OS.
+*.api text eol=lf

@@ -8,7 +8,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.sp
-import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -23,6 +22,9 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class ToastColorSourceTest {
+
+    @get:Rule
+    val reset = ToastStackReset()
 
     @get:Rule
     val composeTestRule = createComposeRule()
@@ -44,11 +46,6 @@ class ToastColorSourceTest {
         titleSmall = TextStyle(fontSize = 41.sp),
         bodyMedium = TextStyle(fontSize = 42.sp),
     )
-
-    @After
-    fun resetGlobals() {
-        ToastStack.configure(colorSource = ToastColorSource.AppTheme, theme = null)
-    }
 
     private fun stylesFor(vararg sources: ToastColorSource): Map<ToastColorSource, Map<ToastType, ToastStackStyle>> {
         val styles = mutableMapOf<ToastColorSource, MutableMap<ToastType, ToastStackStyle>>()
@@ -81,8 +78,9 @@ class ToastColorSourceTest {
             val style = styles.getValue(type)
             assertEquals("$type background", colors.first, style.backgroundColor)
             assertEquals("$type content", colors.second, style.contentColor)
-            assertEquals("$type title", colors.second, style.titleColor)
-            assertEquals("$type icon", colors.second, style.iconTint)
+            // Title and icon follow the content color.
+            assertEquals("$type title", null, style.titleColor)
+            assertEquals("$type icon", null, style.iconTint)
         }
     }
 
@@ -125,5 +123,25 @@ class ToastColorSourceTest {
 
         ToastStack.configure(colorSource = ToastColorSource.Library, theme = null)
         assertEquals(ToastColorSource.Library, ToastStack.overlayColorSource())
+    }
+
+    @Test
+    fun `a custom contentColor reaches the title and the icon`() {
+        lateinit var perToast: ToastStackStyle
+        lateinit var global: ToastStackStyle
+        composeTestRule.setContent {
+            MaterialTheme(colorScheme = scheme) {
+                val warning = ToastStackDefaults.styleForType(ToastType.Warning, ToastColorSource.Library)
+                perToast = warning.mergeWith(ToastStackStyle(contentColor = Color.White))
+                global = warning.mergeWith(ToastStackStyle(contentColor = Color.Yellow)).mergeWith(null)
+            }
+        }
+        composeTestRule.waitForIdle()
+
+        // ToastItem draws the title and icon in titleColor / iconTint, else contentColor.
+        assertEquals(Color.White, perToast.titleColor ?: perToast.contentColor)
+        assertEquals(Color.White, perToast.iconTint ?: perToast.contentColor)
+        assertEquals(Color.Yellow, global.titleColor ?: global.contentColor)
+        assertEquals(Color.Yellow, global.iconTint ?: global.contentColor)
     }
 }

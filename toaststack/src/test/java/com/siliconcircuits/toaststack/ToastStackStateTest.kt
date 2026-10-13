@@ -39,6 +39,62 @@ class ToastStackStateTest {
         testDispatcher.scheduler.runCurrent()
     }
 
+    @Test(expected = IllegalArgumentException::class)
+    fun `maxVisible below 1 fails fast`() {
+        ToastStackState(maxVisible = 0)
+    }
+
+    @Test
+    fun `a paused timer keeps the time that was left`() {
+        state.now = { testDispatcher.scheduler.currentTime }
+        val handle = state.show("Held", duration = ToastDuration.Custom(4_000))
+        advance(1_000)
+
+        state.pauseTimer(handle.id)
+        advance(10_000)
+        assertEquals(1, state.toasts.size)
+
+        state.resumeTimer(handle.id)
+        advance(2_999)
+        assertEquals(1, state.toasts.size)
+        advance(2)
+        assertTrue(state.toasts.isEmpty())
+    }
+
+    @Test
+    fun `the dedup window ends exactly windowMs after the last repeat`() {
+        val dedup = ToastStackState(deduplicationWindowMs = 3_000)
+        dedup.now = { testDispatcher.scheduler.currentTime }
+        dedup.show("Same", duration = ToastDuration.Indefinite)
+
+        advance(2_999)
+        dedup.show("Same", duration = ToastDuration.Indefinite)
+        assertEquals(1, dedup.toasts.size)
+
+        // The window now counts from the repeat at 2999, so 5998 is still in it.
+        advance(2_999)
+        dedup.show("Same", duration = ToastDuration.Indefinite)
+        assertEquals(1, dedup.toasts.size)
+
+        advance(3_000)
+        dedup.show("Same", duration = ToastDuration.Indefinite)
+        assertEquals(2, dedup.toasts.size)
+    }
+
+    @Test
+    fun `an old card out of its window does not stop a newer card counting repeats`() {
+        val dedup = ToastStackState(deduplicationWindowMs = 1_000)
+        dedup.now = { testDispatcher.scheduler.currentTime }
+        dedup.show("Same", duration = ToastDuration.Indefinite)
+        advance(1_500)
+        dedup.show("Same", duration = ToastDuration.Indefinite)
+
+        advance(300)
+        dedup.show("Same", duration = ToastDuration.Indefinite)
+
+        assertEquals(listOf(1, 2), dedup.toasts.map { it.repeatCount })
+    }
+
     @Test
     fun `a toast shown while TalkBack is on does not time out until it turns off`() {
         state.pausedForAccessibility = true
@@ -381,13 +437,6 @@ class ToastStackStateTest {
     @Test
     fun `Indefinite duration uses Long MAX_VALUE`() {
         assertEquals(Long.MAX_VALUE, ToastDuration.Indefinite.millis)
-    }
-
-    @Test
-    fun `ToastDuration has exactly three values`() {
-        // ToastDuration is a sealed class with 3 predefined subtypes + Custom.
-        val predefined = listOf(ToastDuration.Short, ToastDuration.Long, ToastDuration.Indefinite)
-        assertEquals(3, predefined.size)
     }
 
     // -- ToastData defaults --

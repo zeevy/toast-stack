@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- For unit tests only: "zz" is not a real language. It stands in for an
+     app that translates the library labels. Not part of the release AAR. -->
+<resources>
+    <string name="toaststack_type_error">ZZ error</string>
+    <string name="toaststack_dismiss">ZZ close</string>
+    <plurals name="toaststack_repeat_count">
+        <item quantity="other">%1$s [%2$d times]</item>
+    </plurals>
+</resources>

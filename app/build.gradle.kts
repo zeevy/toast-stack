@@ -28,11 +28,10 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
+            // CI builds this, so R8 shrinks the library like an app would. It only
+            // builds; it does not run the app.
+            isMinifyEnabled = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
         }
     }
 
@@ -59,4 +58,12 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+}
+
+// AGP 9.4 asks for org.jetbrains.kotlin:compose-group-mapping at the version
+// of its built-in Kotlin (2.2.10), which is not published, so the R8 release
+// build cannot make the Compose mapping file. The mapping only makes Compose
+// stack traces easier to read, so leave it out.
+composeCompiler {
+    includeComposeMappingFile.set(false)
 }

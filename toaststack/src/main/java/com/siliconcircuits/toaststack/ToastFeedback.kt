@@ -1,20 +1,21 @@
 package com.siliconcircuits.toaststack
 
+import android.app.NotificationManager
 import android.content.Context
+import android.media.AudioAttributes
 import android.media.AudioManager
 import android.media.RingtoneManager
 import android.os.Build
-import android.os.VibrationEffect
-import android.os.Vibrator
-import android.os.VibratorManager
-import android.provider.Settings
+import android.util.Log
+import android.view.HapticFeedbackConstants
+import android.view.View
 
 /**
  * Handles haptic feedback and sound effects when toasts appear.
  *
  * Both features are opt in per toast via [ToastData.hapticEnabled] and
  * [ToastData.soundEnabled]. They respect the device's system settings:
- * - Haptic feedback is skipped if the system haptic setting is disabled
+ * - Haptic feedback is skipped if the system haptic setting is turned off
  * - Sound is skipped if the device is in silent or Do Not Disturb mode
  *
  * This is an internal utility used by [ToastStackHost] when a toast
@@ -24,49 +25,23 @@ import android.provider.Settings
 internal object ToastFeedback {
 
     /**
-     * Triggers a short vibration pulse if the device's haptic feedback
-     * system setting is enabled. The vibration intensity varies by toast
-     * type: errors and warnings vibrate longer than info and success.
+     * Plays a short haptic on [view] that fits the toast type. It uses the
+     * view haptic API, so the app needs no VIBRATE permission, and Android
+     * skips it when the user turned system haptics off.
      *
-     * @param context The application context for accessing system services.
-     * @param type The toast type, used to determine vibration intensity.
+     * @param view The view the toast is drawn in.
+     * @param type The toast type, used to pick the haptic.
      */
-    fun vibrate(context: Context, type: ToastType) {
-        // Respect the system haptic feedback setting. If the user has
-        // disabled haptics globally, we should not override their choice.
-        @Suppress("DEPRECATION")
-        val hapticSetting = Settings.System.getInt(
-            context.contentResolver,
-            Settings.System.HAPTIC_FEEDBACK_ENABLED,
-            1
-        )
-        if (hapticSetting == 0) return
-
-        val durationMs = when (type) {
-            ToastType.Error -> 80L
-            ToastType.Warning -> 60L
-            ToastType.Success -> 40L
-            ToastType.Info -> 30L
-            ToastType.Default -> 30L
-            ToastType.Loading -> 20L
+    fun haptic(view: View, type: ToastType) {
+        val newApi = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
+        val constant = when (type) {
+            ToastType.Error, ToastType.Warning ->
+                if (newApi) HapticFeedbackConstants.REJECT else HapticFeedbackConstants.LONG_PRESS
+            ToastType.Success ->
+                if (newApi) HapticFeedbackConstants.CONFIRM else HapticFeedbackConstants.VIRTUAL_KEY
+            ToastType.Info, ToastType.Default, ToastType.Loading -> HapticFeedbackConstants.KEYBOARD_TAP
         }
-
-        val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val manager = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager
-            manager?.defaultVibrator
-        } else {
-            @Suppress("DEPRECATION")
-            context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
-        }
-
-        vibrator?.let {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                it.vibrate(VibrationEffect.createOneShot(durationMs, VibrationEffect.DEFAULT_AMPLITUDE))
-            } else {
-                @Suppress("DEPRECATION")
-                it.vibrate(durationMs)
-            }
-        }
+        view.performHapticFeedback(constant)
     }
 
     /**
@@ -79,22 +54,42 @@ internal object ToastFeedback {
      * @param context The application context for accessing audio services.
      */
     fun playSound(context: Context, customSoundUri: android.net.Uri? = null) {
-        val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
-        // Skip if ringer mode is silent or vibrate only.
-        val ringerMode = audioManager?.ringerMode ?: AudioManager.RINGER_MODE_NORMAL
-        if (ringerMode == AudioManager.RINGER_MODE_SILENT ||
-            ringerMode == AudioManager.RINGER_MODE_VIBRATE) return
-
+        if (!soundAllowed(context)) return
         try {
             // Use the custom sound URI if provided, otherwise fall back
             // to the system's default notification sound.
             val uri = customSoundUri
                 ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
-            val ringtone = RingtoneManager.getRingtone(context, uri)
-            ringtone?.play()
-        } catch (_: Exception) {
-            // Some devices may not have a default notification sound.
-            // Silently ignore rather than crashing.
+            val ringtone = RingtoneManager.getRingtone(context, uri) ?: return
+            ringtone.audioAttributes = AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .build()
+            ringtone.play()
+        } catch (e: Exception) {
+            // Some devices have no default notification sound, and a bad
+            // soundUri fails here. Do not crash; say so once.
+            if (!warnedSound) {
+                warnedSound = true
+                Log.w("ToastStack", "Could not play the toast sound. Logged once.", e)
+            }
         }
+    }
+
+    @Volatile
+    private var warnedSound = false
+
+    /**
+     * False when the ringer is silent or on vibrate, or Do Not Disturb holds
+     * back some interruptions. A filter the app cannot read counts as allowed.
+     */
+    internal fun soundAllowed(context: Context): Boolean {
+        val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+        val ringerMode = audioManager?.ringerMode ?: AudioManager.RINGER_MODE_NORMAL
+        if (ringerMode == AudioManager.RINGER_MODE_SILENT || ringerMode == AudioManager.RINGER_MODE_VIBRATE) return false
+        val filter = (context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager)
+            ?.currentInterruptionFilter ?: NotificationManager.INTERRUPTION_FILTER_UNKNOWN
+        return filter == NotificationManager.INTERRUPTION_FILTER_ALL ||
+            filter == NotificationManager.INTERRUPTION_FILTER_UNKNOWN
     }
 }

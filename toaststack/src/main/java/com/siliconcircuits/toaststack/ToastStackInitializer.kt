@@ -56,7 +56,7 @@ import androidx.startup.Initializer
  * </provider>
  * ```
  */
-class ToastStackInitializer : Initializer<Unit> {
+internal class ToastStackInitializer : Initializer<Unit> {
 
     override fun create(context: Context) {
         val app = context.applicationContext as? Application ?: return
@@ -70,10 +70,11 @@ class ToastStackInitializer : Initializer<Unit> {
             override fun onActivityResumed(activity: Activity) {
                 // Only inject into ComponentActivity (which supports Compose).
                 // Plain Activity or AppCompatActivity without Compose are skipped.
-                if (activity !is ComponentActivity) return
+                // The app can leave an Activity out with ToastStack.configure(autoOverlay = ...).
+                if (activity !is ComponentActivity || !ToastStack.autoOverlay(activity)) return
 
                 // onActivityResumed runs on every resume, so add the overlay only once.
-                val tag = "__toaststack_auto_overlay__"
+                val tag = AUTO_OVERLAY_TAG
                 val rootView = activity.window?.decorView?.findViewById<ViewGroup>(android.R.id.content)
                     ?: return
                 if (rootView.findViewWithTag<View>(tag) != null) return
@@ -162,6 +163,9 @@ class ToastStackInitializer : Initializer<Unit> {
     override fun dependencies(): List<Class<out Initializer<*>>> = emptyList()
 }
 
+/** The tag of the auto overlay view, the direct child of android.R.id.content. */
+internal const val AUTO_OVERLAY_TAG = "__toaststack_auto_overlay__"
+
 /**
  * Holds the auto overlay's toasts for one Activity in its ViewModelStore,
  * so toasts and their handles survive a configuration change such as
@@ -171,7 +175,7 @@ class ToastStackInitializer : Initializer<Unit> {
 internal class OverlayStateHolder : ViewModel() {
     // Reads the defaults from ToastStack on every toast, so a later
     // configure() call reaches this overlay.
-    val state = ToastStackState().apply { followsGlobalDefaults = true }
+    val state = ToastStackState().apply { defaults = { ToastStack.defaults } }
 
     override fun onCleared() = state.destroy()
 }
