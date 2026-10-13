@@ -618,11 +618,13 @@ class ToastStackState(
             // to make room. If all active toasts are urgent, evict the oldest.
             val evictTarget = activeToasts.firstOrNull { it.priority != ToastPriority.Urgent }
                 ?: activeToasts.firstOrNull()
-            if (evictTarget != null) {
-                removeSilently(evictTarget.id, DismissReason.Programmatic)
-            }
+            // The urgent toast takes the freed slot, so nothing is promoted
+            // from the queue. The evicted toast's onDismiss runs once the
+            // urgent toast is in, so a show() from it cannot take the slot.
+            val evicted = evictTarget?.let { takeOut(it.id, promote = false) }
             activeToasts.add(toast)
             scheduleAutoDismiss(toast)
+            evicted?.onDismiss?.invoke(DismissReason.Programmatic)
         } else {
             // At capacity and not urgent: add to the pending queue.
             // Insert based on priority: High before Normal, Normal before Low.
@@ -909,21 +911,30 @@ class ToastStackState(
      * call is silently ignored.
      */
     private fun removeSilently(id: String, reason: DismissReason) {
+        val toast = takeOut(id, promote = true) ?: return
+        // User code runs last, so a callback that throws cannot leave the
+        // queue unpromoted.
+        toast.onDismiss?.invoke(reason)
+    }
+
+    /**
+     * Removes a toast, on screen or queued, and its timer, without calling
+     * user code. When [promote] is true, a toast leaving the screen lets
+     * the next queued toast in. Returns the removed toast, or null.
+     */
+    private fun takeOut(id: String, promote: Boolean): ToastData? {
         val active = activeToasts.find { it.id == id }
-        val toast = active ?: pendingQueue.find { it.id == id } ?: return
+        val toast = active ?: pendingQueue.find { it.id == id } ?: return null
         aliases.values.removeAll { it == id }
         if (active != null) {
             activeToasts.remove(active)
             shownIds.remove(id)
             clearTimerState(id)
-            // A slot opened up. Promote the next queued toast if any.
-            promoteFromQueue()
+            if (promote) promoteFromQueue()
         } else {
             pendingQueue.remove(toast)
         }
-        // User code runs last, so a callback that throws cannot leave the
-        // queue unpromoted.
-        toast.onDismiss?.invoke(reason)
+        return toast
     }
 
     /**

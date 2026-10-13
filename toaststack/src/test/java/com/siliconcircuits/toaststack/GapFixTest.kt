@@ -96,6 +96,28 @@ class GapFixTest {
         assertTrue(state.toasts.none { it.message == "Normal1" })
     }
 
+    @Test
+    fun `urgent toast with a queue waiting keeps the stack at maxVisible`() {
+        val state = ToastStackState(maxVisible = 2)
+        state.show("A", duration = ToastDuration.Indefinite)
+        state.show("B", duration = ToastDuration.Indefinite)
+        state.show("Queued", duration = ToastDuration.Indefinite)
+
+        state.show("Urgent!", duration = ToastDuration.Indefinite, priority = ToastPriority.Urgent)
+
+        assertEquals(listOf("B", "Urgent!"), state.toasts.map { it.message })
+    }
+
+    @Test
+    fun `a show from the evicted toast's onDismiss waits in the queue`() {
+        val state = ToastStackState(maxVisible = 1)
+        state.show("A", duration = ToastDuration.Indefinite, onDismiss = { state.show("From callback") })
+
+        state.show("Urgent!", duration = ToastDuration.Indefinite, priority = ToastPriority.Urgent)
+
+        assertEquals(listOf("Urgent!"), state.toasts.map { it.message })
+    }
+
     // -- High priority queue ordering --
 
     @Test
