@@ -4,17 +4,15 @@ import android.content.Context
 import android.media.AudioManager
 import android.media.RingtoneManager
 import android.os.Build
-import android.os.VibrationEffect
-import android.os.Vibrator
-import android.os.VibratorManager
-import android.provider.Settings
+import android.view.HapticFeedbackConstants
+import android.view.View
 
 /**
  * Handles haptic feedback and sound effects when toasts appear.
  *
  * Both features are opt in per toast via [ToastData.hapticEnabled] and
  * [ToastData.soundEnabled]. They respect the device's system settings:
- * - Haptic feedback is skipped if the system haptic setting is disabled
+ * - Haptic feedback is skipped if the system haptic setting is turned off
  * - Sound is skipped if the device is in silent or Do Not Disturb mode
  *
  * This is an internal utility used by [ToastStackHost] when a toast
@@ -24,49 +22,23 @@ import android.provider.Settings
 internal object ToastFeedback {
 
     /**
-     * Triggers a short vibration pulse if the device's haptic feedback
-     * system setting is enabled. The vibration intensity varies by toast
-     * type: errors and warnings vibrate longer than info and success.
+     * Plays a short haptic on [view] that fits the toast type. It uses the
+     * view haptic API, so the app needs no VIBRATE permission, and Android
+     * skips it when the user turned system haptics off.
      *
-     * @param context The application context for accessing system services.
-     * @param type The toast type, used to determine vibration intensity.
+     * @param view The view the toast is drawn in.
+     * @param type The toast type, used to pick the haptic.
      */
-    fun vibrate(context: Context, type: ToastType) {
-        // Respect the system haptic feedback setting. If the user has
-        // disabled haptics globally, we should not override their choice.
-        @Suppress("DEPRECATION")
-        val hapticSetting = Settings.System.getInt(
-            context.contentResolver,
-            Settings.System.HAPTIC_FEEDBACK_ENABLED,
-            1
-        )
-        if (hapticSetting == 0) return
-
-        val durationMs = when (type) {
-            ToastType.Error -> 80L
-            ToastType.Warning -> 60L
-            ToastType.Success -> 40L
-            ToastType.Info -> 30L
-            ToastType.Default -> 30L
-            ToastType.Loading -> 20L
+    fun haptic(view: View, type: ToastType) {
+        val newApi = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
+        val constant = when (type) {
+            ToastType.Error, ToastType.Warning ->
+                if (newApi) HapticFeedbackConstants.REJECT else HapticFeedbackConstants.LONG_PRESS
+            ToastType.Success ->
+                if (newApi) HapticFeedbackConstants.CONFIRM else HapticFeedbackConstants.VIRTUAL_KEY
+            ToastType.Info, ToastType.Default, ToastType.Loading -> HapticFeedbackConstants.KEYBOARD_TAP
         }
-
-        val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val manager = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager
-            manager?.defaultVibrator
-        } else {
-            @Suppress("DEPRECATION")
-            context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
-        }
-
-        vibrator?.let {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                it.vibrate(VibrationEffect.createOneShot(durationMs, VibrationEffect.DEFAULT_AMPLITUDE))
-            } else {
-                @Suppress("DEPRECATION")
-                it.vibrate(durationMs)
-            }
-        }
+        view.performHapticFeedback(constant)
     }
 
     /**

@@ -32,7 +32,7 @@ ToastStack replaces Android's limited native `Toast` and `Snackbar` with a fully
 - **ViewModel extensions** - `showToast()`, `showSuccessToast()`, `showToastAndAwait()`
 - **Zero setup** - Auto initializer attaches to every Activity, just call `ToastStack.show()`
 - **App theme** - Toasts follow your app's `MaterialTheme` colors, typography and dark mode. Or switch to the library's own fixed colors
-- **Haptic feedback** - Optional vibration per toast type
+- **Haptic feedback** - Optional haptic per toast type, with no VIBRATE permission
 - **Sound** - Optional notification sound, or your own sound per toast with `soundUri`
 - **Accessibility** - TalkBack announcements, type prefixes, reduced motion support, WCAG AA contrast
 - **Priority queue** - Low, Normal, High, Urgent with queue overflow handling
@@ -369,7 +369,7 @@ ToastStack.show(
 )
 ```
 
-Haptic intensity varies by type (Error = 80ms, Warning = 60ms, Success = 40ms).
+The haptic depends on the type: Error and Warning use the system "reject" haptic and Success the "confirm" haptic (Android 11 and newer; older versions use a long press or key tap), other types a light key tap. It uses the view haptic API, so the app needs no VIBRATE permission.
 Both features respect system settings (haptic toggle, silent mode, Do Not Disturb).
 
 ## Accessibility

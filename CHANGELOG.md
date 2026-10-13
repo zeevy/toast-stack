@@ -15,6 +15,7 @@ Changes to the ToastStack library, newest first. "Behavior changes" lists what a
 - Start and End positions sit on the correct side in RTL layouts. (#52)
 - An urgent toast no longer pushes the stack past `maxVisible`. (#53)
 - A custom `contentColor` now also colors the title and the icon. (#54)
+- Haptics use the view haptic API ("reject" for errors and warnings, "confirm" for success). The library no longer asks for the VIBRATE permission, so apps lose it from their merged manifest unless they declare it. (#56)
 
 ### Added
 

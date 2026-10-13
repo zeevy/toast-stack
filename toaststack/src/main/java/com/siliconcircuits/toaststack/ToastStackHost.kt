@@ -19,6 +19,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -80,6 +81,7 @@ fun ToastStackHost(
     // This runs once per host composition and uses the application context
     // (not the activity) so there is no risk of leaking an activity reference.
     val context = LocalContext.current
+    val view = LocalView.current
     StringResolver.initialize(context)
 
     // Register this host with the global singleton when it enters composition,
@@ -223,7 +225,7 @@ fun ToastStackHost(
                             // Haptic and sound fire on appearance (before animation ends)
                             // so the user gets immediate sensory feedback.
                             if (toast.hapticEnabled) {
-                                ToastFeedback.vibrate(context, toast.type)
+                                ToastFeedback.haptic(view, toast.type)
                             }
                             if (toast.soundEnabled) {
                                 ToastFeedback.playSound(context, toast.soundUri)

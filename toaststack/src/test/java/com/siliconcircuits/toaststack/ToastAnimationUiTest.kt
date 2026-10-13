@@ -1,9 +1,15 @@
 package com.siliconcircuits.toaststack
 
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Looper
+import android.view.HapticFeedbackConstants
+import android.view.View
 import android.view.accessibility.AccessibilityManager
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasContentDescription
@@ -15,6 +21,7 @@ import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
 import java.time.Duration
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -550,5 +557,37 @@ class ToastAnimationUiTest {
         composeTestRule.runOnIdle { dismiss.action() }
         composeTestRule.mainClock.advanceTimeBy(1_000)
         composeTestRule.onNodeWithText("Read me").assertDoesNotExist()
+    }
+
+    // --- Haptic ---
+
+    @Test
+    @Config(sdk = [24, 34])
+    fun `a haptic toast plays the view haptic for its type`() {
+        lateinit var state: ToastStackState
+        lateinit var view: View
+        composeTestRule.setContent {
+            view = LocalView.current
+            state = rememberToastStackState()
+            ToastStackHost(state = state)
+        }
+
+        state.show("Saved", type = ToastType.Error, hapticEnabled = true)
+        composeTestRule.waitForIdle()
+
+        val expected = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            HapticFeedbackConstants.REJECT
+        } else {
+            HapticFeedbackConstants.LONG_PRESS
+        }
+        assertEquals(expected, shadowOf(view).lastHapticFeedbackPerformed())
+    }
+
+    @Test
+    fun `the library asks for no VIBRATE permission`() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val info = context.packageManager.getPackageInfo(context.packageName, PackageManager.GET_PERMISSIONS)
+
+        assertFalse(info.requestedPermissions.orEmpty().contains(Manifest.permission.VIBRATE))
     }
 }
