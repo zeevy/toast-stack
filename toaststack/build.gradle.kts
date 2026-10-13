@@ -69,6 +69,13 @@ android {
             isIncludeAndroidResources = true
             // Plain JVM tests reach android.util.Log when a toast is dropped.
             isReturnDefaultValues = true
+            all { test ->
+                // PublicApiTest reads these, so a change to either reruns the tests.
+                test.inputs.file(rootProject.file("README.md"))
+                test.inputs.file(file("api/toaststack.api"))
+                // ./gradlew :toaststack:testDebugUnitTest -PupdateApiDump writes a new dump.
+                test.systemProperty("updateApiDump", project.hasProperty("updateApiDump"))
+            }
         }
     }
 
@@ -125,8 +132,14 @@ afterEvaluate {
 }
 
 dependencies {
-    implementation(platform(libs.androidx.compose.bom))
-    implementation(libs.androidx.ui)
+    // Types from these appear in the public API (Composable, Modifier, Color,
+    // Shape, TextStyle, PaddingValues, Easing, ViewModel), so apps get them too.
+    api(platform(libs.androidx.compose.bom))
+    api(libs.androidx.compose.runtime)
+    api(libs.androidx.ui)
+    api(libs.androidx.foundation.layout)
+    api(libs.androidx.compose.animation.core)
+    api(libs.androidx.lifecycle.viewmodel)
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.material3)
     implementation(libs.androidx.material.icons)
@@ -134,12 +147,14 @@ dependencies {
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.androidx.startup.runtime)
     implementation(libs.androidx.lifecycle.runtime.ktx)
-    implementation(libs.androidx.lifecycle.viewmodel)
     implementation(libs.androidx.activity.compose)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.kotlin.reflect)
+    testImplementation(libs.binary.compatibility.validator)
+    testImplementation(libs.kotlin.metadata.jvm)
+    testImplementation(libs.asm.tree)
     testImplementation(libs.robolectric)
     testImplementation(platform(libs.androidx.compose.bom))
     testImplementation(libs.androidx.ui.test.junit4)

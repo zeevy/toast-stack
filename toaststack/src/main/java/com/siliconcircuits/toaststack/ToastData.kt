@@ -46,7 +46,10 @@ import kotlin.uuid.Uuid
  *   [ToastStackState.deduplicationWindowMs]). The card shows "(xN)" when it is
  *   more than 1.
  */
-data class ToastData(
+// Only the library creates toasts, so the constructor and copy() are internal.
+// A new field then does not change the public API.
+@ConsistentCopyVisibility
+data class ToastData internal constructor(
     @OptIn(ExperimentalUuidApi::class)
     val id: String = Uuid.random().toString(),
     val message: String,

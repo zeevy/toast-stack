@@ -1,11 +1,15 @@
 package com.siliconcircuits.toaststack
 
 import java.io.File
+import java.util.jar.JarFile
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.full.memberFunctions
 import kotlin.reflect.full.memberProperties
+import kotlinx.validation.api.dump
+import kotlinx.validation.api.filterOutNonPublic
+import kotlinx.validation.api.loadApiFromJvmClasses
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -31,6 +35,32 @@ class PublicApiTest {
         assertEquals(options, builder.toSet() - handleOptions)
         assertEquals(options - "onDismiss", ToastStackState::class.function("showAndAwait").optionNames())
         assertEquals(options - "onDismiss", ToastStack::class.function("showAndAwait").optionNames() - "hostTag")
+    }
+
+    @Test
+    fun `the public API matches the committed dump`() {
+        // The main classes come as a folder or a jar, wherever ToastStack.class is.
+        val classes = File(ToastStack::class.java.protectionDomain.codeSource.location.toURI())
+        val signatures = if (classes.isFile) {
+            JarFile(classes).use { it.loadApiFromJvmClasses() }
+        } else {
+            classes.walk().filter { it.isFile && it.extension == "class" }.map { it.inputStream() }.loadApiFromJvmClasses()
+        }
+        assertTrue("No classes found in $classes", signatures.isNotEmpty())
+        val api = signatures.filterOutNonPublic()
+        val actual = buildString { api.dump(this) }
+        val dumpFile = File("api/toaststack.api")
+
+        if (System.getProperty("updateApiDump") == "true") {
+            dumpFile.writeText(actual)
+            return
+        }
+        assertEquals(
+            "The public API changed. If that is on purpose, add a CHANGELOG entry and run " +
+                "./gradlew :toaststack:testDebugUnitTest -PupdateApiDump, then commit api/toaststack.api.",
+            dumpFile.readText(),
+            actual,
+        )
     }
 
     @Test

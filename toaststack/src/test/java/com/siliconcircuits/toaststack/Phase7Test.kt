@@ -14,6 +14,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
+// ToastStackConfig is deprecated but still supported until it is removed.
+@Suppress("DEPRECATION")
 @OptIn(ExperimentalCoroutinesApi::class)
 class Phase7Test {
 

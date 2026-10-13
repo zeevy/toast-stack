@@ -54,6 +54,9 @@ jobs:
       - name: Run demo app lint
         run: ./gradlew :app:lintDebug
 
+      - name: Build demo app release with R8
+        run: ./gradlew :app:assembleRelease
+
       - name: Verify publish to local Maven
         run: ./gradlew :toaststack:publishReleasePublicationToMavenLocal
 

@@ -35,6 +35,13 @@ import androidx.compose.ui.unit.dp
  * @param globalStyle Optional style applied to all toasts in this host.
  * @param content The composable content to overlay toasts on.
  */
+@Deprecated(
+    "Place ToastStackHost after your content in a Box.",
+    ReplaceWith(
+        "Box(modifier) { content(); ToastStackHost(state = state, tag = tag, globalStyle = globalStyle, contentPadding = contentPadding) }",
+        "androidx.compose.foundation.layout.Box",
+    ),
+)
 @Composable
 fun WithToastStack(
     state: ToastStackState = rememberToastStackState(),

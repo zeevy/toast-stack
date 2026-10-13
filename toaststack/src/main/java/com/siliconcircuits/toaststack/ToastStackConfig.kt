@@ -32,6 +32,7 @@ package com.siliconcircuits.toaststack
  *   0 turns it off. See [ToastStackState.deduplicationWindowMs].
  * @property showRepeatCount Show "(xN)" on repeated cards.
  */
+@Deprecated("Pass the values to rememberToastStackState() as named arguments.")
 class ToastStackConfig {
     var maxVisible: Int = 5
     var defaultPosition: ToastPosition = ToastPosition.TopCenter
@@ -77,6 +78,16 @@ class ToastStackConfig {
  * @param config The configuration block with desired defaults.
  * @return A remembered [ToastStackState] instance.
  */
+@Deprecated(
+    "Pass the values to rememberToastStackState() as named arguments.",
+    ReplaceWith(
+        "rememberToastStackState(maxVisible = config.maxVisible, defaultPosition = config.defaultPosition, " +
+            "defaultDuration = config.defaultDuration, defaultSwipeDismiss = config.defaultSwipeDismiss, " +
+            "defaultAnimation = config.defaultAnimation, defaultAnimationConfig = config.defaultAnimationConfig, " +
+            "deduplicationWindowMs = config.deduplicationWindowMs, showRepeatCount = config.showRepeatCount)"
+    ),
+)
+@Suppress("DEPRECATION")
 @androidx.compose.runtime.Composable
 fun rememberToastStackState(config: ToastStackConfig): ToastStackState {
     return rememberToastStackState(

@@ -69,6 +69,7 @@ This project ships under the Apache License 2.0 and is meant to be read by contr
 - Prefer expression bodies for trivial functions, block bodies for everything else.
 - No `runBlocking` in production code. Tests may use `runTest`.
 - Keep the public API small and deliberate. Internal-only types use Kotlin `internal` visibility and are excluded from `consumer-rules.pro`.
+- A change to the public API needs a CHANGELOG entry and a new API dump: run `./gradlew :toaststack:testDebugUnitTest -PupdateApiDump` and commit `toaststack/api/toaststack.api`. CI fails when the dump does not match.
 
 ### Punctuation in source files
 
