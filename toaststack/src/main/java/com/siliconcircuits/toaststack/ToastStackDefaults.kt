@@ -1,5 +1,6 @@
 package com.siliconcircuits.toaststack
 
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -28,6 +29,9 @@ import androidx.compose.ui.unit.dp
  * Typography always comes from the current [MaterialTheme].
  */
 object ToastStackDefaults {
+
+    /** Space between the screen edges and the toast column. */
+    internal val ContentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
 
     /**
      * The default corner shape applied to every toast card.

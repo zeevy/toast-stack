@@ -59,26 +59,51 @@ import kotlinx.coroutines.launch
  * @param showRepeatCount Whether a deduplicated card shows its repeat count,
  *   for example "(x5)" after the message. Defaults to true.
  */
+/**
+ * The defaults a host uses for new toasts, in one immutable object: each
+ * value is written once in the source, and [ToastStack.configure] changes
+ * them in one write.
+ */
+internal data class ToastDefaults(
+    val maxVisible: Int = 5,
+    val position: ToastPosition = ToastPosition.TopCenter,
+    val duration: ToastDuration = ToastDuration.Short,
+    val swipeDismiss: SwipeDismissDirection = SwipeDismissDirection.Both,
+    val animation: ToastAnimation = ToastAnimation.Slide,
+    val animationConfig: ToastAnimationConfig = ToastAnimationConfig(),
+    val deduplicationWindowMs: Long = 0L,
+    val showRepeatCount: Boolean = true,
+) {
+    companion object {
+        /** The library's own defaults. */
+        val Standard = ToastDefaults()
+    }
+}
+
 @Stable
 class ToastStackState(
-    maxVisible: Int = 5,
-    defaultPosition: ToastPosition = ToastPosition.TopCenter,
-    defaultDuration: ToastDuration = ToastDuration.Short,
-    defaultSwipeDismiss: SwipeDismissDirection = SwipeDismissDirection.Both,
-    defaultAnimation: ToastAnimation = ToastAnimation.Slide,
-    defaultAnimationConfig: ToastAnimationConfig = ToastAnimationConfig(),
-    deduplicationWindowMs: Long = 0L,
-    showRepeatCount: Boolean = true
+    maxVisible: Int = ToastDefaults.Standard.maxVisible,
+    defaultPosition: ToastPosition = ToastDefaults.Standard.position,
+    defaultDuration: ToastDuration = ToastDefaults.Standard.duration,
+    defaultSwipeDismiss: SwipeDismissDirection = ToastDefaults.Standard.swipeDismiss,
+    defaultAnimation: ToastAnimation = ToastDefaults.Standard.animation,
+    defaultAnimationConfig: ToastAnimationConfig = ToastDefaults.Standard.animationConfig,
+    deduplicationWindowMs: Long = ToastDefaults.Standard.deduplicationWindowMs,
+    showRepeatCount: Boolean = ToastDefaults.Standard.showRepeatCount
 ) {
     /**
-     * When true, the defaults below are read from [ToastStack] each time
-     * they are used, instead of the constructor values. Set by
-     * [ToastStackInitializer] for the auto overlay, so a later
-     * [ToastStack.configure] call reaches an Activity that is already open.
-     * Lowering `maxVisible` this way does not remove cards already on
-     * screen. The new limit applies as they are dismissed.
+     * Where the defaults below come from: the constructor values, unless
+     * [ToastStackInitializer] points the auto overlay at [ToastStack.defaults],
+     * so a later [ToastStack.configure] call reaches an Activity that is
+     * already open. Lowering `maxVisible` this way does not remove cards
+     * already on screen. The new limit applies as they are dismissed.
      */
-    internal var followsGlobalDefaults = false
+    internal var defaults: () -> ToastDefaults = { ownDefaults }
+
+    private val ownDefaults = ToastDefaults(
+        maxVisible, defaultPosition, defaultDuration, defaultSwipeDismiss,
+        defaultAnimation, defaultAnimationConfig, deduplicationWindowMs, showRepeatCount,
+    )
 
     /**
      * True while a screen reader (touch exploration) is on. Auto dismiss
@@ -100,31 +125,14 @@ class ToastStackState(
      */
     internal val shownIds = mutableSetOf<String>()
 
-    private val ownMaxVisible = maxVisible
-    private val ownDefaultPosition = defaultPosition
-    private val ownDefaultDuration = defaultDuration
-    private val ownDefaultSwipeDismiss = defaultSwipeDismiss
-    private val ownDefaultAnimation = defaultAnimation
-    private val ownDefaultAnimationConfig = defaultAnimationConfig
-    private val ownDeduplicationWindowMs = deduplicationWindowMs
-    private val ownShowRepeatCount = showRepeatCount
-
-    val maxVisible: Int
-        get() = if (followsGlobalDefaults) ToastStack.defaultMaxVisible else ownMaxVisible
-    val defaultPosition: ToastPosition
-        get() = if (followsGlobalDefaults) ToastStack.defaultPosition else ownDefaultPosition
-    val defaultDuration: ToastDuration
-        get() = if (followsGlobalDefaults) ToastStack.defaultDuration else ownDefaultDuration
-    val defaultSwipeDismiss: SwipeDismissDirection
-        get() = if (followsGlobalDefaults) ToastStack.defaultSwipeDismiss else ownDefaultSwipeDismiss
-    val defaultAnimation: ToastAnimation
-        get() = if (followsGlobalDefaults) ToastStack.defaultAnimation else ownDefaultAnimation
-    val defaultAnimationConfig: ToastAnimationConfig
-        get() = if (followsGlobalDefaults) ToastStack.defaultAnimationConfig else ownDefaultAnimationConfig
-    val deduplicationWindowMs: Long
-        get() = if (followsGlobalDefaults) ToastStack.deduplicationWindowMs else ownDeduplicationWindowMs
-    val showRepeatCount: Boolean
-        get() = if (followsGlobalDefaults) ToastStack.showRepeatCount else ownShowRepeatCount
+    val maxVisible: Int get() = defaults().maxVisible
+    val defaultPosition: ToastPosition get() = defaults().position
+    val defaultDuration: ToastDuration get() = defaults().duration
+    val defaultSwipeDismiss: SwipeDismissDirection get() = defaults().swipeDismiss
+    val defaultAnimation: ToastAnimation get() = defaults().animation
+    val defaultAnimationConfig: ToastAnimationConfig get() = defaults().animationConfig
+    val deduplicationWindowMs: Long get() = defaults().deduplicationWindowMs
+    val showRepeatCount: Boolean get() = defaults().showRepeatCount
 
     // Snapshot backed list: Compose observes this collection and automatically
     // triggers recomposition when items are added or removed. This is the
@@ -583,10 +591,10 @@ class ToastStackState(
             incoming.onDismiss?.invoke(DismissReason.Programmatic)
             return ToastHandle(incoming.id, this)
         }
-        // The auto overlay reads its defaults live from ToastStack. Save the
-        // animation on the toast now, so a later configure() call does not
-        // change how a card already on screen animates out.
-        val toast = if (followsGlobalDefaults) {
+        // Defaults that come from elsewhere can change later (the auto overlay
+        // reads them from ToastStack). Save the animation on the toast now, so
+        // a card already on screen keeps how it animates out.
+        val toast = if (defaults() !== ownDefaults) {
             incoming.copy(
                 animation = incoming.animation ?: defaultAnimation,
                 animationConfig = incoming.animationConfig ?: defaultAnimationConfig
@@ -1010,14 +1018,14 @@ class ToastStackState(
  */
 @Composable
 fun rememberToastStackState(
-    maxVisible: Int = 5,
-    defaultPosition: ToastPosition = ToastPosition.TopCenter,
-    defaultDuration: ToastDuration = ToastDuration.Short,
-    defaultSwipeDismiss: SwipeDismissDirection = SwipeDismissDirection.Both,
-    defaultAnimation: ToastAnimation = ToastAnimation.Slide,
-    defaultAnimationConfig: ToastAnimationConfig = ToastAnimationConfig(),
-    deduplicationWindowMs: Long = 0L,
-    showRepeatCount: Boolean = true
+    maxVisible: Int = ToastDefaults.Standard.maxVisible,
+    defaultPosition: ToastPosition = ToastDefaults.Standard.position,
+    defaultDuration: ToastDuration = ToastDefaults.Standard.duration,
+    defaultSwipeDismiss: SwipeDismissDirection = ToastDefaults.Standard.swipeDismiss,
+    defaultAnimation: ToastAnimation = ToastDefaults.Standard.animation,
+    defaultAnimationConfig: ToastAnimationConfig = ToastDefaults.Standard.animationConfig,
+    deduplicationWindowMs: Long = ToastDefaults.Standard.deduplicationWindowMs,
+    showRepeatCount: Boolean = ToastDefaults.Standard.showRepeatCount
 ): ToastStackState {
     val state = remember {
         ToastStackState(

@@ -24,7 +24,7 @@ class GlobalDefaultsTest {
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
-        state = ToastStackState().apply { followsGlobalDefaults = true }
+        state = ToastStackState().apply { defaults = { ToastStack.defaults } }
         ToastStack.registerHost(TAG, state)
     }
 

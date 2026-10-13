@@ -34,14 +34,14 @@ package com.siliconcircuits.toaststack
  */
 @Deprecated("Pass the values to rememberToastStackState() as named arguments.")
 class ToastStackConfig {
-    var maxVisible: Int = 5
-    var defaultPosition: ToastPosition = ToastPosition.TopCenter
-    var defaultDuration: ToastDuration = ToastDuration.Short
-    var defaultSwipeDismiss: SwipeDismissDirection = SwipeDismissDirection.Both
-    var defaultAnimation: ToastAnimation = ToastAnimation.Slide
-    var defaultAnimationConfig: ToastAnimationConfig = ToastAnimationConfig()
-    var deduplicationWindowMs: Long = 0L
-    var showRepeatCount: Boolean = true
+    var maxVisible: Int = ToastDefaults.Standard.maxVisible
+    var defaultPosition: ToastPosition = ToastDefaults.Standard.position
+    var defaultDuration: ToastDuration = ToastDefaults.Standard.duration
+    var defaultSwipeDismiss: SwipeDismissDirection = ToastDefaults.Standard.swipeDismiss
+    var defaultAnimation: ToastAnimation = ToastDefaults.Standard.animation
+    var defaultAnimationConfig: ToastAnimationConfig = ToastDefaults.Standard.animationConfig
+    var deduplicationWindowMs: Long = ToastDefaults.Standard.deduplicationWindowMs
+    var showRepeatCount: Boolean = ToastDefaults.Standard.showRepeatCount
 
     companion object {
         /**

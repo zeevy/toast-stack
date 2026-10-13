@@ -21,7 +21,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -77,7 +76,7 @@ fun ToastStackHost(
     tag: String = DEFAULT_HOST_TAG,
     modifier: Modifier = Modifier,
     globalStyle: ToastStackStyle? = null,
-    contentPadding: PaddingValues = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+    contentPadding: PaddingValues = ToastStackDefaults.ContentPadding,
     colorSource: ToastColorSource = ToastStack.colorSource,
 ) {
     // Capture the application context for string resource resolution.

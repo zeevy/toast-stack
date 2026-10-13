@@ -59,44 +59,16 @@ object ToastStack {
      * `onCreate` to customize these before any Activity is created.
      */
     @Volatile
-    internal var defaultContentPadding: PaddingValues =
-        PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+    internal var defaultContentPadding: PaddingValues = ToastStackDefaults.ContentPadding
         private set
 
     @Volatile
     internal var defaultGlobalStyle: ToastStackStyle? = null
         private set
 
+    /** The defaults for new toasts on the auto overlay, replaced in one write by [configure]. */
     @Volatile
-    internal var defaultPosition: ToastPosition = ToastPosition.TopCenter
-        private set
-
-    @Volatile
-    internal var defaultDuration: ToastDuration = ToastDuration.Short
-        private set
-
-    @Volatile
-    internal var defaultMaxVisible: Int = 5
-        private set
-
-    @Volatile
-    internal var defaultSwipeDismiss: SwipeDismissDirection = SwipeDismissDirection.Both
-        private set
-
-    @Volatile
-    internal var defaultAnimation: ToastAnimation = ToastAnimation.Slide
-        private set
-
-    @Volatile
-    internal var defaultAnimationConfig: ToastAnimationConfig = ToastAnimationConfig()
-        private set
-
-    @Volatile
-    internal var deduplicationWindowMs: Long = 0L
-        private set
-
-    @Volatile
-    internal var showRepeatCount: Boolean = true
+    internal var defaults: ToastDefaults = ToastDefaults.Standard
         private set
 
     // Compose state so an already attached overlay recomposes when
@@ -166,27 +138,23 @@ object ToastStack {
     fun configure(
         contentPadding: PaddingValues = defaultContentPadding,
         globalStyle: ToastStackStyle? = defaultGlobalStyle,
-        defaultPosition: ToastPosition = this.defaultPosition,
-        defaultDuration: ToastDuration = this.defaultDuration,
-        maxVisible: Int = defaultMaxVisible,
-        defaultSwipeDismiss: SwipeDismissDirection = this.defaultSwipeDismiss,
-        defaultAnimation: ToastAnimation = this.defaultAnimation,
-        defaultAnimationConfig: ToastAnimationConfig = this.defaultAnimationConfig,
-        deduplicationWindowMs: Long = this.deduplicationWindowMs,
-        showRepeatCount: Boolean = this.showRepeatCount,
+        defaultPosition: ToastPosition = defaults.position,
+        defaultDuration: ToastDuration = defaults.duration,
+        maxVisible: Int = defaults.maxVisible,
+        defaultSwipeDismiss: SwipeDismissDirection = defaults.swipeDismiss,
+        defaultAnimation: ToastAnimation = defaults.animation,
+        defaultAnimationConfig: ToastAnimationConfig = defaults.animationConfig,
+        deduplicationWindowMs: Long = defaults.deduplicationWindowMs,
+        showRepeatCount: Boolean = defaults.showRepeatCount,
         colorSource: ToastColorSource = this.colorSource,
         theme: (@Composable (content: @Composable () -> Unit) -> Unit)? = this.theme,
     ) {
         defaultContentPadding = contentPadding
         defaultGlobalStyle = globalStyle
-        this.defaultPosition = defaultPosition
-        this.defaultDuration = defaultDuration
-        defaultMaxVisible = maxVisible
-        this.defaultSwipeDismiss = defaultSwipeDismiss
-        this.defaultAnimation = defaultAnimation
-        this.defaultAnimationConfig = defaultAnimationConfig
-        this.deduplicationWindowMs = deduplicationWindowMs
-        this.showRepeatCount = showRepeatCount
+        defaults = ToastDefaults(
+            maxVisible, defaultPosition, defaultDuration, defaultSwipeDismiss,
+            defaultAnimation, defaultAnimationConfig, deduplicationWindowMs, showRepeatCount,
+        )
         this.colorSource = colorSource
         this.theme = theme
     }

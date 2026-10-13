@@ -171,7 +171,7 @@ internal class ToastStackInitializer : Initializer<Unit> {
 internal class OverlayStateHolder : ViewModel() {
     // Reads the defaults from ToastStack on every toast, so a later
     // configure() call reaches this overlay.
-    val state = ToastStackState().apply { followsGlobalDefaults = true }
+    val state = ToastStackState().apply { defaults = { ToastStack.defaults } }
 
     override fun onCleared() = state.destroy()
 }
