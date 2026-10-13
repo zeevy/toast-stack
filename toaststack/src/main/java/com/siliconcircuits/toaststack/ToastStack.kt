@@ -30,6 +30,9 @@ import java.util.concurrent.ConcurrentHashMap
  * 4. When the host leaves composition (e.g., the screen is destroyed),
  *    it unregisters itself via [unregisterHost].
  *
+ * **Threads:** every call is safe from any thread. The toast is added on
+ * the main thread, and callbacks (onDismiss, onShow, actions) run there.
+ *
  * **Multiple hosts:** If your app has multiple screens, each with its own
  * host, you can assign a unique [tag] to each one and target specific
  * hosts by passing `hostTag = "myTag"` to [show]. When no tag is provided,
@@ -55,34 +58,44 @@ object ToastStack {
      * [ToastStackHost] overlay. Call [configure] from your Application's
      * `onCreate` to customize these before any Activity is created.
      */
+    @Volatile
     internal var defaultContentPadding: PaddingValues =
         PaddingValues(horizontal = 16.dp, vertical = 8.dp)
         private set
 
+    @Volatile
     internal var defaultGlobalStyle: ToastStackStyle? = null
         private set
 
+    @Volatile
     internal var defaultPosition: ToastPosition = ToastPosition.TopCenter
         private set
 
+    @Volatile
     internal var defaultDuration: ToastDuration = ToastDuration.Short
         private set
 
+    @Volatile
     internal var defaultMaxVisible: Int = 5
         private set
 
+    @Volatile
     internal var defaultSwipeDismiss: SwipeDismissDirection = SwipeDismissDirection.Both
         private set
 
+    @Volatile
     internal var defaultAnimation: ToastAnimation = ToastAnimation.Slide
         private set
 
+    @Volatile
     internal var defaultAnimationConfig: ToastAnimationConfig = ToastAnimationConfig()
         private set
 
+    @Volatile
     internal var deduplicationWindowMs: Long = 0L
         private set
 
+    @Volatile
     internal var showRepeatCount: Boolean = true
         private set
 
@@ -195,6 +208,7 @@ object ToastStack {
     private val recentTags = ArrayList<String>()
 
     /** Set after the first "no host" warning, so it is logged once per process. */
+    @Volatile
     internal var warnedNoHost = false
 
     /**

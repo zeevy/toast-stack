@@ -1,10 +1,13 @@
 package com.siliconcircuits.toaststack
 
+import android.os.Handler
+import android.os.Looper
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
+import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -12,8 +15,6 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 
 /**
  * Central state holder that manages the lifecycle of all active toasts.
@@ -28,6 +29,11 @@ import kotlinx.coroutines.sync.withLock
  * is added, removed, or the list changes in any way, Compose automatically
  * detects the change and re renders the [ToastStackHost] composable that
  * reads [toasts]. You do not need to manually trigger UI updates.
+ *
+ * **Threads:** every method is safe to call from any thread. Changes run on
+ * the main thread: inline when called there, otherwise posted to it, so a
+ * call from a background thread returns at once and takes effect a moment
+ * later. Callbacks (onDismiss, onShow, actions) always run on the main thread.
  *
  * The `@Stable` annotation tells the Compose compiler that this object's
  * observable properties don't change in ways that would break comparisons,
@@ -155,13 +161,34 @@ class ToastStackState(
     //   - pausedIds: which toasts currently have their timer paused
     //   - remainingMillis: how many milliseconds were left when the timer was paused
     //   - timerStartedAt: wall clock time when the current timer segment began
-    // The mutex protects concurrent access to these maps since pause/resume
-    // operations are launched asynchronously.
+    // Like all state here, these are only touched on the main thread.
     private val timerJobs = mutableMapOf<String, Job>()
     private val pausedIds = mutableSetOf<String>()
     private val remainingMillis = mutableMapOf<String, Long>()
     private val timerStartedAt = mutableMapOf<String, Long>()
-    private val timerMutex = Mutex()
+
+    // Handles from a background show() whose toast was merged into an
+    // existing card by deduplication: new id to the existing card's id.
+    private val aliases = mutableMapOf<String, String>()
+
+    // Ids of toasts shown from a background thread whose add is still
+    // posted. A call on such a handle is posted too, so it runs after the add.
+    private val postedIds: MutableSet<String> = ConcurrentHashMap.newKeySet()
+
+    // Set by destroy(). A late add or onDismiss then answers at once.
+    @Volatile
+    private var destroyed = false
+
+    private val mainHandler by lazy { Handler(Looper.getMainLooper()) }
+
+    /**
+     * Runs [block] now on the main thread, or posts it there from any other
+     * thread. A call for [handleId] is also posted while that toast's add is.
+     */
+    private fun onMain(handleId: String? = null, block: () -> Unit) {
+        val now = Looper.myLooper() == Looper.getMainLooper() && (handleId == null || handleId !in postedIds)
+        if (now) block() else mainHandler.post(block)
+    }
 
     // SupervisorJob ensures that if one timer coroutine fails, it does not
     // cancel the entire scope and kill all other running timers. The scope
@@ -528,6 +555,22 @@ class ToastStackState(
      * @return A [ToastHandle] wrapping the toast's ID and this state.
      */
     internal fun enqueue(incoming: ToastData): ToastHandle {
+        if (Looper.myLooper() == Looper.getMainLooper()) return enqueueOnMain(incoming)
+        // The id exists already, so the handle can go back at once.
+        postedIds += incoming.id
+        mainHandler.post {
+            postedIds -= incoming.id
+            val handle = enqueueOnMain(incoming)
+            if (handle.id != incoming.id) aliases[incoming.id] = handle.id
+        }
+        return ToastHandle(incoming.id, this)
+    }
+
+    private fun enqueueOnMain(incoming: ToastData): ToastHandle {
+        if (destroyed) {
+            incoming.onDismiss?.invoke(DismissReason.Programmatic)
+            return ToastHandle(incoming.id, this)
+        }
         // The auto overlay reads its defaults live from ToastStack. Save the
         // animation on the toast now, so a later configure() call does not
         // change how a card already on screen animates out.
@@ -634,7 +677,12 @@ class ToastStackState(
      * or still waiting in the queue. Ignored when no toast has that id
      * (already dismissed). The [ToastHandle] chaining calls go through here.
      */
-    private fun updateToast(id: String, transform: (ToastData) -> ToastData) {
+    private fun updateToast(handleId: String, transform: (ToastData) -> ToastData) = onMain(handleId) {
+        updateToastNow(handleId, transform)
+    }
+
+    private fun updateToastNow(handleId: String, transform: (ToastData) -> ToastData) {
+        val id = aliases[handleId] ?: handleId
         val index = activeToasts.indexOfFirst { it.id == id }
         if (index != -1) {
             activeToasts[index] = transform(activeToasts[index])
@@ -648,12 +696,16 @@ class ToastStackState(
      * Adds [callback] after the toast's current onDismiss callback, so both
      * run. Used by [ToastHandle.onDismiss] and [ToastHandle.await].
      */
-    internal fun addOnDismiss(id: String, callback: (DismissReason) -> Unit) = updateToast(id) { toast ->
-        val existing = toast.onDismiss
-        toast.copy(onDismiss = { reason ->
-            existing?.invoke(reason)
-            callback(reason)
-        })
+    internal fun addOnDismiss(id: String, callback: (DismissReason) -> Unit) = onMain(id) {
+        // A destroyed state holds no toasts and never dismisses again.
+        if (destroyed) return@onMain callback(DismissReason.Programmatic)
+        updateToastNow(id) { toast ->
+            val existing = toast.onDismiss
+            toast.copy(onDismiss = { reason ->
+                existing?.invoke(reason)
+                callback(reason)
+            })
+        }
     }
 
     /** Sets the onShow callback. Used by [ToastHandle.onShow]. */
@@ -720,8 +772,8 @@ class ToastStackState(
      * @param reason Why the toast is being dismissed. Defaults to
      *   [DismissReason.Programmatic] since this is a code initiated removal.
      */
-    fun dismiss(id: String, reason: DismissReason = DismissReason.Programmatic) {
-        removeSilently(id, reason)
+    fun dismiss(id: String, reason: DismissReason = DismissReason.Programmatic) = onMain(id) {
+        removeSilently(aliases[id] ?: id, reason)
     }
 
     /**
@@ -731,11 +783,12 @@ class ToastStackState(
      * [DismissReason.Programmatic]. All auto dismiss timers are cancelled.
      * After this call, [toasts] will be empty.
      */
-    fun dismissAll() {
+    fun dismissAll() = onMain {
         val snapshot = activeToasts.toList() + pendingQueue
         activeToasts.clear()
         pendingQueue.clear()
         shownIds.clear()
+        aliases.clear()
         snapshot.forEach { clearTimerState(it.id) }
         // User code runs last, so a callback that throws cannot leave
         // timers running.
@@ -755,23 +808,19 @@ class ToastStackState(
      *
      * @param id The unique identifier of the toast whose timer should pause.
      */
-    fun pauseTimer(id: String) {
-        coroutineScope.launch {
-            timerMutex.withLock {
-                if (id in pausedIds) return@launch
-                val job = timerJobs[id] ?: return@launch
-                val startedAt = timerStartedAt[id] ?: return@launch
-                val total = remainingMillis[id] ?: return@launch
+    fun pauseTimer(id: String) = onMain {
+        if (id in pausedIds) return@onMain
+        val job = timerJobs[id] ?: return@onMain
+        val startedAt = timerStartedAt[id] ?: return@onMain
+        val total = remainingMillis[id] ?: return@onMain
 
-                // Calculate how much time has elapsed since the timer started
-                // (or was last resumed) and subtract it from the remaining time.
-                val elapsed = System.currentTimeMillis() - startedAt
-                remainingMillis[id] = (total - elapsed).coerceAtLeast(0L)
-                pausedIds.add(id)
-                job.cancel()
-                timerJobs.remove(id)
-            }
-        }
+        // Calculate how much time has elapsed since the timer started
+        // (or was last resumed) and subtract it from the remaining time.
+        val elapsed = System.currentTimeMillis() - startedAt
+        remainingMillis[id] = (total - elapsed).coerceAtLeast(0L)
+        pausedIds.add(id)
+        job.cancel()
+        timerJobs.remove(id)
     }
 
     /**
@@ -783,17 +832,13 @@ class ToastStackState(
      *
      * @param id The unique identifier of the toast whose timer should resume.
      */
-    fun resumeTimer(id: String) {
-        coroutineScope.launch {
-            timerMutex.withLock {
-                // A touch release must not undo the screen reader pause.
-                if (id !in pausedIds || pausedForAccessibility) return@launch
-                pausedIds.remove(id)
-                val leftover = remainingMillis[id] ?: return@launch
-                val toast = activeToasts.find { it.id == id } ?: return@launch
-                launchTimer(toast, leftover)
-            }
-        }
+    fun resumeTimer(id: String) = onMain {
+        // A touch release must not undo the screen reader pause.
+        if (id !in pausedIds || pausedForAccessibility) return@onMain
+        pausedIds.remove(id)
+        val leftover = remainingMillis[id] ?: return@onMain
+        val toast = activeToasts.find { it.id == id } ?: return@onMain
+        launchTimer(toast, leftover)
     }
 
     /**
@@ -803,7 +848,7 @@ class ToastStackState(
      * so toasts don't expire while the user can't see them. Call
      * [resumeAll] when the app returns to the foreground.
      */
-    fun pauseAll() {
+    fun pauseAll() = onMain {
         activeToasts.forEach { pauseTimer(it.id) }
     }
 
@@ -814,7 +859,7 @@ class ToastStackState(
      * (Activity's onResume) to continue the countdowns that were
      * paused by [pauseAll].
      */
-    fun resumeAll() {
+    fun resumeAll() = onMain {
         activeToasts.forEach { resumeTimer(it.id) }
     }
 
@@ -834,6 +879,7 @@ class ToastStackState(
      * `onCleared()`.
      */
     fun destroy() {
+        destroyed = true
         coroutineScope.cancel()
         // Fires onDismiss(Programmatic) for every toast, so await() callers resume.
         dismissAll()
@@ -849,6 +895,7 @@ class ToastStackState(
     private fun removeSilently(id: String, reason: DismissReason) {
         val active = activeToasts.find { it.id == id }
         val toast = active ?: pendingQueue.find { it.id == id } ?: return
+        aliases.values.removeAll { it == id }
         if (active != null) {
             activeToasts.remove(active)
             shownIds.remove(id)

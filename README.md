@@ -114,6 +114,8 @@ ToastStack.show("Plain message")
 
 That's it. No `Scaffold`, no `SnackbarHostState`, no `setContent` wiring.
 
+These calls are safe from any thread. The toast is added on the main thread, and callbacks such as `onDismiss` and actions run on the main thread.
+
 The toast goes to the Activity on screen. These calls return null and drop the toast when no host is registered: before the first Activity resumes, or when `hostTag` names a host that does not exist. The first drop logs one warning under the tag `ToastStack`.
 
 ### Global Configuration (optional)
