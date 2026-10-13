@@ -13,9 +13,6 @@ jobs:
   verify:
     name: Verify Release Build
     runs-on: ubuntu-latest
-    # Attaching the AAR to the release needs write access to contents.
-    permissions:
-      contents: write
 
     steps:
       - name: Checkout code
@@ -63,7 +60,10 @@ jobs:
       - name: Verify publish
         run: ./gradlew :toaststack:publishReleasePublicationToMavenLocal
 
-      - name: Attach the AAR to the release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh release upload "${{ github.event.release.tag_name }}" toaststack/build/outputs/aar/toaststack-release.aar --clobber
+      # Releases in this repo are immutable once published, so the AAR cannot
+      # be attached to the release. Keep it with the workflow run instead.
+      - name: Upload release AAR
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: toaststack-release
+          path: toaststack/build/outputs/aar/toaststack-release.aar
