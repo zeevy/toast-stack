@@ -192,10 +192,7 @@ internal fun ToastItem(
     //   for a clean edge to edge appearance, similar to a snackbar
     // - Start / End corners: constrained width so the card wraps its content and the
     //   alignment difference between Start and End is visible on screen
-    val useFullWidth = toast.position == ToastPosition.TopCenter ||
-        toast.position == ToastPosition.BottomCenter ||
-        toast.position == ToastPosition.Center
-    val widthModifier = if (useFullWidth) {
+    val widthModifier = if (toast.position.fillsWidth) {
         Modifier.fillMaxWidth()
     } else {
         Modifier.widthIn(min = 200.dp, max = 320.dp)

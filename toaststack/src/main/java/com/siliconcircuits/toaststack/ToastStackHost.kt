@@ -1,7 +1,6 @@
 package com.siliconcircuits.toaststack
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -20,8 +19,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -119,8 +116,6 @@ fun ToastStackHost(
         }
     }
 
-    val layoutDirection = LocalLayoutDirection.current
-
     // Check if the system's "remove animations" setting is enabled.
     // When active, all toast animations are simplified to a short fade
     // regardless of what the toast or state defaults specify. This ensures
@@ -182,34 +177,17 @@ fun ToastStackHost(
         val toastsByPosition = renderList.groupBy { it.position }
 
         toastsByPosition.forEach { (position, toastsAtPosition) ->
-            val boxAlignment = position.toBoxAlignment(layoutDirection)
-            val isTopAnchored = position in setOf(
-                ToastPosition.TopCenter,
-                ToastPosition.TopStart,
-                ToastPosition.TopEnd
-            )
-
-            val verticalArrangement = when {
-                isTopAnchored -> Arrangement.Top
-                position == ToastPosition.Center -> Arrangement.Center
-                else -> Arrangement.Bottom
-            }
-
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .align(boxAlignment)
+                    .align(position.alignment)
                     .padding(contentPadding),
-                horizontalAlignment = position.toHorizontalAlignment(layoutDirection),
-                verticalArrangement = verticalArrangement
+                horizontalAlignment = position.horizontalAlignment,
+                verticalArrangement = position.verticalArrangement
             ) {
                 toastsAtPosition.forEachIndexed { index, toast ->
                     key(toast.id) {
-                        val slideSign = when {
-                            isTopAnchored -> -1
-                            position == ToastPosition.Center -> 0
-                            else -> 1
-                        }
+                        val slideSign = position.slideSign
 
                         // When reduced motion is active, override the animation to
                         // a simple fade with short duration. Otherwise use the
@@ -291,56 +269,5 @@ fun ToastStackHost(
                 }
             }
         }
-    }
-}
-
-/**
- * Converts a [ToastPosition] to a [Box] [Alignment] value, flipping
- * Start and End when the layout direction is right to left (RTL).
- *
- * Android supports both left to right (LTR) languages like English and
- * right to left (RTL) languages like Arabic and Hebrew. "Start" means
- * the leading edge (left in LTR, right in RTL) and "End" means the
- * trailing edge. This function resolves the logical Start/End to the
- * correct physical alignment so the toast appears on the expected side.
- *
- * @param layoutDirection The current [LayoutDirection] from the composition,
- *   typically provided by [LocalLayoutDirection].
- * @return The physical [Alignment] that places the toast column at the
- *   correct screen corner or edge.
- */
-private fun ToastPosition.toBoxAlignment(layoutDirection: LayoutDirection): Alignment {
-    val isRtl = layoutDirection == LayoutDirection.Rtl
-    return when (this) {
-        ToastPosition.TopCenter -> Alignment.TopCenter
-        ToastPosition.TopStart -> if (isRtl) Alignment.TopEnd else Alignment.TopStart
-        ToastPosition.TopEnd -> if (isRtl) Alignment.TopStart else Alignment.TopEnd
-        ToastPosition.BottomCenter -> Alignment.BottomCenter
-        ToastPosition.BottomStart -> if (isRtl) Alignment.BottomEnd else Alignment.BottomStart
-        ToastPosition.BottomEnd -> if (isRtl) Alignment.BottomStart else Alignment.BottomEnd
-        ToastPosition.Center -> Alignment.Center
-    }
-}
-
-/**
- * Determines how toast cards are horizontally aligned within their column.
- *
- * For Start positions the column aligns its children to the leading edge,
- * for End positions to the trailing edge, and for Center/Top/Bottom center
- * positions the children are centered horizontally. RTL flips Start and End
- * so the visual result matches the reading direction.
- *
- * @param layoutDirection The current [LayoutDirection] from the composition.
- * @return The [Alignment.Horizontal] value to pass to the [Column]'s
- *   `horizontalAlignment` parameter.
- */
-private fun ToastPosition.toHorizontalAlignment(layoutDirection: LayoutDirection): Alignment.Horizontal {
-    val isRtl = layoutDirection == LayoutDirection.Rtl
-    return when (this) {
-        ToastPosition.TopStart, ToastPosition.BottomStart ->
-            if (isRtl) Alignment.End else Alignment.Start
-        ToastPosition.TopEnd, ToastPosition.BottomEnd ->
-            if (isRtl) Alignment.Start else Alignment.End
-        else -> Alignment.CenterHorizontally
     }
 }
