@@ -379,6 +379,7 @@ Both features respect system settings (haptic toggle, silent mode, Do Not Distur
 - **Reduced motion**: Animations simplify to a short fade when system "Remove animations" is enabled
 - **Color contrast**: All built in types meet WCAG AA 4.5:1 minimum ratio
 - **Focus**: Action buttons are focusable and activatable via accessibility services
+- **Translations**: The screen reader prefixes, the close button label and the repeat count are string resources (`toaststack_type_success`, `toaststack_type_error`, `toaststack_type_warning`, `toaststack_type_info`, `toaststack_type_loading`, `toaststack_dismiss`, `toaststack_dismiss_action` and the plural `toaststack_repeat_count`). Give a string with the same name in your app's `res/values-xx/strings.xml` to translate it.
 
 ## ProGuard / R8
 

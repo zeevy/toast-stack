@@ -43,6 +43,8 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
@@ -157,17 +159,24 @@ internal fun ToastItem(
     // Build the accessibility description including the toast type so
     // screen readers announce context like "Error notification: Connection
     // failed" rather than just the message text.
+    // The labels are string resources, so apps can translate them.
     val typePrefix = when (toast.type) {
-        ToastType.Success -> "Success notification"
-        ToastType.Error -> "Error notification"
-        ToastType.Warning -> "Warning notification"
-        ToastType.Info -> "Information notification"
-        ToastType.Loading -> "Loading"
+        ToastType.Success -> stringResource(R.string.toaststack_type_success)
+        ToastType.Error -> stringResource(R.string.toaststack_type_error)
+        ToastType.Warning -> stringResource(R.string.toaststack_type_warning)
+        ToastType.Info -> stringResource(R.string.toaststack_type_info)
+        ToastType.Loading -> stringResource(R.string.toaststack_type_loading)
         ToastType.Default -> null
     }
     // Deduplication counts repeats of the same message. Show "(x5)" so the
     // user can see the event happened more than once.
-    val messageText = if (toast.repeatCount > 1) "${toast.message} (x${toast.repeatCount})" else toast.message
+    val messageText = if (toast.repeatCount > 1) {
+        pluralStringResource(R.plurals.toaststack_repeat_count, toast.repeatCount, toast.message, toast.repeatCount)
+    } else {
+        toast.message
+    }
+    val dismissLabel = stringResource(R.string.toaststack_dismiss)
+    val dismissActionLabel = stringResource(R.string.toaststack_dismiss_action)
     val accessibilityLabel = buildString {
         if (typePrefix != null) {
             append(typePrefix)
@@ -221,7 +230,7 @@ internal fun ToastItem(
                     // Timers stop while TalkBack is on, so give its users a way
                     // to close any toast, with or without a close button.
                     customActions = listOf(
-                        CustomAccessibilityAction("Dismiss") {
+                        CustomAccessibilityAction(dismissActionLabel) {
                             onDismiss(DismissReason.CloseButton)
                             true
                         }
@@ -260,7 +269,7 @@ internal fun ToastItem(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Close,
-                                contentDescription = "Dismiss toast",
+                                contentDescription = dismissLabel,
                                 tint = contentColor,
                                 modifier = Modifier.size(18.dp)
                             )
@@ -306,7 +315,8 @@ internal fun ToastItem(
                     if (typeIcon != null) {
                         Icon(
                             imageVector = typeIcon,
-                            contentDescription = "${toast.type.name} icon",
+                            // The type is already in the card's label, so the icon is decorative.
+                            contentDescription = null,
                             tint = resolvedStyle.iconTint
                                 ?: contentColor,
                             modifier = Modifier.size(22.dp)
@@ -396,7 +406,7 @@ internal fun ToastItem(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Close,
-                            contentDescription = "Dismiss toast",
+                            contentDescription = dismissLabel,
                             tint = contentColor,
                             modifier = Modifier.size(18.dp)
                         )

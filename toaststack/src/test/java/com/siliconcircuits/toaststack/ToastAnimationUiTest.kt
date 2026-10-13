@@ -398,10 +398,10 @@ class ToastAnimationUiTest {
         composeTestRule.onNode(hasContentDescription("Alert. Details here")).assertExists()
     }
 
-    // --- Type icon content descriptions ---
+    // --- Type announced in the card label; the icon is decorative ---
 
     @Test
-    fun `success toast has icon with content description`() {
+    fun `each typed toast announces its type and its icon has no label`() {
         lateinit var state: ToastStackState
         composeTestRule.setContent {
             MaterialTheme {
@@ -411,53 +411,16 @@ class ToastAnimationUiTest {
         }
 
         state.success("Done", duration = ToastDuration.Indefinite)
-        composeTestRule.mainClock.advanceTimeBy(500)
-        composeTestRule.onNodeWithContentDescription("Success icon").assertExists()
-    }
-
-    @Test
-    fun `error toast has icon with content description`() {
-        lateinit var state: ToastStackState
-        composeTestRule.setContent {
-            MaterialTheme {
-                state = rememberToastStackState()
-                ToastStackHost(state = state)
-            }
-        }
-
         state.error("Failed", duration = ToastDuration.Indefinite)
-        composeTestRule.mainClock.advanceTimeBy(500)
-        composeTestRule.onNodeWithContentDescription("Error icon").assertExists()
-    }
-
-    @Test
-    fun `warning toast has icon with content description`() {
-        lateinit var state: ToastStackState
-        composeTestRule.setContent {
-            MaterialTheme {
-                state = rememberToastStackState()
-                ToastStackHost(state = state)
-            }
-        }
-
         state.warning("Watch out", duration = ToastDuration.Indefinite)
-        composeTestRule.mainClock.advanceTimeBy(500)
-        composeTestRule.onNodeWithContentDescription("Warning icon").assertExists()
-    }
-
-    @Test
-    fun `info toast has icon with content description`() {
-        lateinit var state: ToastStackState
-        composeTestRule.setContent {
-            MaterialTheme {
-                state = rememberToastStackState()
-                ToastStackHost(state = state)
-            }
-        }
-
         state.info("FYI", duration = ToastDuration.Indefinite)
         composeTestRule.mainClock.advanceTimeBy(500)
-        composeTestRule.onNodeWithContentDescription("Info icon").assertExists()
+
+        composeTestRule.onNode(hasContentDescription("Success notification: Done")).assertExists()
+        composeTestRule.onNode(hasContentDescription("Error notification: Failed")).assertExists()
+        composeTestRule.onNode(hasContentDescription("Warning notification: Watch out")).assertExists()
+        composeTestRule.onNode(hasContentDescription("Information notification: FYI")).assertExists()
+        composeTestRule.onNode(hasContentDescription("icon", substring = true)).assertDoesNotExist()
     }
 
     // --- Close button fires CloseButton reason ---
@@ -589,5 +552,24 @@ class ToastAnimationUiTest {
         val info = context.packageManager.getPackageInfo(context.packageName, PackageManager.GET_PERMISSIONS)
 
         assertFalse(info.requestedPermissions.orEmpty().contains(Manifest.permission.VIBRATE))
+    }
+
+    // --- Translatable labels ---
+
+    @Test
+    @Config(qualifiers = "zz")
+    fun `an app can translate the labels and the repeat count`() {
+        lateinit var state: ToastStackState
+        composeTestRule.setContent {
+            state = rememberToastStackState(deduplicationWindowMs = 60_000)
+            ToastStackHost(state = state)
+        }
+
+        composeTestRule.runOnIdle {
+            repeat(3) { state.show("Upload failed", type = ToastType.Error, showCloseButton = true) }
+        }
+
+        composeTestRule.onNode(hasContentDescription("ZZ error: Upload failed [3 times]")).assertExists()
+        composeTestRule.onNode(hasContentDescription("ZZ close")).assertExists()
     }
 }
