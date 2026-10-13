@@ -24,9 +24,9 @@ import kotlin.time.Duration
  * ToastStack.show("msg", duration = ToastDuration(3.seconds))
  * ```
  *
- * The auto dismiss timer starts as soon as the toast becomes visible
- * and can be paused/resumed by user interaction (e.g., dragging the
- * toast) or lifecycle events (app going to background).
+ * The auto dismiss timer starts as soon as the toast becomes visible.
+ * It pauses while the user holds the toast, while TalkBack is on, and
+ * when the app calls [ToastStackState.pauseAll].
  *
  * @property millis The number of milliseconds the toast stays visible.
  *   For [Indefinite], this is [Long.MAX_VALUE] which effectively means

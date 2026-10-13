@@ -217,8 +217,8 @@ object ToastStack {
     }
 
     /**
-     * Shows a toast on the resolved host and returns its unique ID, or
-     * null if no host is currently registered.
+     * Shows a toast on the resolved host and returns a [ToastHandle] for it,
+     * or null if no host is currently registered.
      *
      * This is the most flexible entry point. For simpler calls with a
      * specific type, prefer [success], [error], [warning], or [info].
@@ -287,7 +287,7 @@ object ToastStack {
     }
 
     /**
-     * Shows a [ToastType.Success] toast (green background, check icon).
+     * Shows a [ToastType.Success] toast (check icon; colors follow the [ToastColorSource]).
      *
      * @param message The body text (e.g., "File saved").
      * @param title Optional headline above the message.
@@ -303,7 +303,7 @@ object ToastStack {
     ): ToastHandle? = resolveHost(hostTag)?.success(message, title, onDismiss = onDismiss)
 
     /**
-     * Shows a [ToastType.Error] toast (red background, error icon).
+     * Shows a [ToastType.Error] toast (error icon; colors follow the [ToastColorSource]).
      *
      * @param message The body text (e.g., "Connection failed").
      * @param title Optional headline above the message.
@@ -319,7 +319,7 @@ object ToastStack {
     ): ToastHandle? = resolveHost(hostTag)?.error(message, title, onDismiss = onDismiss)
 
     /**
-     * Shows a [ToastType.Warning] toast (amber background, warning icon).
+     * Shows a [ToastType.Warning] toast (warning icon; colors follow the [ToastColorSource]).
      *
      * @param message The body text (e.g., "Low battery").
      * @param title Optional headline above the message.
@@ -335,7 +335,7 @@ object ToastStack {
     ): ToastHandle? = resolveHost(hostTag)?.warning(message, title, onDismiss = onDismiss)
 
     /**
-     * Shows a [ToastType.Info] toast (blue background, info icon).
+     * Shows a [ToastType.Info] toast (info icon; colors follow the [ToastColorSource]).
      *
      * @param message The body text (e.g., "Update available").
      * @param title Optional headline above the message.

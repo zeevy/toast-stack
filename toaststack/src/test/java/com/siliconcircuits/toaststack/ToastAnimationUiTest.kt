@@ -1,8 +1,10 @@
 package com.siliconcircuits.toaststack
 
 import android.Manifest
+import android.app.NotificationManager
 import android.content.Context
 import android.content.pm.PackageManager
+import android.media.AudioManager
 import android.os.Build
 import android.os.Looper
 import android.view.HapticFeedbackConstants
@@ -667,5 +669,22 @@ class ToastAnimationUiTest {
         }
 
         assertEquals(listOf("Error notification", "Dismiss toast"), state.toasts.map { it.message })
+    }
+
+    // --- Sound ---
+
+    @Test
+    fun `sound is held back in silent mode and in Do Not Disturb`() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val audio = context.getSystemService(AudioManager::class.java)
+        val notifications = context.getSystemService(NotificationManager::class.java)
+        assertTrue(ToastFeedback.soundAllowed(context))
+
+        notifications.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_PRIORITY)
+        assertFalse(ToastFeedback.soundAllowed(context))
+
+        notifications.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_ALL)
+        audio.ringerMode = AudioManager.RINGER_MODE_SILENT
+        assertFalse(ToastFeedback.soundAllowed(context))
     }
 }

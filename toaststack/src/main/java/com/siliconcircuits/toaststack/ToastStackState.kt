@@ -23,7 +23,7 @@ import kotlinx.coroutines.launch
  * This class is the core of ToastStack. It maintains an ordered list of
  * visible toasts, enforces the maximum capacity, runs auto dismiss timers,
  * and supports pausing/resuming those timers during user interaction or
- * when the app moves to the background.
+ * when the app calls [pauseAll] and [resumeAll].
  *
  * Internally, the toast list is backed by Compose's `mutableStateListOf`,
  * which is a "snapshot aware" collection. This means that whenever a toast
@@ -41,9 +41,10 @@ import kotlinx.coroutines.launch
  * which helps Compose skip unnecessary recompositions for better performance.
  *
  * @param maxVisible The maximum number of toasts that can be visible at the
- *   same time. When a new toast is shown and the limit is already reached,
- *   the oldest toast is automatically evicted (dismissed with
- *   [DismissReason.Programmatic]) to make room. Defaults to 5.
+ *   same time. When the limit is reached, a new toast waits in a queue
+ *   (by [ToastPriority]) until a slot opens. An [ToastPriority.Urgent]
+ *   toast evicts the oldest non-urgent one instead (dismissed with
+ *   [DismissReason.Programmatic]). Defaults to 5.
  * @param defaultPosition The [ToastPosition] used when a toast does not
  *   explicitly specify its own position. Defaults to [ToastPosition.TopCenter].
  * @param defaultDuration The [ToastDuration] used when a toast does not
@@ -224,11 +225,11 @@ class ToastStackState(
         internal set
 
     /**
-     * Displays a new toast and returns its unique ID.
+     * Displays a new toast and returns a [ToastHandle] for it.
      *
-     * The returned ID can be used later to dismiss the toast programmatically
-     * via [dismiss]. If the number of visible toasts is already at
-     * [maxVisible], the oldest toast is evicted to make room.
+     * The handle (or its `id`) can be used later to dismiss or update the
+     * toast. If [maxVisible] toasts are already on screen, the toast waits
+     * in the queue; see [ToastPriority].
      *
      * All parameters except [message] have defaults, so the simplest call
      * is just `show("Hello")`.
@@ -300,7 +301,7 @@ class ToastStackState(
 
     /**
      * Convenience method that shows a [ToastType.Success] toast with a
-     * green background and check circle icon.
+     * check circle icon. Its colors follow the [ToastColorSource].
      *
      * @param message The body text (e.g., "File uploaded successfully").
      * @param title Optional headline above the message.
@@ -316,7 +317,7 @@ class ToastStackState(
 
     /**
      * Convenience method that shows a [ToastType.Error] toast with a
-     * red background and error icon.
+     * error icon. Its colors follow the [ToastColorSource].
      *
      * @param message The body text (e.g., "Connection failed").
      * @param title Optional headline above the message.
@@ -332,7 +333,7 @@ class ToastStackState(
 
     /**
      * Convenience method that shows a [ToastType.Warning] toast with an
-     * amber/yellow background and warning triangle icon.
+     * warning triangle icon. Its colors follow the [ToastColorSource].
      *
      * @param message The body text (e.g., "Low storage space").
      * @param title Optional headline above the message.
@@ -348,7 +349,7 @@ class ToastStackState(
 
     /**
      * Convenience method that shows a [ToastType.Info] toast with a
-     * blue background and info circle icon.
+     * info circle icon. Its colors follow the [ToastColorSource].
      *
      * @param message The body text (e.g., "Update available").
      * @param title Optional headline above the message.
@@ -878,9 +879,9 @@ class ToastStackState(
     /**
      * Pauses the auto dismiss timer for every active toast.
      *
-     * Useful when the app moves to the background (Activity's onPause)
-     * so toasts don't expire while the user can't see them. Call
-     * [resumeAll] when the app returns to the foreground.
+     * The library does not call this by itself. An app can call it, for
+     * example from Activity.onPause, so toasts don't expire while the user
+     * can't see them, and call [resumeAll] when the app returns.
      */
     fun pauseAll() = onMain {
         activeToasts.forEach { pauseTimer(it.id) }

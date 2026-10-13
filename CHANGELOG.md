@@ -17,6 +17,7 @@ Changes to the ToastStack library, newest first. "Behavior changes" lists what a
 - A custom `contentColor` now also colors the title and the icon. (#54)
 - Haptics use the view haptic API ("reject" for errors and warnings, "confirm" for success). The library no longer asks for the VIBRATE permission, so apps lose it from their merged manifest unless they declare it. (#56)
 - The screen reader labels, the close button label and the repeat count are string resources an app can translate. The type icon no longer has its own label, so TalkBack reads the card once. (#57)
+- A toast sound is held back while Do Not Disturb holds back interruptions, as the README already said, and plays as a notification sound. (#61)
 
 ### Added
 

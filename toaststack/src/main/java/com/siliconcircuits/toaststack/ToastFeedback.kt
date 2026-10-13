@@ -1,6 +1,8 @@
 package com.siliconcircuits.toaststack
 
+import android.app.NotificationManager
 import android.content.Context
+import android.media.AudioAttributes
 import android.media.AudioManager
 import android.media.RingtoneManager
 import android.os.Build
@@ -52,19 +54,18 @@ internal object ToastFeedback {
      * @param context The application context for accessing audio services.
      */
     fun playSound(context: Context, customSoundUri: android.net.Uri? = null) {
-        val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
-        // Skip if ringer mode is silent or vibrate only.
-        val ringerMode = audioManager?.ringerMode ?: AudioManager.RINGER_MODE_NORMAL
-        if (ringerMode == AudioManager.RINGER_MODE_SILENT ||
-            ringerMode == AudioManager.RINGER_MODE_VIBRATE) return
-
+        if (!soundAllowed(context)) return
         try {
             // Use the custom sound URI if provided, otherwise fall back
             // to the system's default notification sound.
             val uri = customSoundUri
                 ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
-            val ringtone = RingtoneManager.getRingtone(context, uri)
-            ringtone?.play()
+            val ringtone = RingtoneManager.getRingtone(context, uri) ?: return
+            ringtone.audioAttributes = AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .build()
+            ringtone.play()
         } catch (e: Exception) {
             // Some devices have no default notification sound, and a bad
             // soundUri fails here. Do not crash; say so once.
@@ -77,4 +78,18 @@ internal object ToastFeedback {
 
     @Volatile
     private var warnedSound = false
+
+    /**
+     * False when the ringer is silent or on vibrate, or Do Not Disturb holds
+     * back some interruptions. A filter the app cannot read counts as allowed.
+     */
+    internal fun soundAllowed(context: Context): Boolean {
+        val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+        val ringerMode = audioManager?.ringerMode ?: AudioManager.RINGER_MODE_NORMAL
+        if (ringerMode == AudioManager.RINGER_MODE_SILENT || ringerMode == AudioManager.RINGER_MODE_VIBRATE) return false
+        val filter = (context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager)
+            ?.currentInterruptionFilter ?: NotificationManager.INTERRUPTION_FILTER_UNKNOWN
+        return filter == NotificationManager.INTERRUPTION_FILTER_ALL ||
+            filter == NotificationManager.INTERRUPTION_FILTER_UNKNOWN
+    }
 }
