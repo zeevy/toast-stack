@@ -29,6 +29,7 @@ class GapFixTest {
 
     // -- Per toast offset --
 
+    @Suppress("DEPRECATION") // still honoured until removed
     @Test
     fun `offsetX and offsetY default to zero`() {
         val toast = ToastData(message = "test")
@@ -36,6 +37,7 @@ class GapFixTest {
         assertEquals(0, toast.offsetY)
     }
 
+    @Suppress("DEPRECATION") // still honoured until removed
     @Test
     fun `offsetX and offsetY are preserved`() {
         val toast = ToastData(message = "test", offsetX = 10, offsetY = -20)

@@ -168,7 +168,7 @@ class ActionAndProgressTest {
         val handle = ToastStack.loading("Processing...")
         assertNotNull(handle)
         assertEquals(ToastType.Loading, state.toasts.first().type)
-        ToastStack.unregisterHost("test")
+        ToastStack.unregisterHost("test", state)
     }
 
     @Test

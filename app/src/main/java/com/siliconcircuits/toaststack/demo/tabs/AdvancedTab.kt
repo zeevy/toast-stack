@@ -26,8 +26,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.siliconcircuits.toaststack.ToastDuration
+import com.siliconcircuits.toaststack.ToastStack
 import com.siliconcircuits.toaststack.ToastStackState
 import com.siliconcircuits.toaststack.ToastStackStyle
+import kotlin.concurrent.thread
 
 @Composable
 fun AdvancedTab(toastState: ToastStackState) {
@@ -155,6 +157,23 @@ fun AdvancedTab(toastState: ToastStackState) {
                 toastState.info(
                     "Animations will simplify to a short fade if 'Remove animations' is enabled in Accessibility settings"
                 )
+            }
+        )
+
+        Spacer(modifier = Modifier.height(28.dp))
+
+        SectionLabel("Global ToastStack")
+        Spacer(modifier = Modifier.height(4.dp))
+
+        AdvCard(
+            title = "From a Background Thread",
+            subtitle = "ToastStack.success() called off the main thread",
+            onClick = {
+                counter++
+                val number = counter
+                thread {
+                    ToastStack.success("Sent from a background thread", title = "Global #$number")
+                }
             }
         )
 

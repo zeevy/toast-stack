@@ -32,6 +32,51 @@ class ToastStackStateTest {
         Dispatchers.resetMain()
     }
 
+    // -- Screen reader pause --
+
+    private fun advance(millis: Long) {
+        testDispatcher.scheduler.advanceTimeBy(millis)
+        testDispatcher.scheduler.runCurrent()
+    }
+
+    @Test
+    fun `a toast shown while TalkBack is on does not time out until it turns off`() {
+        state.pausedForAccessibility = true
+        state.show("Read me", duration = ToastDuration.Short)
+
+        advance(10_000)
+        assertEquals(1, state.toasts.size)
+
+        state.pausedForAccessibility = false
+        advance(ToastDuration.Short.millis + 100)
+        assertTrue(state.toasts.isEmpty())
+    }
+
+    @Test
+    fun `a touch release does not restart the timer while TalkBack is on`() {
+        val handle = state.show("Held", duration = ToastDuration.Short)
+        state.pausedForAccessibility = true
+        advance(0)
+
+        state.resumeTimer(handle.id)
+        advance(10_000)
+
+        assertEquals(1, state.toasts.size)
+    }
+
+    @Test
+    fun `a queued toast promoted while TalkBack is on does not time out`() {
+        val full = ToastStackState(maxVisible = 1)
+        full.pausedForAccessibility = true
+        val first = full.show("First", duration = ToastDuration.Indefinite)
+        full.show("Queued", duration = ToastDuration.Short)
+
+        first.dismiss()
+        advance(10_000)
+
+        assertEquals("Queued", full.toasts.single().message)
+    }
+
     // -- Show & basic state --
 
     @Test

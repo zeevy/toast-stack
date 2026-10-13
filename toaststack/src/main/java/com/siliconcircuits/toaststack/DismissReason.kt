@@ -41,7 +41,9 @@ enum class DismissReason {
     /**
      * The user tapped the close button (the X icon) on the trailing
      * edge of the toast. This button only appears when `showCloseButton`
-     * is set to true in the toast configuration.
+     * is set to true in the toast configuration. The "Dismiss"
+     * accessibility action, which every toast has for TalkBack users,
+     * also sends this reason.
      */
     CloseButton,
 

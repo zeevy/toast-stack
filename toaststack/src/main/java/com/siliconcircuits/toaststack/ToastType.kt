@@ -72,7 +72,7 @@ enum class ToastType {
      * ```
      * val handle = ToastStack.loading("Uploading...")
      * // Later, when done:
-     * handle.dismiss()
+     * handle?.dismiss()
      * ToastStack.success("Upload complete")
      * ```
      */

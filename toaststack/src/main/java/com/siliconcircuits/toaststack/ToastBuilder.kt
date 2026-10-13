@@ -18,7 +18,7 @@ import androidx.compose.runtime.Composable
  *
  * You can use the builder DSL:
  * ```
- * ToastStack.build {
+ * buildToast {
  *     message = "File deleted"
  *     title = "Success"
  *     type = ToastType.Success
@@ -79,6 +79,21 @@ class ToastBuilder {
     /** Callback when the toast becomes visible. */
     var onShow: (() -> Unit)? = null
 
+    /** Where the toast goes when the stack is full. */
+    var priority: ToastPriority = ToastPriority.Normal
+
+    /** Replaces the type's default icon. */
+    var customIcon: (@Composable () -> Unit)? = null
+
+    /** The sound to play when [soundEnabled]. Null uses the system notification sound. */
+    var soundUri: android.net.Uri? = null
+
+    /** Label of a second action button, shown next to the primary one. */
+    var secondaryActionLabel: String? = null
+
+    /** Called when the secondary action is tapped. The toast is then dismissed. */
+    var onSecondaryAction: (() -> Unit)? = null
+
     /**
      * Builds a [ToastData] from the current builder state.
      */
@@ -96,8 +111,13 @@ class ToastBuilder {
             animationConfig = animationConfig,
             actionLabel = actionLabel,
             onAction = onAction,
+            secondaryActionLabel = secondaryActionLabel,
+            onSecondaryAction = onSecondaryAction,
+            priority = priority,
+            customIcon = customIcon,
             hapticEnabled = hapticEnabled,
             soundEnabled = soundEnabled,
+            soundUri = soundUri,
             onShow = onShow,
             onDismiss = onDismiss
         )
@@ -135,7 +155,7 @@ fun ToastStackState.build(block: ToastBuilder.() -> Unit): ToastHandle {
  * Shows a toast via the global singleton using the builder DSL.
  *
  * ```
- * ToastStack.build {
+ * buildToast {
  *     message = "Saved"
  *     type = ToastType.Success
  * }

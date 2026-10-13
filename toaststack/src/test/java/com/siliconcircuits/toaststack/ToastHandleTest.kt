@@ -9,6 +9,7 @@ import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
@@ -109,6 +110,13 @@ class ToastHandleTest {
         handle.onDismiss { }
     }
 
+    @Test
+    fun `withSecondaryAction adds the second button`() {
+        state.show("Deleted", duration = ToastDuration.Indefinite).withSecondaryAction("View") {}
+
+        assertEquals("View", state.toasts.single().secondaryActionLabel)
+    }
+
     // -- Suspend: await --
 
     @Test
@@ -124,6 +132,17 @@ class ToastHandleTest {
         advanceUntilIdle()
 
         assertEquals(DismissReason.Swipe, deferred.await())
+    }
+
+    @Test
+    fun `await returns Programmatic when the state is destroyed`() = runTest {
+        val handle = state.show("Test", duration = ToastDuration.Indefinite)
+        val deferred = async { handle.await() }
+        runCurrent()
+
+        state.destroy()
+
+        assertEquals(DismissReason.Programmatic, deferred.await())
     }
 
     @Test
@@ -158,6 +177,89 @@ class ToastHandleTest {
         assertEquals(DismissReason.CloseButton, deferred.await())
     }
 
+    // -- Queued toasts: the stack is full, so the toast waits in the queue --
+
+    /** A state with one slot, already taken by an Indefinite toast. */
+    private fun fullState(): Pair<ToastStackState, ToastHandle> {
+        val full = ToastStackState(maxVisible = 1)
+        return full to full.show("On screen", duration = ToastDuration.Indefinite)
+    }
+
+    @Test
+    fun `await on a queued toast returns after it shows and times out`() = runTest {
+        val (full, onScreen) = fullState()
+        val queued = full.show("Queued", duration = ToastDuration.Custom(1_000))
+        val deferred = async { queued.await() }
+        runCurrent()
+
+        onScreen.dismiss()
+        advanceUntilIdle()
+
+        assertEquals(DismissReason.Timeout, deferred.await())
+    }
+
+    @Test
+    fun `dismiss on a queued toast removes it before it shows`() {
+        val (full, onScreen) = fullState()
+        var reason: DismissReason? = null
+        val loading = full.loading("Loading", onDismiss = { reason = it })
+
+        loading.dismiss()
+        onScreen.dismiss()
+
+        assertTrue(full.toasts.isEmpty())
+        assertEquals(DismissReason.Programmatic, reason)
+    }
+
+    @Test
+    fun `withAction and updateProgress on a queued toast reach the card when it shows`() {
+        val (full, onScreen) = fullState()
+        val queued = full.loading("Uploading").withAction("Cancel") {}
+        queued.updateProgress(0.5f, "1 of 2")
+
+        onScreen.dismiss()
+
+        val shown = full.toasts.single()
+        assertEquals("Cancel", shown.actionLabel)
+        assertEquals(0.5f, shown.progress)
+        assertEquals("1 of 2", shown.progressLabel)
+    }
+
+    @Test
+    fun `showAndAwait returns when the stack was full`() = runTest {
+        val (full, onScreen) = fullState()
+        val deferred = async { full.showAndAwait("Queued", duration = ToastDuration.Indefinite) }
+        runCurrent()
+
+        onScreen.dismiss()
+        full.dismiss(full.toasts.single().id, DismissReason.Action)
+
+        assertEquals(DismissReason.Action, deferred.await())
+    }
+
+    @Test
+    fun `dismissAll ends await on a queued toast`() = runTest {
+        val (full, _) = fullState()
+        val queued = full.show("Queued", duration = ToastDuration.Indefinite)
+        val deferred = async { queued.await() }
+        runCurrent()
+
+        full.dismissAll()
+
+        assertEquals(DismissReason.Programmatic, deferred.await())
+    }
+
+    @Test
+    fun `an onDismiss that throws still lets the next queued toast show`() {
+        val full = ToastStackState(maxVisible = 1)
+        val first = full.show("First", duration = ToastDuration.Indefinite, onDismiss = { error("app bug") })
+        full.show("Next", duration = ToastDuration.Indefinite)
+
+        runCatching { first.dismiss() }
+
+        assertEquals("Next", full.toasts.single().message)
+    }
+
     // -- showAndAwait on ToastStack singleton --
 
     @Test
@@ -179,7 +281,7 @@ class ToastHandleTest {
         advanceUntilIdle()
 
         assertEquals(DismissReason.Timeout, deferred.await())
-        ToastStack.unregisterHost("test")
+        ToastStack.unregisterHost("test", state)
     }
 
     // -- Kotlin Duration support --
@@ -255,12 +357,12 @@ class ToastHandleTest {
         assertEquals(1, state.toasts.size)
         handle!!.dismiss()
         assertTrue(state.toasts.isEmpty())
-        ToastStack.unregisterHost("test")
+        ToastStack.unregisterHost("test", state)
     }
 
     @Test
     fun `singleton show returns null when no host`() {
-        ToastStack.unregisterHost("test")
+        ToastStack.unregisterHost("test", state)
         val handle = ToastStack.show("Orphan")
         assertEquals(null, handle)
     }
@@ -277,6 +379,6 @@ class ToastHandleTest {
         assertNotNull(w)
         assertNotNull(i)
         assertEquals(4, state.toasts.size)
-        ToastStack.unregisterHost("test")
+        ToastStack.unregisterHost("test", state)
     }
 }
