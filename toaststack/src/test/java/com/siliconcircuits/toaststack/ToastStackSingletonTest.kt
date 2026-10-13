@@ -276,9 +276,14 @@ class ToastStackSingletonTest {
         assertEquals(ToastPriority.High, toast.priority)
     }
 
-    @Test(expected = IllegalArgumentException::class)
-    fun `configure with maxVisible below 1 fails fast`() {
-        ToastStack.configure(maxVisible = 0)
+    @Test
+    fun `configure with maxVisible below 1 fails fast and changes nothing`() {
+        val style = ToastStackStyle(backgroundColor = androidx.compose.ui.graphics.Color.Red)
+
+        val result = runCatching { ToastStack.configure(maxVisible = 0, globalStyle = style) }
+
+        assertTrue(result.exceptionOrNull() is IllegalArgumentException)
+        assertNull(ToastStack.defaultGlobalStyle)
     }
 
     @Test

@@ -161,9 +161,10 @@ object ToastStack {
         theme: (@Composable (content: @Composable () -> Unit) -> Unit)? = this.theme,
         autoOverlay: (Activity) -> Boolean = this.autoOverlay,
     ) {
+        // Check first, so a bad value changes nothing.
+        require(maxVisible >= 1) { "maxVisible must be at least 1, was $maxVisible" }
         defaultContentPadding = contentPadding
         defaultGlobalStyle = globalStyle
-        require(maxVisible >= 1) { "maxVisible must be at least 1, was $maxVisible" }
         defaults = ToastDefaults(
             maxVisible, defaultPosition, defaultDuration, defaultSwipeDismiss,
             defaultAnimation, defaultAnimationConfig, deduplicationWindowMs, showRepeatCount,

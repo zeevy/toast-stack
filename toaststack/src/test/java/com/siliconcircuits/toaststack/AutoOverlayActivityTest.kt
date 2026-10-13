@@ -196,6 +196,18 @@ class AutoOverlayActivityTest {
     }
 
     @Test
+    fun `an Activity with only the overlay logs no shared tag warning`() {
+        ShadowLog.clear()
+
+        val controller = launch()
+        controller.pause().resume()
+        idle()
+
+        assertEquals(0, ShadowLog.getLogsForTag("ToastStack").count { "same Activity" in it.msg })
+        controller.pause().stop().destroy()
+    }
+
+    @Test
     fun `a hand-placed default host next to the overlay logs one warning`() {
         ShadowLog.clear()
 

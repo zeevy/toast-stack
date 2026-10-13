@@ -647,16 +647,18 @@ class ToastStackState(
         val count = if (showRepeatCount) 1 else 0
         // The window counts from the card's last show or repeat.
         fun inWindow(card: ToastData) = now - card.lastShownAt < deduplicationWindowMs
-        val activeIndex = activeToasts.indexOfFirst { it.message == message }
-        if (activeIndex != -1 && inWindow(activeToasts[activeIndex])) {
+        // An older card with the same message, out of its window, does not
+        // hide a newer one that is still in it.
+        val activeIndex = activeToasts.indexOfFirst { it.message == message && inWindow(it) }
+        if (activeIndex != -1) {
             val current = activeToasts[activeIndex]
             val updated = current.copy(repeatCount = current.repeatCount + count, lastShownAt = now)
             activeToasts[activeIndex] = updated
             if (updated.duration != ToastDuration.Indefinite) timers.restart(updated.id, updated.duration.millis)
             return updated
         }
-        val queuedIndex = pendingQueue.indexOfFirst { it.message == message }
-        if (queuedIndex != -1 && inWindow(pendingQueue[queuedIndex])) {
+        val queuedIndex = pendingQueue.indexOfFirst { it.message == message && inWindow(it) }
+        if (queuedIndex != -1) {
             val current = pendingQueue[queuedIndex]
             return current.copy(repeatCount = current.repeatCount + count, lastShownAt = now)
                 .also { pendingQueue[queuedIndex] = it }

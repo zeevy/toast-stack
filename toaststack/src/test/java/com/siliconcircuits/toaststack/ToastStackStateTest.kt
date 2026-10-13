@@ -71,9 +71,28 @@ class ToastStackStateTest {
         dedup.show("Same", duration = ToastDuration.Indefinite)
         assertEquals(1, dedup.toasts.size)
 
+        // The window now counts from the repeat at 2999, so 5998 is still in it.
+        advance(2_999)
+        dedup.show("Same", duration = ToastDuration.Indefinite)
+        assertEquals(1, dedup.toasts.size)
+
         advance(3_000)
         dedup.show("Same", duration = ToastDuration.Indefinite)
         assertEquals(2, dedup.toasts.size)
+    }
+
+    @Test
+    fun `an old card out of its window does not stop a newer card counting repeats`() {
+        val dedup = ToastStackState(deduplicationWindowMs = 1_000)
+        dedup.now = { testDispatcher.scheduler.currentTime }
+        dedup.show("Same", duration = ToastDuration.Indefinite)
+        advance(1_500)
+        dedup.show("Same", duration = ToastDuration.Indefinite)
+
+        advance(300)
+        dedup.show("Same", duration = ToastDuration.Indefinite)
+
+        assertEquals(listOf(1, 2), dedup.toasts.map { it.repeatCount })
     }
 
     @Test
