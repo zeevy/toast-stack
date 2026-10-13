@@ -74,6 +74,12 @@ android {
                 test.inputs.file(file("api/toaststack.api"))
                 // ./gradlew :toaststack:testDebugUnitTest -PupdateApiDump writes a new dump.
                 test.systemProperty("updateApiDump", project.hasProperty("updateApiDump"))
+                // -PrecordScreenshots writes the README images to docs/images.
+                test.systemProperty("recordScreenshots", project.hasProperty("recordScreenshots"))
+                // Hardware rendering draws card shadows in the README images.
+                if (project.hasProperty("recordScreenshots")) {
+                    test.systemProperty("robolectric.pixelCopyRenderMode", "hardware")
+                }
             }
         }
     }
