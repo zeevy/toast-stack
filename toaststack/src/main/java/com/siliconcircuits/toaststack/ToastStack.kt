@@ -1,5 +1,6 @@
 package com.siliconcircuits.toaststack
 
+import android.app.Activity
 import android.util.Log
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
@@ -64,6 +65,11 @@ object ToastStack {
 
     @Volatile
     internal var defaultGlobalStyle: ToastStackStyle? = null
+        private set
+
+    /** Which Activities get the auto overlay. Set by [configure]. */
+    @Volatile
+    internal var autoOverlay: (Activity) -> Boolean = { true }
         private set
 
     /** The defaults for new toasts on the auto overlay, replaced in one write by [configure]. */
@@ -134,6 +140,11 @@ object ToastStack {
      *   - The lambda is kept for the life of the process. Do not capture an
      *     Activity, View, ViewModel or Activity Context in it. Call
      *     [configure] from `Application.onCreate()`.
+     * @param autoOverlay Which Activities get the auto overlay, for example
+     *   `{ it !is PaymentActivity }` to leave out a third-party payment or
+     *   ad screen. Every ComponentActivity by default. It is checked when an
+     *   Activity resumes, so set it before the Activity you want to leave out
+     *   opens. Do not capture an Activity in it.
      */
     fun configure(
         contentPadding: PaddingValues = defaultContentPadding,
@@ -148,6 +159,7 @@ object ToastStack {
         showRepeatCount: Boolean = defaults.showRepeatCount,
         colorSource: ToastColorSource = this.colorSource,
         theme: (@Composable (content: @Composable () -> Unit) -> Unit)? = this.theme,
+        autoOverlay: (Activity) -> Boolean = this.autoOverlay,
     ) {
         defaultContentPadding = contentPadding
         defaultGlobalStyle = globalStyle
@@ -158,6 +170,7 @@ object ToastStack {
         )
         this.colorSource = colorSource
         this.theme = theme
+        this.autoOverlay = autoOverlay
     }
 
     /**
@@ -556,7 +569,13 @@ object ToastStack {
         defaultGlobalStyle = null
         colorSource = ToastColorSource.AppTheme
         theme = null
+        autoOverlay = { true }
+        warnedSharedTag = false
     }
+
+    // Set after the shared default tag warning, so it is logged once per process.
+    @Volatile
+    internal var warnedSharedTag = false
 
     /** The host registered under [tag], or the most recent host when [tag] is null. */
     internal fun findHost(tag: String?): ToastStackState? {

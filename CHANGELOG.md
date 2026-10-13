@@ -22,6 +22,7 @@ Changes to the ToastStack library, newest first. "Behavior changes" lists what a
 
 ### Added
 
+- `ToastStack.configure(autoOverlay = ...)` leaves chosen Activities out of the auto overlay. A hand-placed host with the default tag next to the overlay logs one warning. (#65)
 - `ToastStack.show()` and `showAndAwait()` take every per-toast option: animation, custom icon, haptic, sound, `soundUri` and priority. (#50)
 - `ToastHandle.withSecondaryAction()`, and builder properties for priority, custom icon, `soundUri` and the secondary action. (#50)
 - `onDismiss` on the typed string helpers and the ViewModel helpers. (#50)

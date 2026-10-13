@@ -177,6 +177,16 @@ Upgrading from 1.0.x: `AppTheme` is the default, so a `ToastStackHost` you place
 
 Material 3 has no success role, so Success uses `primaryContainer`. If you want a green success toast, override it with `globalStyle` or a per toast style. Global style and per toast style still apply on top of either source.
 
+### Leaving an Activity out
+
+The auto overlay goes into every `ComponentActivity`. To leave one out, for example a third-party login, payment or ad screen, pass a filter in `Application.onCreate()`:
+
+```kotlin
+ToastStack.configure(autoOverlay = { activity -> activity !is PaymentActivity })
+```
+
+To turn the overlay off everywhere, remove `ToastStackInitializer` in your manifest with `tools:node="remove"` and place `ToastStackHost` yourself. A hand-placed host with the default tag in an Activity that also has the overlay logs one warning, because both would take toasts sent without a `hostTag`.
+
 ## API Overview
 
 ### Chaining

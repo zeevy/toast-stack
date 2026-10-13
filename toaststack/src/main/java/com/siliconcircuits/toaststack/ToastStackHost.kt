@@ -1,5 +1,9 @@
 package com.siliconcircuits.toaststack
 
+import android.util.Log
+import android.view.View
+import android.view.ViewGroup
+import android.view.ViewParent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -186,11 +190,15 @@ internal fun syncRenderList(
 @Composable
 private fun RegisterHost(state: ToastStackState, tag: String) {
     val context = LocalContext.current
+    val view = LocalView.current
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(tag, state, lifecycleOwner) {
         ToastStack.registerHost(tag, state)
         val resumeObserver = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) ToastStack.registerHost(tag, state)
+            if (event == Lifecycle.Event.ON_RESUME) {
+                ToastStack.registerHost(tag, state)
+                if (tag == DEFAULT_HOST_TAG) warnIfSharingTagWithOverlay(view)
+            }
         }
         lifecycleOwner.lifecycle.addObserver(resumeObserver)
 
@@ -284,3 +292,29 @@ private fun ToastSlot(
         )
     }
 }
+
+/**
+ * A hand-placed host with the default tag and the auto overlay in the same
+ * Activity share the tag, so toasts without a hostTag go to whichever
+ * registered last. The overlay is added on resume, so this runs on resume.
+ */
+private fun warnIfSharingTagWithOverlay(hostView: View) {
+    if (ToastStack.warnedSharedTag) return
+    val content = hostView.rootView.findViewById<ViewGroup>(android.R.id.content) ?: return
+    val overlay = content.findViewWithTag<View>(AUTO_OVERLAY_TAG) ?: return
+    // The overlay's own host sits inside the overlay view.
+    var parent: ViewParent? = hostView.parent
+    while (parent != null) {
+        if (parent === overlay) return
+        parent = parent.parent
+    }
+    ToastStack.warnedSharedTag = true
+    Log.w(
+        "ToastStack",
+        "A ToastStackHost with the default tag and the auto overlay are in the same Activity, so toasts " +
+            "without a hostTag go to whichever registered last. Give the host its own tag, leave the " +
+            "Activity out with ToastStack.configure(autoOverlay = ...), or turn the overlay off in the " +
+            "manifest. Logged once.",
+    )
+}
+
