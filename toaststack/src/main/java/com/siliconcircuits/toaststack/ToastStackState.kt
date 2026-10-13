@@ -169,19 +169,6 @@ class ToastStackState(
      */
     val toasts: List<ToastData> get() = activeToasts.toList()
 
-    // --- Timer bookkeeping ---
-    // Each toast with a finite duration has a coroutine based timer that
-    // dismisses it when time runs out. To support pause/resume (e.g., when
-    // the user drags a toast or the app goes to background), we track:
-    //   - timerJobs: the running coroutine Job for each toast's delay
-    //   - pausedIds: which toasts currently have their timer paused
-    //   - remainingMillis: how many milliseconds were left when the timer was paused
-    //   - timerStartedAt: wall clock time when the current timer segment began
-    // Like all state here, these are only touched on the main thread.
-    private val timerJobs = mutableMapOf<String, Job>()
-    private val pausedIds = mutableSetOf<String>()
-    private val remainingMillis = mutableMapOf<String, Long>()
-    private val timerStartedAt = mutableMapOf<String, Long>()
 
     // Handles from a background show() whose toast was merged into an
     // existing card by deduplication: new id to the existing card's id.
@@ -214,6 +201,11 @@ class ToastStackState(
     // and release all resources when this state is no longer needed.
     private val supervisorJob = SupervisorJob()
     private val coroutineScope = CoroutineScope(Dispatchers.Main + supervisorJob)
+
+    // The auto dismiss timers. Like all state here, used on the main thread only.
+    private val timers = ToastTimers(coroutineScope, now = { now() }) { id ->
+        removeSilently(id, DismissReason.Timeout)
+    }
 
     /**
      * The host tag assigned to this state when it is registered with the
@@ -502,11 +494,7 @@ class ToastStackState(
         showCloseButton: Boolean = false,
         onDismiss: ((DismissReason) -> Unit)? = null
     ): ToastHandle {
-        val message = if (formatArgs.isEmpty()) {
-            StringResolver.resolve(messageRes)
-        } else {
-            StringResolver.resolve(messageRes, *formatArgs)
-        }
+        val message = StringResolver.resolve(messageRes, *formatArgs)
         return show(message, title, type, duration, position, showCloseButton, onDismiss = onDismiss)
     }
 
@@ -519,7 +507,7 @@ class ToastStackState(
         title: String? = null,
         onDismiss: ((DismissReason) -> Unit)? = null
     ): ToastHandle {
-        val message = if (formatArgs.isEmpty()) StringResolver.resolve(messageRes) else StringResolver.resolve(messageRes, *formatArgs)
+        val message = StringResolver.resolve(messageRes, *formatArgs)
         return success(message, title, onDismiss = onDismiss)
     }
 
@@ -532,7 +520,7 @@ class ToastStackState(
         title: String? = null,
         onDismiss: ((DismissReason) -> Unit)? = null
     ): ToastHandle {
-        val message = if (formatArgs.isEmpty()) StringResolver.resolve(messageRes) else StringResolver.resolve(messageRes, *formatArgs)
+        val message = StringResolver.resolve(messageRes, *formatArgs)
         return error(message, title, onDismiss = onDismiss)
     }
 
@@ -545,7 +533,7 @@ class ToastStackState(
         title: String? = null,
         onDismiss: ((DismissReason) -> Unit)? = null
     ): ToastHandle {
-        val message = if (formatArgs.isEmpty()) StringResolver.resolve(messageRes) else StringResolver.resolve(messageRes, *formatArgs)
+        val message = StringResolver.resolve(messageRes, *formatArgs)
         return warning(message, title, onDismiss = onDismiss)
     }
 
@@ -558,7 +546,7 @@ class ToastStackState(
         title: String? = null,
         onDismiss: ((DismissReason) -> Unit)? = null
     ): ToastHandle {
-        val message = if (formatArgs.isEmpty()) StringResolver.resolve(messageRes) else StringResolver.resolve(messageRes, *formatArgs)
+        val message = StringResolver.resolve(messageRes, *formatArgs)
         return info(message, title, onDismiss = onDismiss)
     }
 
@@ -664,15 +652,7 @@ class ToastStackState(
             val current = activeToasts[activeIndex]
             val updated = current.copy(repeatCount = current.repeatCount + count, lastShownAt = now)
             activeToasts[activeIndex] = updated
-            if (updated.duration != ToastDuration.Indefinite) {
-                if (updated.id in pausedIds) {
-                    // The user is holding the card. Give it the full time back
-                    // for when the timer resumes.
-                    remainingMillis[updated.id] = updated.duration.millis
-                } else {
-                    launchTimer(updated, updated.duration.millis)
-                }
-            }
+            if (updated.duration != ToastDuration.Indefinite) timers.restart(updated.id, updated.duration.millis)
             return updated
         }
         val queuedIndex = pendingQueue.indexOfFirst { it.message == message }
@@ -819,7 +799,7 @@ class ToastStackState(
         pendingQueue.clear()
         shownIds.clear()
         aliases.clear()
-        snapshot.forEach { clearTimerState(it.id) }
+        snapshot.forEach { timers.clear(it.id) }
         // User code runs last, so a callback that throws cannot leave
         // timers running.
         snapshot.forEach { it.onDismiss?.invoke(DismissReason.Programmatic) }
@@ -838,20 +818,7 @@ class ToastStackState(
      *
      * @param id The unique identifier of the toast whose timer should pause.
      */
-    fun pauseTimer(id: String) = onMain {
-        if (id in pausedIds) return@onMain
-        val job = timerJobs[id] ?: return@onMain
-        val startedAt = timerStartedAt[id] ?: return@onMain
-        val total = remainingMillis[id] ?: return@onMain
-
-        // Calculate how much time has elapsed since the timer started
-        // (or was last resumed) and subtract it from the remaining time.
-        val elapsed = now() - startedAt
-        remainingMillis[id] = (total - elapsed).coerceAtLeast(0L)
-        pausedIds.add(id)
-        job.cancel()
-        timerJobs.remove(id)
-    }
+    fun pauseTimer(id: String) = onMain { timers.pause(id) }
 
     /**
      * Resumes a previously paused auto dismiss timer.
@@ -864,11 +831,8 @@ class ToastStackState(
      */
     fun resumeTimer(id: String) = onMain {
         // A touch release must not undo the screen reader pause.
-        if (id !in pausedIds || pausedForAccessibility) return@onMain
-        pausedIds.remove(id)
-        val leftover = remainingMillis[id] ?: return@onMain
-        val toast = activeToasts.find { it.id == id } ?: return@onMain
-        launchTimer(toast, leftover)
+        if (pausedForAccessibility || activeToasts.none { it.id == id }) return@onMain
+        timers.resume(id)
     }
 
     /**
@@ -941,7 +905,7 @@ class ToastStackState(
         if (active != null) {
             activeToasts.remove(active)
             shownIds.remove(id)
-            clearTimerState(id)
+            timers.clear(id)
             if (promote) promoteFromQueue()
         } else {
             pendingQueue.remove(toast)
@@ -955,44 +919,76 @@ class ToastStackState(
      */
     private fun scheduleAutoDismiss(toast: ToastData) {
         if (toast.duration == ToastDuration.Indefinite) return
-        if (pausedForAccessibility) {
-            // Start paused, with the full time kept for when the screen reader turns off.
-            remainingMillis[toast.id] = toast.duration.millis
-            pausedIds.add(toast.id)
-            return
-        }
-        launchTimer(toast, toast.duration.millis)
+        // While a screen reader is on, start paused with the full time kept.
+        if (pausedForAccessibility) timers.startPaused(toast.id, toast.duration.millis)
+        else timers.start(toast.id, toast.duration.millis)
     }
+}
 
-    /**
-     * Launches (or relaunches) a coroutine that waits [millis] milliseconds
-     * and then dismisses the toast with [DismissReason.Timeout].
-     *
-     * This is the only place where timer coroutines are created. Both
-     * the initial schedule and pause/resume flow converge here.
-     */
-    private fun launchTimer(toast: ToastData, millis: Long) {
-        clearTimerState(toast.id)
-        remainingMillis[toast.id] = millis
-        timerStartedAt[toast.id] = now()
-        timerJobs[toast.id] = coroutineScope.launch {
+/**
+ * The auto dismiss timers of one [ToastStackState]. Each toast with a finite
+ * duration gets a coroutine that calls [onExpire] when its time runs out.
+ * A timer can pause and later resume with the time that was left. Used on
+ * the main thread only.
+ */
+internal class ToastTimers(
+    private val scope: CoroutineScope,
+    private val now: () -> Long,
+    private val onExpire: (id: String) -> Unit,
+) {
+    private val jobs = mutableMapOf<String, Job>()
+    private val paused = mutableSetOf<String>()
+    private val remaining = mutableMapOf<String, Long>()
+    private val startedAt = mutableMapOf<String, Long>()
+
+    /** Starts (or restarts) the timer for [id] with [millis] to run. */
+    fun start(id: String, millis: Long) {
+        clear(id)
+        remaining[id] = millis
+        startedAt[id] = now()
+        jobs[id] = scope.launch {
             delay(millis)
-            removeSilently(toast.id, DismissReason.Timeout)
+            onExpire(id)
         }
     }
 
-    /**
-     * Cancels any running timer coroutine and removes all bookkeeping
-     * entries (remaining time, start time, paused flag) for the given toast.
-     * Called both when a timer completes normally and when a toast is
-     * dismissed by other means.
-     */
-    private fun clearTimerState(id: String) {
-        timerJobs[id]?.cancel()
-        timerJobs.remove(id)
-        remainingMillis.remove(id)
-        timerStartedAt.remove(id)
-        pausedIds.remove(id)
+    /** Sets up the timer for [id] paused, with [millis] for when it resumes. */
+    fun startPaused(id: String, millis: Long) {
+        clear(id)
+        remaining[id] = millis
+        paused += id
+    }
+
+    /** Pauses a running timer and keeps the time that was left. */
+    fun pause(id: String) {
+        if (id in paused) return
+        val job = jobs[id] ?: return
+        val started = startedAt[id] ?: return
+        val total = remaining[id] ?: return
+        remaining[id] = (total - (now() - started)).coerceAtLeast(0L)
+        paused += id
+        job.cancel()
+        jobs.remove(id)
+    }
+
+    /** Resumes a paused timer with the time that was left. */
+    fun resume(id: String) {
+        if (id !in paused) return
+        val left = remaining[id] ?: return
+        start(id, left)
+    }
+
+    /** Gives [id] the full [millis] again; a paused timer stays paused. */
+    fun restart(id: String, millis: Long) {
+        if (id in paused) remaining[id] = millis else start(id, millis)
+    }
+
+    /** Stops the timer for [id] and forgets it. */
+    fun clear(id: String) {
+        jobs.remove(id)?.cancel()
+        remaining.remove(id)
+        startedAt.remove(id)
+        paused.remove(id)
     }
 }
 

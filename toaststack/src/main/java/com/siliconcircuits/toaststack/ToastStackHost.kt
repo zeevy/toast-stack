@@ -80,20 +80,112 @@ fun ToastStackHost(
     colorSource: ToastColorSource = ToastStack.colorSource,
 ) {
     // Capture the application context for string resource resolution.
-    // This runs once per host composition and uses the application context
-    // (not the activity) so there is no risk of leaking an activity reference.
+    // This uses the application context (not the activity), so there is no
+    // risk of leaking an activity reference.
     val context = LocalContext.current
-    val view = LocalView.current
     StringResolver.initialize(context)
+    RegisterHost(state, tag)
 
-    // Register this host with the global singleton when it enters composition,
-    // and unregister when it leaves. This allows ToastStack.show() to find us.
-    // Register again on every resume: while this host was in the background,
-    // another host with the same tag (the auto overlay of the next Activity)
-    // may have taken the entry. Also listen for TalkBack (touch exploration) state changes so we can
-    // pause auto dismiss timers while the screen reader is active. Users
-    // relying on TalkBack need time to hear the full announcement before
-    // the toast disappears.
+    // When the system "Remove animations" setting is on (animator scale 0),
+    // every toast uses a short fade, for users who are sensitive to motion.
+    val reduceMotion = remember(context) {
+        android.provider.Settings.Global.getFloat(
+            context.contentResolver,
+            android.provider.Settings.Global.ANIMATOR_DURATION_SCALE,
+            1.0f
+        ) == 0.0f
+    }
+
+    // The render list is a superset of state.toasts: it keeps dismissed
+    // toasts while their exit animation plays. The visibility map says
+    // whether each toast should be visible (true) or animating out (false).
+    // An effect keeps them in step, so the host never writes state while it
+    // draws.
+    val renderList = remember { mutableStateListOf<ToastData>() }
+    val visibilityMap = remember { mutableStateMapOf<String, Boolean>() }
+    LaunchedEffect(state) {
+        snapshotFlow { state.toasts }.collect { toasts ->
+            syncRenderList(toasts, renderList, visibilityMap, state.shownIds)
+        }
+    }
+    val activeIds = state.toasts.mapTo(HashSet()) { it.id }
+
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .systemBarsPadding()
+            .imePadding()
+    ) {
+        renderList.groupBy { it.position }.forEach { (position, toastsAtPosition) ->
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(position.alignment)
+                    .padding(contentPadding),
+                horizontalAlignment = position.horizontalAlignment,
+                verticalArrangement = position.verticalArrangement
+            ) {
+                toastsAtPosition.forEachIndexed { index, toast ->
+                    key(toast.id) {
+                        ToastSlot(
+                            toast = toast,
+                            index = index,
+                            isActive = toast.id in activeIds,
+                            reduceMotion = reduceMotion,
+                            state = state,
+                            renderList = renderList,
+                            visibilityMap = visibilityMap,
+                            globalStyle = globalStyle,
+                            colorSource = colorSource,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Keeps [renderList] and [visibilityMap] in step with [toasts]:
+ *  1. A new toast is added invisible, so its enter animation plays, unless
+ *     an earlier host already showed it ([shownIds]).
+ *  2. An updated toast (progress, action, callback) replaces the old copy.
+ *  3. A removed toast is marked invisible so its exit animation plays. It
+ *     stays in [renderList] until the animation ends.
+ */
+internal fun syncRenderList(
+    toasts: List<ToastData>,
+    renderList: MutableList<ToastData>,
+    visibilityMap: MutableMap<String, Boolean>,
+    shownIds: Set<String>,
+) {
+    val ids = toasts.mapTo(HashSet()) { it.id }
+    toasts.forEach { toast ->
+        val renderIndex = renderList.indexOfFirst { it.id == toast.id }
+        if (renderIndex == -1) {
+            renderList.add(toast)
+            visibilityMap[toast.id] = toast.id in shownIds
+        } else if (renderList[renderIndex] != toast) {
+            renderList[renderIndex] = toast
+        }
+    }
+    renderList.forEach { toast ->
+        if (toast.id !in ids && visibilityMap[toast.id] != false) {
+            visibilityMap[toast.id] = false
+        }
+    }
+}
+
+/**
+ * Registers [state] with the [ToastStack] singleton while this host is in
+ * the composition, so ToastStack.show() finds it, and again on every resume:
+ * while this host was in the background, another host with the same tag
+ * (the auto overlay of the next Activity) may have taken the entry. Also
+ * follows TalkBack (touch exploration), so timers stop while it is on.
+ */
+@Composable
+private fun RegisterHost(state: ToastStackState, tag: String) {
+    val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(tag, state, lifecycleOwner) {
         ToastStack.registerHost(tag, state)
@@ -105,7 +197,6 @@ fun ToastStackHost(
         val accessibilityManager = context.getSystemService(
             android.content.Context.ACCESSIBILITY_SERVICE
         ) as? android.view.accessibility.AccessibilityManager
-
         val touchExplorationListener =
             android.view.accessibility.AccessibilityManager.TouchExplorationStateChangeListener { enabled ->
                 state.pausedForAccessibility = enabled
@@ -119,164 +210,77 @@ fun ToastStackHost(
             ToastStack.unregisterHost(tag, state)
         }
     }
+}
 
-    // Check if the system's "remove animations" setting is enabled.
-    // When active, all toast animations are simplified to a short fade
-    // regardless of what the toast or state defaults specify. This ensures
-    // users who are sensitive to motion still get a usable experience.
-    // The animator duration scale is 0.0 when animations are disabled.
-    val animatorScale = remember(context) {
-        android.provider.Settings.Global.getFloat(
-            context.contentResolver,
-            android.provider.Settings.Global.ANIMATOR_DURATION_SCALE,
-            1.0f
-        )
+/** One toast in the host: its show effects, its exit, and its card. */
+@Composable
+private fun ToastSlot(
+    toast: ToastData,
+    index: Int,
+    isActive: Boolean,
+    reduceMotion: Boolean,
+    state: ToastStackState,
+    renderList: MutableList<ToastData>,
+    visibilityMap: MutableMap<String, Boolean>,
+    globalStyle: ToastStackStyle?,
+    colorSource: ToastColorSource,
+) {
+    val context = LocalContext.current
+    val view = LocalView.current
+
+    // With reduced motion, a short fade; else the toast's animation or the default.
+    val animation = if (reduceMotion) ToastAnimation.Fade else toast.animation ?: state.defaultAnimation
+    val baseConfig = if (reduceMotion) {
+        ToastAnimationConfig(enterDurationMillis = 150, exitDurationMillis = 100)
+    } else {
+        toast.animationConfig ?: state.defaultAnimationConfig
     }
-    val reduceMotion = animatorScale == 0.0f
-    val reducedConfig = ToastAnimationConfig(enterDurationMillis = 150, exitDurationMillis = 100)
+    val staggeredConfig = if (index > 0 && baseConfig.staggerDelayMillis > 0) {
+        baseConfig.copy(enterDurationMillis = baseConfig.enterDurationMillis + index * baseConfig.staggerDelayMillis)
+    } else {
+        baseConfig
+    }
 
-    // --- Render list and visibility tracking ---
-    // The render list is a superset of state.toasts. It includes toasts that
-    // have been dismissed but whose exit animation is still playing.
-    // The visibility map tracks whether each toast should be visible (true)
-    // or animating out (false).
-    val renderList = remember { mutableStateListOf<ToastData>() }
-    val visibilityMap = remember { mutableStateMapOf<String, Boolean>() }
+    // Flip a new toast to visible to start the enter animation. Haptic and
+    // sound fire on appearance, onShow after the enter animation.
+    LaunchedEffect(toast.id) {
+        // Dismissed before this frame: let the exit run, do not show it.
+        if (state.toasts.none { it.id == toast.id }) return@LaunchedEffect
+        visibilityMap[toast.id] = true
+        // Shown before a configuration change: no second time.
+        if (!state.shownIds.add(toast.id)) return@LaunchedEffect
+        if (toast.hapticEnabled) ToastFeedback.haptic(view, toast.type)
+        if (toast.soundEnabled) {
+            // Preparing a ringtone does file and binder work.
+            launch(Dispatchers.IO) { ToastFeedback.playSound(context, toast.soundUri) }
+        }
+        delay(staggeredConfig.enterDurationMillis.toLong())
+        toast.onShow?.invoke()
+    }
 
-    // Keep the render list in step with state.toasts. This runs in an effect,
-    // not in the composable body, so the host never writes state it is drawing.
-    // It handles three cases:
-    //  1. New toasts: added to the render list as invisible (triggers enter animation)
-    //  2. Updated toasts: replaced in the render list so changes like progress
-    //     values, action labels, or callback updates are reflected in the UI
-    //  3. Removed toasts: marked invisible (triggers exit animation)
-    LaunchedEffect(state) {
-        snapshotFlow { state.toasts }.collect { toasts ->
-            val ids = toasts.mapTo(HashSet()) { it.id }
-            toasts.forEach { toast ->
-                val renderIndex = renderList.indexOfFirst { it.id == toast.id }
-                if (renderIndex == -1) {
-                    // Start invisible for the enter animation, unless an
-                    // earlier host already showed it.
-                    renderList.add(toast)
-                    visibilityMap[toast.id] = toast.id in state.shownIds
-                } else if (renderList[renderIndex] != toast) {
-                    renderList[renderIndex] = toast
-                }
-            }
-            // Removed toasts stay in renderList until their exit animation ends.
-            renderList.forEach { toast ->
-                if (toast.id !in ids && visibilityMap[toast.id] != false) {
-                    visibilityMap[toast.id] = false
-                }
-            }
+    val isVisible = visibilityMap[toast.id] ?: false
+    // Dismissed and out of view: drop it once the exit animation has ended,
+    // with a small buffer so the animation finishes first.
+    if (!isActive && !isVisible) {
+        LaunchedEffect(toast.id) {
+            delay(baseConfig.exitDurationMillis.toLong() + 50L)
+            renderList.removeAll { it.id == toast.id }
+            visibilityMap.remove(toast.id)
         }
     }
-    val activeIds = state.toasts.mapTo(HashSet()) { it.id }
 
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .systemBarsPadding()
-            .imePadding()
+    AnimatedVisibility(
+        visible = isVisible,
+        enter = animation.toEnterTransition(staggeredConfig, toast.position.slideSign),
+        exit = animation.toExitTransition(baseConfig, toast.position.slideSign)
     ) {
-        val toastsByPosition = renderList.groupBy { it.position }
-
-        toastsByPosition.forEach { (position, toastsAtPosition) ->
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .align(position.alignment)
-                    .padding(contentPadding),
-                horizontalAlignment = position.horizontalAlignment,
-                verticalArrangement = position.verticalArrangement
-            ) {
-                toastsAtPosition.forEachIndexed { index, toast ->
-                    key(toast.id) {
-                        val slideSign = position.slideSign
-
-                        // When reduced motion is active, override the animation to
-                        // a simple fade with short duration. Otherwise use the
-                        // toast's configured animation or the state default.
-                        val animation = if (reduceMotion) {
-                            ToastAnimation.Fade
-                        } else {
-                            toast.animation ?: state.defaultAnimation
-                        }
-                        val baseConfig = if (reduceMotion) {
-                            reducedConfig
-                        } else {
-                            toast.animationConfig ?: state.defaultAnimationConfig
-                        }
-
-                        val staggeredConfig = if (index > 0 && baseConfig.staggerDelayMillis > 0) {
-                            val staggerDelay = index * baseConfig.staggerDelayMillis
-                            baseConfig.copy(
-                                enterDurationMillis = baseConfig.enterDurationMillis + staggerDelay
-                            )
-                        } else {
-                            baseConfig
-                        }
-
-                        // Flip new toasts to visible on the next frame to trigger
-                        // the enter animation. Also fire haptic/sound feedback
-                        // immediately on appearance, and onShow after the enter
-                        // animation completes.
-                        LaunchedEffect(toast.id) {
-                            // Dismissed before this frame: let the exit run, do not show it.
-                            if (state.toasts.none { it.id == toast.id }) return@LaunchedEffect
-                            visibilityMap[toast.id] = true
-                            // Shown before a configuration change: no second time.
-                            if (!state.shownIds.add(toast.id)) return@LaunchedEffect
-                            // Haptic and sound fire on appearance (before animation ends)
-                            // so the user gets immediate sensory feedback.
-                            if (toast.hapticEnabled) {
-                                ToastFeedback.haptic(view, toast.type)
-                            }
-                            if (toast.soundEnabled) {
-                                // Preparing a ringtone does file and binder work.
-                                launch(Dispatchers.IO) { ToastFeedback.playSound(context, toast.soundUri) }
-                            }
-                            // Wait for the enter animation to finish before firing onShow.
-                            delay(staggeredConfig.enterDurationMillis.toLong())
-                            toast.onShow?.invoke()
-                        }
-
-                        val isVisible = visibilityMap[toast.id] ?: false
-                        val isActive = toast.id in activeIds
-
-                        // When a toast becomes invisible (dismissed) and is no longer
-                        // in the active state list, wait for the exit animation to
-                        // finish then remove it from the render list.
-                        if (!isActive && !isVisible) {
-                            LaunchedEffect(toast.id) {
-                                // Wait for the exit animation to complete before
-                                // removing the toast from the render list. Adding
-                                // a small buffer ensures the animation finishes
-                                // before the composable is torn down.
-                                delay(baseConfig.exitDurationMillis.toLong() + 50L)
-                                renderList.removeAll { it.id == toast.id }
-                                visibilityMap.remove(toast.id)
-                            }
-                        }
-
-                        AnimatedVisibility(
-                            visible = isVisible,
-                            enter = animation.toEnterTransition(staggeredConfig, slideSign),
-                            exit = animation.toExitTransition(baseConfig, slideSign)
-                        ) {
-                            ToastItem(
-                                toast = toast,
-                                globalStyle = globalStyle,
-                                colorSource = colorSource,
-                                onDismiss = { reason -> state.dismiss(toast.id, reason) },
-                                onPauseTimer = { state.pauseTimer(toast.id) },
-                                onResumeTimer = { state.resumeTimer(toast.id) }
-                            )
-                        }
-                    }
-                }
-            }
-        }
+        ToastItem(
+            toast = toast,
+            globalStyle = globalStyle,
+            colorSource = colorSource,
+            onDismiss = { reason -> state.dismiss(toast.id, reason) },
+            onPauseTimer = { state.pauseTimer(toast.id) },
+            onResumeTimer = { state.resumeTimer(toast.id) }
+        )
     }
 }

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
@@ -38,6 +39,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -128,6 +130,7 @@ internal fun ToastItem(
     // Resolve the effective style by layering: type defaults -> global -> per toast.
     val typeDefaults = ToastStackDefaults.styleForType(toast.type, colorSource)
     val resolvedStyle = typeDefaults.mergeWith(globalStyle).mergeWith(toast.style)
+    val contentColor = resolvedStyle.contentColor ?: typeDefaults.contentColor!!
 
     // True while a finger holds the card. If the card leaves the screen
     // mid-gesture (for example on rotation), the release code never runs,
@@ -157,69 +160,27 @@ internal fun ToastItem(
         1f
     }
 
-    // Build the accessibility description including the toast type so
-    // screen readers announce context like "Error notification: Connection
-    // failed" rather than just the message text.
-    // The labels are string resources, so apps can translate them.
-    val typePrefix = when (toast.type) {
-        ToastType.Success -> stringResource(R.string.toaststack_type_success)
-        ToastType.Error -> stringResource(R.string.toaststack_type_error)
-        ToastType.Warning -> stringResource(R.string.toaststack_type_warning)
-        ToastType.Info -> stringResource(R.string.toaststack_type_info)
-        ToastType.Loading -> stringResource(R.string.toaststack_type_loading)
-        ToastType.Default -> null
-    }
-    // Deduplication counts repeats of the same message. Show "(x5)" so the
-    // user can see the event happened more than once.
-    val messageText = if (toast.repeatCount > 1) {
-        pluralStringResource(R.plurals.toaststack_repeat_count, toast.repeatCount, toast.message, toast.repeatCount)
-    } else {
-        toast.message
-    }
+    val messageText = messageText(toast)
+    val accessibilityLabel = accessibilityLabel(toast, messageText)
     val dismissLabel = stringResource(R.string.toaststack_dismiss)
     val dismissActionLabel = stringResource(R.string.toaststack_dismiss_action)
-    val accessibilityLabel = buildString {
-        if (typePrefix != null) {
-            append(typePrefix)
-            append(": ")
-        }
-        if (toast.title != null) {
-            append(toast.title)
-            append(". ")
-        }
-        append(messageText)
-    }
 
-    // Determine the border stroke. Only drawn when the style specifies a border color.
-    val borderStroke = if (resolvedStyle.borderColor != null) {
-        BorderStroke(resolvedStyle.borderWidth ?: 1.dp, resolvedStyle.borderColor)
-    } else {
-        null
-    }
+    // The border is drawn only when the style sets a border color.
+    val borderStroke = resolvedStyle.borderColor?.let { BorderStroke(resolvedStyle.borderWidth ?: 1.dp, it) }
 
-    // Width strategy depends on the toast's position:
-    // - Center aligned (TopCenter, BottomCenter, Center): fill the available width
-    //   for a clean edge to edge appearance, similar to a snackbar
-    // - Start / End corners: constrained width so the card wraps its content and the
-    //   alignment difference between Start and End is visible on screen
+    // Centered positions fill the width like a snackbar. Corner cards wrap
+    // their content, so the Start and End sides are visible on screen.
     val widthModifier = if (toast.position.fillsWidth) {
         Modifier.fillMaxWidth()
     } else {
         Modifier.widthIn(min = 200.dp, max = 320.dp)
     }
 
-    // Apply per toast offset on top of the swipe horizontal offset.
     // offsetX/offsetY are deprecated and still honoured until they are removed.
     @Suppress("DEPRECATION")
-    val toastOffsetX = toast.offsetX
-    @Suppress("DEPRECATION")
-    val toastOffsetY = toast.offsetY
+    val offset = Modifier.offset(x = toast.offsetX.dp, y = toast.offsetY.dp)
 
-    Box(
-        modifier = Modifier
-            .padding(vertical = 4.dp)
-            .offset(x = toastOffsetX.dp, y = toastOffsetY.dp)
-    ) {
+    Box(modifier = Modifier.padding(vertical = 4.dp).then(offset)) {
         Surface(
             modifier = widthModifier
                 .offset { IntOffset(horizontalOffset.value.roundToInt(), 0) }
@@ -243,178 +204,144 @@ internal fun ToastItem(
             color = resolvedStyle.backgroundColor ?: typeDefaults.backgroundColor!!,
             border = borderStroke
         ) {
-            // When customContent is set, render it instead of the default
-            // icon + text + action layout. The custom content fills the card
-            // with a minimum height to ensure visibility and tappability.
-            // The close button is still rendered alongside if enabled.
-            if (toast.customContent != null) {
-                val contentColor = resolvedStyle.contentColor ?: typeDefaults.contentColor!!
-                Row(
-                    modifier = Modifier
-                        .defaultMinSize(minHeight = 48.dp)
-                        .padding(
-                            start = 12.dp,
-                            end = if (toast.showCloseButton) 4.dp else 12.dp,
-                            top = 12.dp,
-                            bottom = 12.dp
-                        ),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(modifier = Modifier.weight(1f)) {
-                        toast.customContent.invoke()
-                    }
-                    if (toast.showCloseButton) {
-                        IconButton(
-                            onClick = { onDismiss(DismissReason.CloseButton) },
-                            modifier = Modifier.size(36.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Close,
-                                contentDescription = dismissLabel,
-                                tint = contentColor,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                    }
-                }
-                return@Surface
-            }
-
             Row(
+                // Custom content gets a minimum height so it stays visible and tappable.
                 modifier = Modifier
-                    .padding(
-                        start = 12.dp,
-                        end = if (toast.showCloseButton) 4.dp else 12.dp,
-                        top = 12.dp,
-                        bottom = 12.dp
-                    ),
+                    .then(if (toast.customContent != null) Modifier.defaultMinSize(minHeight = 48.dp) else Modifier)
+                    .padding(start = 12.dp, end = if (toast.showCloseButton) 4.dp else 12.dp, top = 12.dp, bottom = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                val contentColor = resolvedStyle.contentColor ?: typeDefaults.contentColor!!
-
-                // Leading visual: loading spinner, custom icon, or type icon.
-                // The spinner only appears for Loading type when no determinate
-                // progress value has been set. Once progress is set (e.g., via
-                // handle.updateProgress(0.5f)), the spinner disappears and the
-                // determinate progress bar below the text takes over.
-                val showSpinner = toast.type == ToastType.Loading
-                    && toast.customIcon == null
-                    && toast.progress == null
-
-                if (showSpinner) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(22.dp),
-                        color = contentColor,
-                        strokeWidth = 2.dp
-                    )
-                    Spacer(modifier = Modifier.width(10.dp))
-                } else if (toast.customIcon != null) {
-                    toast.customIcon.invoke()
-                    Spacer(modifier = Modifier.width(10.dp))
+                if (toast.customContent != null) {
+                    Box(modifier = Modifier.weight(1f)) { toast.customContent.invoke() }
                 } else {
-                    val typeIcon = iconForType(toast.type)
-                    if (typeIcon != null) {
-                        Icon(
-                            imageVector = typeIcon,
-                            // The type is already in the card's label, so the icon is decorative.
-                            contentDescription = null,
-                            tint = resolvedStyle.iconTint
-                                ?: contentColor,
-                            modifier = Modifier.size(22.dp).testTag("toaststack_type_icon")
-                        )
-                        Spacer(modifier = Modifier.width(10.dp))
-                    }
+                    DefaultToastContent(toast, resolvedStyle, contentColor, messageText, onDismiss)
                 }
-
-                // Text area: title (optional) + message + progress label.
-                Column(modifier = Modifier.weight(1f)) {
-                    if (toast.title != null) {
-                        Text(
-                            text = toast.title,
-                            style = resolvedStyle.titleStyle!!,
-                            color = resolvedStyle.titleColor
-                                ?: contentColor
-                        )
-                    }
-                    Text(
-                        text = messageText,
-                        style = resolvedStyle.messageStyle!!,
-                        color = contentColor
-                    )
-                    // Determinate progress bar, rendered when a progress value is set.
-                    if (toast.progress != null) {
-                        Spacer(modifier = Modifier.height(6.dp))
-                        LinearProgressIndicator(
-                            progress = { toast.progress },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(4.dp),
-                            color = contentColor,
-                            trackColor = contentColor.copy(alpha = 0.3f)
-                        )
-                    }
-                    if (toast.progressLabel != null) {
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = toast.progressLabel,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = contentColor.copy(alpha = 0.7f)
-                        )
-                    }
-                }
-
-                // Action buttons area: primary and optional secondary action.
-                if (toast.actionLabel != null) {
-                    Spacer(modifier = Modifier.width(8.dp))
-                    TextButton(
-                        onClick = {
-                            toast.onAction?.invoke()
-                            onDismiss(DismissReason.Action)
-                        },
-                        colors = ButtonDefaults.textButtonColors(
-                            contentColor = contentColor
-                        )
-                    ) {
-                        Text(
-                            text = toast.actionLabel,
-                            style = MaterialTheme.typography.labelMedium
-                        )
-                    }
-                }
-
-                if (toast.secondaryActionLabel != null) {
-                    TextButton(
-                        onClick = {
-                            toast.onSecondaryAction?.invoke()
-                            onDismiss(DismissReason.Action)
-                        },
-                        colors = ButtonDefaults.textButtonColors(
-                            contentColor = contentColor.copy(alpha = 0.8f)
-                        )
-                    ) {
-                        Text(
-                            text = toast.secondaryActionLabel,
-                            style = MaterialTheme.typography.labelMedium
-                        )
-                    }
-                }
-
-                // Close button, rendered only when the toast opts in.
                 if (toast.showCloseButton) {
-                    IconButton(
-                        onClick = { onDismiss(DismissReason.CloseButton) },
-                        modifier = Modifier.size(36.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = dismissLabel,
-                            tint = contentColor,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
+                    CloseButton(label = dismissLabel, tint = contentColor) { onDismiss(DismissReason.CloseButton) }
                 }
             }
         }
+    }
+}
+
+/**
+ * The message as shown. Deduplication counts repeats of the same message,
+ * so "(x5)" tells the user the event happened more than once. The text is
+ * a plural resource, so apps can translate it.
+ */
+@Composable
+private fun messageText(toast: ToastData): String = if (toast.repeatCount > 1) {
+    pluralStringResource(R.plurals.toaststack_repeat_count, toast.repeatCount, toast.message, toast.repeatCount)
+} else {
+    toast.message
+}
+
+/**
+ * What a screen reader reads for the card, with the type first, for example
+ * "Error notification: Connection failed". The prefixes are string
+ * resources, so apps can translate them.
+ */
+@Composable
+internal fun accessibilityLabel(toast: ToastData, messageText: String): String {
+    val typePrefix = when (toast.type) {
+        ToastType.Success -> stringResource(R.string.toaststack_type_success)
+        ToastType.Error -> stringResource(R.string.toaststack_type_error)
+        ToastType.Warning -> stringResource(R.string.toaststack_type_warning)
+        ToastType.Info -> stringResource(R.string.toaststack_type_info)
+        ToastType.Loading -> stringResource(R.string.toaststack_type_loading)
+        ToastType.Default -> null
+    }
+    return buildString {
+        if (typePrefix != null) append(typePrefix).append(": ")
+        if (toast.title != null) append(toast.title).append(". ")
+        append(messageText)
+    }
+}
+
+/** The leading visual, the text and the action buttons of a standard toast. */
+@Composable
+private fun RowScope.DefaultToastContent(
+    toast: ToastData,
+    style: ToastStackStyle,
+    contentColor: Color,
+    messageText: String,
+    onDismiss: (DismissReason) -> Unit,
+) {
+    // Leading visual: loading spinner, custom icon, or type icon. The spinner
+    // shows for Loading until a progress value is set; then the progress bar
+    // below the text takes over.
+    val showSpinner = toast.type == ToastType.Loading && toast.customIcon == null && toast.progress == null
+    val typeIcon = iconForType(toast.type)
+    if (showSpinner) {
+        CircularProgressIndicator(modifier = Modifier.size(22.dp), color = contentColor, strokeWidth = 2.dp)
+        Spacer(modifier = Modifier.width(10.dp))
+    } else if (toast.customIcon != null) {
+        toast.customIcon.invoke()
+        Spacer(modifier = Modifier.width(10.dp))
+    } else if (typeIcon != null) {
+        Icon(
+            imageVector = typeIcon,
+            // The type is already in the card's label, so the icon is decorative.
+            contentDescription = null,
+            tint = style.iconTint ?: contentColor,
+            modifier = Modifier.size(22.dp).testTag("toaststack_type_icon")
+        )
+        Spacer(modifier = Modifier.width(10.dp))
+    }
+
+    // Text area: title (optional) + message + progress.
+    Column(modifier = Modifier.weight(1f)) {
+        if (toast.title != null) {
+            Text(text = toast.title, style = style.titleStyle!!, color = style.titleColor ?: contentColor)
+        }
+        Text(text = messageText, style = style.messageStyle!!, color = contentColor)
+        if (toast.progress != null) {
+            Spacer(modifier = Modifier.height(6.dp))
+            LinearProgressIndicator(
+                progress = { toast.progress },
+                modifier = Modifier.fillMaxWidth().height(4.dp),
+                color = contentColor,
+                trackColor = contentColor.copy(alpha = 0.3f)
+            )
+        }
+        if (toast.progressLabel != null) {
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = toast.progressLabel,
+                style = MaterialTheme.typography.labelSmall,
+                color = contentColor.copy(alpha = 0.7f)
+            )
+        }
+    }
+
+    // Actions: the primary one, then the optional secondary one, dimmer.
+    if (toast.actionLabel != null) {
+        Spacer(modifier = Modifier.width(8.dp))
+        ActionButton(toast.actionLabel, contentColor) {
+            toast.onAction?.invoke()
+            onDismiss(DismissReason.Action)
+        }
+    }
+    if (toast.secondaryActionLabel != null) {
+        ActionButton(toast.secondaryActionLabel, contentColor.copy(alpha = 0.8f)) {
+            toast.onSecondaryAction?.invoke()
+            onDismiss(DismissReason.Action)
+        }
+    }
+}
+
+@Composable
+private fun ActionButton(label: String, color: Color, onClick: () -> Unit) {
+    TextButton(onClick = onClick, colors = ButtonDefaults.textButtonColors(contentColor = color)) {
+        Text(text = label, style = MaterialTheme.typography.labelMedium)
+    }
+}
+
+/** The close (X) button on the trailing edge of the card. */
+@Composable
+private fun CloseButton(label: String, tint: Color, onClick: () -> Unit) {
+    IconButton(onClick = onClick, modifier = Modifier.size(36.dp)) {
+        Icon(imageVector = Icons.Default.Close, contentDescription = label, tint = tint, modifier = Modifier.size(18.dp))
     }
 }
 
