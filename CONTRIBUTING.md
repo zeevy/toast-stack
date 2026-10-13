@@ -14,6 +14,7 @@ If you only have a few minutes, the short version is: open an issue first for an
 - [Tests](#tests)
 - [Commit messages](#commit-messages)
 - [Opening a pull request](#opening-a-pull-request)
+- [Releasing](#releasing)
 
 ## Code of conduct
 
@@ -135,5 +136,15 @@ Examples:
    ```
 4. **Open the PR** against `main` with a summary of what changed and **why**, a test plan, and a linked issue (`Closes #123`) where relevant.
 5. **Address review feedback** by pushing follow-up commits, not force-pushes. We squash on merge so history stays clean.
+
+## Releasing
+
+For maintainers. The library goes to Maven Central as `com.siliconcircuits:toaststack`.
+
+1. In one PR, set the new version in `toaststack/build.gradle.kts` and in the README "Installation" section, and add a `CHANGELOG.md` entry. Merge it.
+2. Publish a GitHub Release on `main` with the tag `v<version>`, for example `v1.4.1`.
+3. `release.yml` checks that the tag matches the build version, runs the tests, signs the files and uploads them to Maven Central. The run waits until Central accepts the upload. The version shows on Maven Central about 30 minutes later.
+
+Maven Central versions and GitHub Releases cannot be changed or deleted. If the "Publish to Maven Central" step fails after its upload, check the deployment at [central.sonatype.com](https://central.sonatype.com/publishing/deployments) before you re-run it: a second upload of the same version fails.
 
 Thanks again for contributing!

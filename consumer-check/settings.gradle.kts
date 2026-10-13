@@ -16,7 +16,10 @@ dependencyResolutionManagement {
             content { includeGroup("com.siliconcircuits") }
         }
         google()
-        mavenCentral()
+        // The released copy on Maven Central must not stand in for this build.
+        mavenCentral {
+            content { excludeGroup("com.siliconcircuits") }
+        }
     }
 }
 

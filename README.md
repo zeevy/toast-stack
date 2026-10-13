@@ -83,7 +83,20 @@ Any composable as the toast body:
 
 ## Installation
 
-ToastStack is on Maven Central. New projects already list `mavenCentral()` in `settings.gradle.kts`, so add the dependency to your module's `build.gradle.kts`:
+ToastStack is on [Maven Central](https://central.sonatype.com/artifact/com.siliconcircuits/toaststack). Check the [Requirements](#requirements) first.
+
+**1. Repository.** `mavenCentral()` must be in your `settings.gradle.kts`. New Android Studio projects already have it:
+
+```kotlin
+dependencyResolutionManagement {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+```
+
+**2. Dependency.** Add the library to your app module's `build.gradle.kts`:
 
 ```kotlin
 dependencies {
@@ -91,7 +104,7 @@ dependencies {
 }
 ```
 
-Or using a version catalog (`libs.versions.toml`):
+Or with a version catalog (`gradle/libs.versions.toml`):
 
 ```toml
 [versions]
@@ -108,7 +121,28 @@ dependencies {
 }
 ```
 
-Version 1.4.0 and older are only on JitPack, as `com.github.zeevy:toast-stack:v1.4.0` with the `https://jitpack.io` repository.
+<details>
+<summary>Groovy (<code>build.gradle</code>)</summary>
+
+```groovy
+dependencies {
+    implementation 'com.siliconcircuits:toaststack:1.4.1'
+}
+```
+
+</details>
+
+**3. Sync Gradle.** There is no setup code. The library starts itself with the app, so you can call `ToastStack.success("Saved")` from your code. See [Quick Start](#quick-start).
+
+### Moving from JitPack
+
+Versions up to 1.4.0 were only on JitPack. To move to Maven Central:
+
+1. Change `com.github.zeevy:toast-stack:v1.4.0` to `com.siliconcircuits:toaststack:1.4.1`. The version has no `v`.
+2. Remove `maven { url = uri("https://jitpack.io") }` if no other library needs it.
+3. Do not keep both. They hold the same classes, so the build fails with duplicate class errors.
+
+The package name stays `com.siliconcircuits.toaststack`, so no imports change.
 
 ## Quick Start
 
