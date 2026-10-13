@@ -14,6 +14,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertCountEquals
@@ -686,5 +687,32 @@ class ToastAnimationUiTest {
         notifications.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_ALL)
         audio.ringerMode = AudioManager.RINGER_MODE_SILENT
         assertFalse(ToastFeedback.soundAllowed(context))
+    }
+
+    @Test
+    fun `a toast dismissed before the first frame leaves no card and no onShow`() {
+        val state = ToastStackState()
+        var shows = 0
+        composeTestRule.mainClock.autoAdvance = false
+        composeTestRule.setContent { ToastStackHost(state = state) }
+        composeTestRule.waitForIdle()
+        lateinit var handle: ToastHandle
+        composeTestRule.runOnUiThread {
+            handle = state.show("Ghost", duration = ToastDuration.Indefinite).onShow { shows++ }
+            Snapshot.sendApplyNotifications()
+        }
+        // Let the effects run without producing a frame, then dismiss.
+        composeTestRule.mainClock.advanceTimeBy(0, ignoreFrameDuration = true)
+        composeTestRule.runOnUiThread {
+            handle.dismiss()
+            Snapshot.sendApplyNotifications()
+        }
+        composeTestRule.mainClock.advanceTimeBy(0, ignoreFrameDuration = true)
+        composeTestRule.mainClock.autoAdvance = true
+        composeTestRule.mainClock.advanceTimeBy(5_000)
+        composeTestRule.waitForIdle()
+
+        composeTestRule.onNodeWithText("Ghost").assertDoesNotExist()
+        assertEquals(0, shows)
     }
 }

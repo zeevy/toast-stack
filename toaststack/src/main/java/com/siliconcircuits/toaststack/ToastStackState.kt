@@ -18,6 +18,27 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
+ * The defaults a host uses for new toasts, in one immutable object: each
+ * value is written once in the source, and [ToastStack.configure] changes
+ * them in one write.
+ */
+internal data class ToastDefaults(
+    val maxVisible: Int = 5,
+    val position: ToastPosition = ToastPosition.TopCenter,
+    val duration: ToastDuration = ToastDuration.Short,
+    val swipeDismiss: SwipeDismissDirection = SwipeDismissDirection.Both,
+    val animation: ToastAnimation = ToastAnimation.Slide,
+    val animationConfig: ToastAnimationConfig = ToastAnimationConfig(),
+    val deduplicationWindowMs: Long = 0L,
+    val showRepeatCount: Boolean = true,
+) {
+    companion object {
+        /** The library's own defaults. */
+        val Standard = ToastDefaults()
+    }
+}
+
+/**
  * Central state holder that manages the lifecycle of all active toasts.
  *
  * This class is the core of ToastStack. It maintains an ordered list of
@@ -61,27 +82,6 @@ import kotlinx.coroutines.launch
  * @param showRepeatCount Whether a deduplicated card shows its repeat count,
  *   for example "(x5)" after the message. Defaults to true.
  */
-/**
- * The defaults a host uses for new toasts, in one immutable object: each
- * value is written once in the source, and [ToastStack.configure] changes
- * them in one write.
- */
-internal data class ToastDefaults(
-    val maxVisible: Int = 5,
-    val position: ToastPosition = ToastPosition.TopCenter,
-    val duration: ToastDuration = ToastDuration.Short,
-    val swipeDismiss: SwipeDismissDirection = SwipeDismissDirection.Both,
-    val animation: ToastAnimation = ToastAnimation.Slide,
-    val animationConfig: ToastAnimationConfig = ToastAnimationConfig(),
-    val deduplicationWindowMs: Long = 0L,
-    val showRepeatCount: Boolean = true,
-) {
-    companion object {
-        /** The library's own defaults. */
-        val Standard = ToastDefaults()
-    }
-}
-
 @Stable
 class ToastStackState(
     maxVisible: Int = ToastDefaults.Standard.maxVisible,

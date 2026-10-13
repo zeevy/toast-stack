@@ -223,6 +223,8 @@ fun ToastStackHost(
                         // immediately on appearance, and onShow after the enter
                         // animation completes.
                         LaunchedEffect(toast.id) {
+                            // Dismissed before this frame: let the exit run, do not show it.
+                            if (state.toasts.none { it.id == toast.id }) return@LaunchedEffect
                             visibilityMap[toast.id] = true
                             // Shown before a configuration change: no second time.
                             if (!state.shownIds.add(toast.id)) return@LaunchedEffect
