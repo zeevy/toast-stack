@@ -23,10 +23,13 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeRight
 import androidx.test.core.app.ApplicationProvider
 import java.time.Duration
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -50,6 +53,9 @@ class ToastAnimationUiTest {
 
     @get:Rule
     val composeTestRule = createComposeRule()
+
+    @get:Rule
+    val reset = ToastStackReset()
 
     // --- Enter animations: each type should make the toast visible ---
 
@@ -603,5 +609,63 @@ class ToastAnimationUiTest {
 
         assertEquals(1, shows)
         composeTestRule.onNodeWithText("Kept").assertIsDisplayed()
+    }
+
+    // --- Gestures and actions ---
+
+    @Test
+    fun `a swipe dismisses the toast with the Swipe reason`() {
+        lateinit var state: ToastStackState
+        var reason: DismissReason? = null
+        composeTestRule.setContent {
+            state = rememberToastStackState()
+            ToastStackHost(state = state)
+        }
+        composeTestRule.runOnIdle {
+            state.show("Swipe me", duration = ToastDuration.Indefinite, onDismiss = { reason = it })
+        }
+
+        composeTestRule.onNode(hasContentDescription("Swipe me")).performTouchInput { swipeRight() }
+        composeTestRule.mainClock.advanceTimeBy(1_000)
+        composeTestRule.waitForIdle()
+
+        assertEquals(DismissReason.Swipe, reason)
+    }
+
+    @Test
+    fun `tapping the action runs it and dismisses with the Action reason`() {
+        lateinit var state: ToastStackState
+        var reason: DismissReason? = null
+        var undone = false
+        composeTestRule.setContent {
+            state = rememberToastStackState()
+            ToastStackHost(state = state)
+        }
+        composeTestRule.runOnIdle {
+            state.show("Deleted", duration = ToastDuration.Indefinite, onDismiss = { reason = it })
+                .withAction("Undo") { undone = true }
+        }
+
+        composeTestRule.onNodeWithText("Undo").performClick()
+        composeTestRule.waitForIdle()
+
+        assertTrue(undone)
+        assertEquals(DismissReason.Action, reason)
+    }
+
+    @Test
+    fun `the string resource overloads resolve the text`() {
+        lateinit var state: ToastStackState
+        composeTestRule.setContent {
+            state = rememberToastStackState()
+            ToastStackHost(state = state, tag = "resources")
+        }
+
+        composeTestRule.runOnIdle {
+            state.show(R.string.toaststack_type_error)
+            ToastStack.success(R.string.toaststack_dismiss, hostTag = "resources")
+        }
+
+        assertEquals(listOf("Error notification", "Dismiss toast"), state.toasts.map { it.message })
     }
 }

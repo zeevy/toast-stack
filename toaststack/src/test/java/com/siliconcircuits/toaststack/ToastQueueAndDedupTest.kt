@@ -13,7 +13,8 @@ import org.junit.Before
 import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class GapFixTest {
+/** The queue, priorities, deduplication, and a few ToastData fields. */
+class ToastQueueAndDedupTest {
 
     private val testDispatcher = StandardTestDispatcher()
 

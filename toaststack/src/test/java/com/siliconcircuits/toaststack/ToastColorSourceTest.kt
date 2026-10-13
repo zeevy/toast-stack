@@ -8,7 +8,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.sp
-import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -23,6 +22,9 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class ToastColorSourceTest {
+
+    @get:Rule
+    val reset = ToastStackReset()
 
     @get:Rule
     val composeTestRule = createComposeRule()
@@ -44,11 +46,6 @@ class ToastColorSourceTest {
         titleSmall = TextStyle(fontSize = 41.sp),
         bodyMedium = TextStyle(fontSize = 42.sp),
     )
-
-    @After
-    fun resetGlobals() {
-        ToastStack.configure(colorSource = ToastColorSource.AppTheme, theme = null)
-    }
 
     private fun stylesFor(vararg sources: ToastColorSource): Map<ToastColorSource, Map<ToastType, ToastStackStyle>> {
         val styles = mutableMapOf<ToastColorSource, MutableMap<ToastType, ToastStackStyle>>()

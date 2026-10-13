@@ -545,6 +545,18 @@ object ToastStack {
         return state
     }
 
+    /** Puts the singleton back to its start state. For tests only. */
+    internal fun resetForTest() {
+        hostRegistry.clear()
+        synchronized(recentTags) { recentTags.clear() }
+        warnedNoHost = false
+        defaults = ToastDefaults.Standard
+        defaultContentPadding = ToastStackDefaults.ContentPadding
+        defaultGlobalStyle = null
+        colorSource = ToastColorSource.AppTheme
+        theme = null
+    }
+
     /** The host registered under [tag], or the most recent host when [tag] is null. */
     internal fun findHost(tag: String?): ToastStackState? {
         val key = tag ?: synchronized(recentTags) { recentTags.lastOrNull() }

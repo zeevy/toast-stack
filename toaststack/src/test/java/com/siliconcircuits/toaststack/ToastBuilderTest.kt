@@ -12,12 +12,17 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 
 // ToastStackConfig is deprecated but still supported until it is removed.
+/** The builder DSL, buildToast, and the deprecated ToastStackConfig. */
 @Suppress("DEPRECATION")
 @OptIn(ExperimentalCoroutinesApi::class)
-class Phase7Test {
+class ToastBuilderTest {
+
+    @get:Rule
+    val reset = ToastStackReset()
 
     private val testDispatcher = StandardTestDispatcher()
     private lateinit var state: ToastStackState
@@ -141,29 +146,5 @@ class Phase7Test {
             message = "orphan"
         }
         assertNull(handle)
-    }
-
-    // -- WithToastStack composable wrapper --
-    // (Composable tests are in UI test file, here we test the concept)
-
-    @Test
-    fun `WithToastStack is just a convenience wrapper concept`() {
-        // WithToastStack is a composable, tested via Robolectric UI tests.
-        // Here we verify the function exists and compiles.
-        assertTrue(true)
-    }
-
-    // -- ViewModel extensions --
-
-    @Test
-    fun `showToast extension delegates to ToastStack singleton`() {
-        ToastStack.registerHost("test", state)
-        // ViewModel extensions delegate to ToastStack.show which is
-        // already tested. Here we verify the extension function exists
-        // by ensuring the singleton routing works.
-        val handle = ToastStack.show("via singleton")
-        assertNotNull(handle)
-        assertEquals(1, state.toasts.size)
-        ToastStack.unregisterHost("test", state)
     }
 }

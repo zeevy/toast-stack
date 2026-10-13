@@ -2,6 +2,7 @@ package com.siliconcircuits.toaststack
 
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Stable
@@ -124,6 +125,13 @@ class ToastStackState(
      * haptic, sound or onShow a second time.
      */
     internal val shownIds = mutableSetOf<String>()
+
+    /**
+     * The clock for the dedup window and the timer pause math. A monotonic
+     * clock, so a change of the wall clock does not stretch or cut a timer.
+     * Tests set it to the coroutine test scheduler's time.
+     */
+    internal var now: () -> Long = { SystemClock.uptimeMillis() }
 
     val maxVisible: Int get() = defaults().maxVisible
     val defaultPosition: ToastPosition get() = defaults().position
@@ -608,7 +616,7 @@ class ToastStackState(
         // update that card instead of adding a new one. This prevents a stack
         // of identical cards when the same event fires many times in a row.
         if (deduplicationWindowMs > 0 && toast.message.isNotEmpty()) {
-            val now = System.currentTimeMillis()
+            val now = now()
             val lastShown = lastShownTimestamps[toast.message]
             lastShownTimestamps[toast.message] = now
             if (lastShown != null && (now - lastShown) < deduplicationWindowMs) {
@@ -842,7 +850,7 @@ class ToastStackState(
 
         // Calculate how much time has elapsed since the timer started
         // (or was last resumed) and subtract it from the remaining time.
-        val elapsed = System.currentTimeMillis() - startedAt
+        val elapsed = now() - startedAt
         remainingMillis[id] = (total - elapsed).coerceAtLeast(0L)
         pausedIds.add(id)
         job.cancel()
@@ -970,7 +978,7 @@ class ToastStackState(
     private fun launchTimer(toast: ToastData, millis: Long) {
         clearTimerState(toast.id)
         remainingMillis[toast.id] = millis
-        timerStartedAt[toast.id] = System.currentTimeMillis()
+        timerStartedAt[toast.id] = now()
         timerJobs[toast.id] = coroutineScope.launch {
             delay(millis)
             removeSilently(toast.id, DismissReason.Timeout)

@@ -17,12 +17,16 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ToastHandleTest {
+
+    @get:Rule
+    val reset = ToastStackReset()
 
     private val testDispatcher = StandardTestDispatcher()
     private lateinit var state: ToastStackState

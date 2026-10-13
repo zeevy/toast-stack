@@ -36,7 +36,7 @@ class AutoOverlayConfigTest {
     private val composeTestRule = createAndroidComposeRule<ComponentActivity>()
 
     @get:Rule
-    val rules: RuleChain = RuleChain.outerRule(autoInit).around(composeTestRule)
+    val rules: RuleChain = RuleChain.outerRule(ToastStackReset()).around(autoInit).around(composeTestRule)
 
     @After
     fun tearDown() {
