@@ -27,6 +27,20 @@ updates:
           - "org.junit*"
           - "org.robolectric:*"
           - "org.jetbrains.kotlinx:kotlinx-coroutines-test"
+    # The library's runtime dependencies set the floor for apps that use it
+    # (README "Requirements"). Take only patch updates for them; raise them
+    # on purpose, together with the README and consumer-check.
+    ignore:
+      - dependency-name: "androidx.compose:compose-bom"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "androidx.activity:activity-compose"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "androidx.lifecycle:*"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "androidx.startup:startup-runtime"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "org.jetbrains.kotlinx:kotlinx-coroutines*"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
     labels:
       - dependencies
       - gradle

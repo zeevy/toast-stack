@@ -387,9 +387,12 @@ Consumer rules are bundled with the library. No additional ProGuard configuratio
 ## Requirements
 
 - Min SDK 24 (Android 7.0)
-- Compile SDK 36
-- Jetpack Compose with Material 3
-- Kotlin 2.0+
+- Compile SDK 35 or higher
+- Android Gradle Plugin 8.6 or higher
+- Kotlin 2.0 or higher
+- Jetpack Compose with Material 3. The library brings Compose 1.11 and Material 3 1.4 at runtime, so an app on older versions is moved up to these.
+
+CI builds a small app on exactly these minimums against every change.
 
 ## Contributing
 

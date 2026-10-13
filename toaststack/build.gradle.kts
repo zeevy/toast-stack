@@ -16,6 +16,16 @@ java {
     }
 }
 
+// Kotlin 2.0 metadata and stdlib, so apps on Kotlin 2.0 can read the library.
+kotlin {
+    coreLibrariesVersion = "2.0.21"
+    compilerOptions {
+        languageVersion.set(org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_0)
+        apiVersion.set(org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_0)
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
+    }
+}
+
 android {
     namespace = "com.siliconcircuits.toaststack"
     compileSdk = 37
@@ -25,6 +35,19 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("consumer-rules.pro")
+
+        // The floor for apps that use the library. It matches the highest
+        // floor of the runtime dependencies and README "Requirements".
+        aarMetadata {
+            minCompileSdk = 35
+            minAgpVersion = "8.6.0"
+        }
+    }
+
+    // Java 11 bytecode, so apps on older toolchains can use the library.
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
     }
 
     buildTypes {
@@ -102,7 +125,6 @@ afterEvaluate {
 }
 
 dependencies {
-    implementation(libs.androidx.core.ktx)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
