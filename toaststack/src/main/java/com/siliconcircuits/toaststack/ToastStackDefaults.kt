@@ -53,15 +53,14 @@ object ToastStackDefaults {
      * which are only available during composition (the process where Compose
      * builds or updates the UI tree).
      *
-     * Each type returns a complete style with no null fields, so it can
-     * serve as a reliable fallback when higher priority layers leave
-     * fields unset.
+     * Each type returns a style with every field set except [ToastStackStyle.titleColor]
+     * and [ToastStackStyle.iconTint]. Those stay null, so they fall back to the
+     * content color, including a custom content color from a higher layer.
      *
      * @param type The semantic toast type to resolve defaults for.
      * @param colorSource Where the colors come from. Defaults to the value
      *   set in [ToastStack.configure].
-     * @return A [ToastStackStyle] with all fields populated for the
-     *   given type.
+     * @return A [ToastStackStyle] for the given type.
      */
     @Composable
     fun styleForType(
@@ -102,8 +101,6 @@ object ToastStackDefaults {
         return ToastStackStyle(
             backgroundColor = background,
             contentColor = content,
-            titleColor = content,
-            iconTint = content,
             shape = Shape,
             elevation = Elevation,
             titleStyle = typography.titleSmall,
