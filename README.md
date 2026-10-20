@@ -100,7 +100,7 @@ dependencyResolutionManagement {
 
 ```kotlin
 dependencies {
-    implementation("com.siliconcircuits:toaststack:1.4.1")
+    implementation("com.siliconcircuits:toaststack:1.5.0")
 }
 ```
 
@@ -108,7 +108,7 @@ Or with a version catalog (`gradle/libs.versions.toml`):
 
 ```toml
 [versions]
-toastStack = "1.4.1"
+toastStack = "1.5.0"
 
 [libraries]
 toast-stack = { group = "com.siliconcircuits", name = "toaststack", version.ref = "toastStack" }
@@ -126,7 +126,7 @@ dependencies {
 
 ```groovy
 dependencies {
-    implementation 'com.siliconcircuits:toaststack:1.4.1'
+    implementation 'com.siliconcircuits:toaststack:1.5.0'
 }
 ```
 
@@ -138,7 +138,7 @@ dependencies {
 
 Versions up to 1.4.0 were only on JitPack. To move to Maven Central:
 
-1. Change `com.github.zeevy:toast-stack:v1.4.0` to `com.siliconcircuits:toaststack:1.4.1`. The version has no `v`.
+1. Change `com.github.zeevy:toast-stack:v1.4.0` to `com.siliconcircuits:toaststack:1.5.0`. The version has no `v`.
 2. Remove `maven { url = uri("https://jitpack.io") }` if no other library needs it.
 3. Do not keep both. They hold the same classes, so the build fails with duplicate class errors.
 

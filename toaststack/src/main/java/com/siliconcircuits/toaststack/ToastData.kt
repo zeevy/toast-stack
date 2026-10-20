@@ -42,6 +42,7 @@ import kotlin.uuid.Uuid
  * @property offsetY Deprecated. Vertical shift of the card in dp.
  * @property priority Where the toast goes when the stack is full. See [ToastPriority].
  * @property customIcon Optional composable that replaces the default type icon.
+ *   It is drawn at the start of the first text line, in a square slot one line high.
  * @property customContent Optional composable drawn instead of the icon and text.
  * @property hapticEnabled Play a haptic when the toast appears.
  * @property soundEnabled Play a sound when the toast appears.
