@@ -2,6 +2,12 @@
 
 Changes to the ToastStack library, newest first. "Behavior changes" lists what an app can notice without changing its code. "API" lists changes to public signatures; the public API is kept in `toaststack/api/toaststack.api`, and CI fails when it changes without an update.
 
+## 1.5.0 (2026-10-20)
+
+### Behavior changes
+
+- The icon is now part of the first text line (the title, or the message when there is no title), and every other line uses the full width of the card. The icon grows with the font size, so it stays centred on the line. A custom icon is drawn in the same square slot, one text line high, so a bigger one is shrunk to fit. (#74)
+
 ## 1.4.1 (2026-10-13)
 
 ### Added

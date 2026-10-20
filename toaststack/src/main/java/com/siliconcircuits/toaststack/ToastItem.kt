@@ -56,8 +56,18 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.input.pointer.util.VelocityTracker
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.text.InlineTextContent
+import androidx.compose.foundation.text.appendInlineContent
+import androidx.compose.ui.semantics.text
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.Placeholder
+import androidx.compose.ui.text.PlaceholderVerticalAlign
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -272,29 +282,30 @@ private fun RowScope.DefaultToastContent(
     // below the text takes over.
     val showSpinner = toast.type == ToastType.Loading && toast.customIcon == null && toast.progress == null
     val typeIcon = iconForType(toast.type)
-    if (showSpinner) {
-        CircularProgressIndicator(modifier = Modifier.size(22.dp), color = contentColor, strokeWidth = 2.dp)
-        Spacer(modifier = Modifier.width(10.dp))
-    } else if (toast.customIcon != null) {
-        toast.customIcon.invoke()
-        Spacer(modifier = Modifier.width(10.dp))
-    } else if (typeIcon != null) {
-        Icon(
-            imageVector = typeIcon,
-            // The type is already in the card's label, so the icon is decorative.
-            contentDescription = null,
-            tint = style.iconTint ?: contentColor,
-            modifier = Modifier.size(22.dp).testTag("toaststack_type_icon")
-        )
-        Spacer(modifier = Modifier.width(10.dp))
+    val leading: (@Composable (Modifier) -> Unit)? = when {
+        showSpinner -> { modifier -> CircularProgressIndicator(modifier = modifier, color = contentColor, strokeWidth = 2.dp) }
+        toast.customIcon != null -> { modifier -> Box(modifier, contentAlignment = Alignment.Center) { toast.customIcon.invoke() } }
+        typeIcon != null -> { modifier ->
+            Icon(
+                imageVector = typeIcon,
+                // The type is already in the card's label, so the icon is decorative.
+                contentDescription = null,
+                tint = style.iconTint ?: contentColor,
+                modifier = modifier.testTag("toaststack_type_icon")
+            )
+        }
+        else -> null
     }
 
-    // Text area: title (optional) + message + progress.
+    // Text area: the leading visual starts the first line (the title, or the
+    // message when there is no title), so every other line uses the full width.
     Column(modifier = Modifier.weight(1f)) {
         if (toast.title != null) {
-            Text(text = toast.title, style = style.titleStyle!!, color = style.titleColor ?: contentColor)
+            TextWithLeading(toast.title, leading, style.titleStyle!!, style.titleColor ?: contentColor)
+            Text(text = messageText, style = style.messageStyle!!, color = contentColor)
+        } else {
+            TextWithLeading(messageText, leading, style.messageStyle!!, contentColor)
         }
-        Text(text = messageText, style = style.messageStyle!!, color = contentColor)
         if (toast.progress != null) {
             Spacer(modifier = Modifier.height(6.dp))
             LinearProgressIndicator(
@@ -329,6 +340,45 @@ private fun RowScope.DefaultToastContent(
         }
     }
 }
+
+/**
+ * [text] with [leading] drawn at the start of its first line. The icon slot is
+ * a square one line high (1.43em, the line height of the default styles), so
+ * the icon grows with the font size and stays centred on the line. A bigger
+ * custom icon is shrunk to fit the slot.
+ *
+ * The icon and the gap after it are two stand-in characters in the text.
+ * Screen readers read the plain text, but TalkBack's move by line or by
+ * character is off by these two characters.
+ */
+@Composable
+private fun TextWithLeading(text: String, leading: (@Composable (Modifier) -> Unit)?, style: TextStyle, color: Color) {
+    if (leading == null) {
+        Text(text = text, style = style, color = color)
+        return
+    }
+    val icon = InlineTextContent(Placeholder(1.43.em, 1.43.em, PlaceholderVerticalAlign.TextCenter)) {
+        leading(Modifier.fillMaxSize())
+    }
+    // The gap is its own slot, so it stays between the icon and the text in
+    // both text directions, also when the text direction is not the layout's.
+    val gap = InlineTextContent(Placeholder(0.57.em, 1.43.em, PlaceholderVerticalAlign.TextCenter)) {}
+    Text(
+        text = buildAnnotatedString {
+            appendInlineContent(ICON_SLOT, "*")
+            appendInlineContent(GAP_SLOT, "*")
+            append(text)
+        },
+        // Screen readers get the plain text, without the stand-in characters.
+        modifier = Modifier.semantics { this.text = AnnotatedString(text) },
+        style = style,
+        color = color,
+        inlineContent = mapOf(ICON_SLOT to icon, GAP_SLOT to gap)
+    )
+}
+
+private const val ICON_SLOT = "icon"
+private const val GAP_SLOT = "gap"
 
 @Composable
 private fun ActionButton(label: String, color: Color, onClick: () -> Unit) {

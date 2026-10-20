@@ -47,7 +47,11 @@ class PublicApiTest {
             classes.walk().filter { it.isFile && it.extension == "class" }.map { it.inputStream() }.loadApiFromJvmClasses()
         }
         assertTrue("No classes found in $classes", signatures.isNotEmpty())
-        val api = signatures.filterOutNonPublic()
+        // The Compose compiler makes a public ComposableSingletons class for each
+        // file with a composable lambda that captures nothing. It is not API.
+        val api = signatures.filterOutNonPublic(
+            nonPublicClasses = listOf("com.siliconcircuits.toaststack.ComposableSingletons\$ToastItemKt")
+        )
         val actual = buildString { api.dump(this) }
         val dumpFile = File("api/toaststack.api")
 
