@@ -49,6 +49,12 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    # CodeQL fails when init and analyze run different versions, so bump
+    # them in one PR.
+    groups:
+      codeql-action:
+        patterns:
+          - "github/codeql-action*"
     labels:
       - dependencies
       - github-actions
