@@ -32,3 +32,6 @@ Thumbs.db
 # Environment and secrets
 .env
 *.env.*
+
+# graphify knowledge graph output, built locally
+/graphify-out/
