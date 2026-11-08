@@ -13,9 +13,11 @@ import kotlin.uuid.Uuid
  *
  * @property id Unique identifier, a random UUID, to avoid collisions
  *   across rapid sequential calls.
- * @property message Primary text displayed inside the toast.
- * @property title Optional bold headline rendered above [message].
- *   When null, only the message line is shown.
+ * @property message Primary text displayed inside the toast. With a [title],
+ *   it is the description, below a thin line at the full width of the card;
+ *   without one, it is the header beside the icon.
+ * @property title Optional bold headline, beside the icon in the header row.
+ *   When null, the message takes its place and there is no line.
  * @property type Semantic category that determines default colors and icon.
  * @property duration How long the toast stays visible before auto dismissing.
  * @property position Screen anchor where this toast is rendered.
@@ -42,7 +44,7 @@ import kotlin.uuid.Uuid
  * @property offsetY Deprecated. Vertical shift of the card in dp.
  * @property priority Where the toast goes when the stack is full. See [ToastPriority].
  * @property customIcon Optional composable that replaces the default type icon.
- *   It is drawn at the start of the first text line, in a square slot one line high.
+ *   It is drawn in the icon column, centred on the header, up to 28 dp.
  * @property customContent Optional composable drawn instead of the icon and text.
  * @property hapticEnabled Play a haptic when the toast appears.
  * @property soundEnabled Play a sound when the toast appears.

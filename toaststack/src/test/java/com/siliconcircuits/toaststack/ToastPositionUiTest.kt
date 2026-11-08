@@ -6,12 +6,13 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.text.TextLayoutResult
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.style.TextDirection
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import org.junit.Assert.assertEquals
@@ -98,57 +99,138 @@ class ToastPositionUiTest {
         return results.single()
     }
 
+    private fun bounds(tag: String) =
+        composeTestRule.onNodeWithTag(tag, useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
+
+    /** The line lays out 0 dp high (a hairline draws one pixel), so its bounds are empty: read its place instead. */
+    private fun lineBounds(): Rect {
+        val node = composeTestRule.onNodeWithTag("toaststack_divider", useUnmergedTree = true).fetchSemanticsNode()
+        val topLeft = node.positionInRoot
+        return Rect(topLeft.x, topLeft.y, topLeft.x + node.size.width, topLeft.y + node.size.height)
+    }
+
+    private fun textBounds(text: String) = composeTestRule.onNodeWithText(text).fetchSemanticsNode().boundsInRoot
+
     // Native graphics, so text and icons are measured for real.
     @Test
     @GraphicsMode(GraphicsMode.Mode.NATIVE)
-    fun `the icon is centred on the title line and the message starts at the icon's left edge`() {
-        showToast(fontScale = 1.3f) { it.success("Your changes were saved", title = "Saved", duration = ToastDuration.Indefinite) }
+    fun `with a title the icon has its own column and the message goes below a line at full width`() {
+        showToast { it.success("All 3 files are on the server and shared with your team.", title = "Upload complete", duration = ToastDuration.Indefinite) }
 
-        val icon = composeTestRule.onNodeWithTag("toaststack_type_icon", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
-        // Exact text match: the slot's stand-in character is not read out.
-        val titleNode = composeTestRule.onNodeWithText("Saved")
+        val icon = bounds("toaststack_type_icon")
+        val title = textBounds("Upload complete")
+        val line = lineBounds()
+        val message = textBounds("All 3 files are on the server and shared with your team.")
+
+        assertTrue("icon $icon, title $title", icon.right <= title.left)
+        assertEquals("icon $icon, message $message", icon.left, message.left, 1f)
+        assertTrue("line $line, message $message", line.bottom <= message.top)
+        assertTrue("title $title, line $line", title.bottom <= line.top)
+        assertEquals("line $line, icon $icon", icon.left, line.left, 1f)
+        assertTrue("line $line, message $message", line.right >= message.right)
+    }
+
+    // Native graphics, so text and icons are measured for real.
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    fun `a header of two lines keeps the icon centred on it at font scale 1_3`() {
+        showToast(fontScale = 1.3f) {
+            it.error("Check your network and try again.", title = "Connection timed out while sending your report", duration = ToastDuration.Indefinite)
+        }
+
+        val icon = bounds("toaststack_type_icon")
+        val titleNode = composeTestRule.onNodeWithText("Connection timed out while sending your report")
         val title = titleNode.fetchSemanticsNode().boundsInRoot
-        val titleLine = titleNode.textLayout()
-        val message = composeTestRule.onNodeWithText("Your changes were saved").fetchSemanticsNode().boundsInRoot
 
-        val lineCentre = title.top + (titleLine.getLineTop(0) + titleLine.getLineBottom(0)) / 2
-        assertEquals("icon centre $icon, title line centre $lineCentre", lineCentre, icon.center.y, 1f)
-        assertEquals("icon $icon, message $message", icon.left, message.left, 1f)
-        assertTrue("icon $icon, message $message", icon.bottom <= message.top)
+        assertTrue("lines ${titleNode.textLayout().lineCount}", titleNode.textLayout().lineCount >= 2)
+        assertEquals("icon $icon, title $title", title.center.y, icon.center.y, 1f)
+        assertTrue("icon $icon, title $title", icon.right <= title.left)
     }
 
     // Native graphics, so text and icons are measured for real.
     @Test
     @GraphicsMode(GraphicsMode.Mode.NATIVE)
-    fun `a wrapped message with no title starts its second line at the left edge`() {
-        showToast {
-            it.warning("Only 120 MB of storage left. Delete some photos or videos to free up space.", duration = ToastDuration.Indefinite)
-        }
+    fun `a wrapped message with no title stays right of the icon and has no line`() {
+        val text = "Only 120 MB of storage left. Delete some photos or videos to free up space."
+        showToast { it.warning(text, duration = ToastDuration.Indefinite) }
 
-        val icon = composeTestRule.onNodeWithTag("toaststack_type_icon", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
-        val messageNode = composeTestRule.onNodeWithText("Only 120 MB of storage left. Delete some photos or videos to free up space.")
+        val icon = bounds("toaststack_type_icon")
+        val messageNode = composeTestRule.onNodeWithText(text)
         val message = messageNode.fetchSemanticsNode().boundsInRoot
-        val layout = messageNode.textLayout()
 
-        assertTrue("lines ${layout.lineCount}", layout.lineCount >= 2)
-        assertEquals("icon $icon, message $message", icon.left, message.left, 1f)
-        assertEquals(0f, layout.getLineLeft(1), 1f)
+        assertTrue("lines ${messageNode.textLayout().lineCount}", messageNode.textLayout().lineCount >= 2)
+        assertTrue("icon $icon, message $message", icon.right <= message.left)
+        composeTestRule.onAllNodesWithTag("toaststack_divider", useUnmergedTree = true).assertCountEquals(0)
+    }
+
+    @Test
+    fun `a title with an empty message has no line`() {
+        showToast { it.info("", title = "Synced", duration = ToastDuration.Indefinite) }
+
+        composeTestRule.onNodeWithText("Synced").assertExists()
+        composeTestRule.onAllNodesWithTag("toaststack_divider", useUnmergedTree = true).assertCountEquals(0)
+    }
+
+    @Test
+    fun `a title with a blank message has no line, and a repeated description keeps its count`() {
+        val state = ToastStackState(deduplicationWindowMs = 5_000)
+        composeTestRule.setContent { ToastStackHost(state = state, tag = "layout", colorSource = ToastColorSource.Library) }
+        composeTestRule.runOnIdle {
+            state.info("  ", title = "Blank", duration = ToastDuration.Indefinite)
+            repeat(2) { state.info("Saved", title = "Repeated", duration = ToastDuration.Indefinite) }
+        }
+        composeTestRule.mainClock.advanceTimeBy(1_000)
+
+        // Only the repeated toast has a description, with its repeat count in it.
+        composeTestRule.onAllNodesWithTag("toaststack_divider", useUnmergedTree = true).assertCountEquals(1)
+        composeTestRule.onNodeWithText("Saved (x2)").assertExists()
     }
 
     // Native graphics, so text and icons are measured for real.
     @Test
     @GraphicsMode(GraphicsMode.Mode.NATIVE)
-    fun `when the text direction is not the layout direction the gap stays between the icon and the text`() {
-        // An RTL app whose text follows its content, showing English text.
-        val style = ToastStackStyle(messageStyle = TextStyle(textDirection = TextDirection.Content))
-        showToast(direction = LayoutDirection.Rtl) {
-            it.show("Wi-Fi connected", type = ToastType.Success, style = style, duration = ToastDuration.Indefinite)
+    fun `with no icon the header and the description start at the same edge`() {
+        showToast { it.show("You can find it under Drafts.", title = "Draft saved", duration = ToastDuration.Indefinite) }
+
+        val title = textBounds("Draft saved")
+        val message = textBounds("You can find it under Drafts.")
+
+        assertEquals("title $title, message $message", title.left, message.left, 1f)
+    }
+
+    // Native graphics, so text and icons are measured for real.
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    fun `actions and the close button sit in the header and the description runs under them`() {
+        showToast {
+            it.show(
+                "The note Groceries was moved to the bin.", title = "Item deleted",
+                showCloseButton = true, duration = ToastDuration.Indefinite
+            ).withAction("Undo") {}
         }
 
-        val icon = composeTestRule.onNodeWithTag("toaststack_type_icon", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
-        val message = composeTestRule.onNodeWithText("Wi-Fi connected").fetchSemanticsNode().boundsInRoot
+        val title = textBounds("Item deleted")
+        val undo = textBounds("Undo")
+        val close = composeTestRule.onNode(hasContentDescription("Dismiss toast")).fetchSemanticsNode().boundsInRoot
+        val line = lineBounds()
 
-        // English reads left to right, so the icon is at the left end of the text, with no gap before it.
-        assertEquals("icon $icon, message $message", message.left, icon.left, 1f)
+        assertTrue("undo $undo, title $title", undo.top < title.bottom && undo.bottom > title.top)
+        assertTrue("close $close, title $title", close.top < title.bottom && close.bottom > title.top)
+        assertTrue("undo $undo, line $line", line.top >= undo.bottom || line.top >= close.bottom)
+        assertTrue("line $line reaches under undo $undo", line.right > undo.left)
+    }
+
+    // Native graphics, so text and icons are measured for real.
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    fun `in RTL the icon column is on the right and the description starts at the right edge`() {
+        showToast(direction = LayoutDirection.Rtl) { it.info("Tap to install it now.", title = "A new update is available", duration = ToastDuration.Indefinite) }
+
+        val icon = bounds("toaststack_type_icon")
+        val title = textBounds("A new update is available")
+        val message = textBounds("Tap to install it now.")
+
+        assertTrue("icon $icon, title $title", icon.left >= title.right)
+        assertEquals("icon $icon, message $message", icon.right, message.right, 1f)
     }
 }

@@ -215,7 +215,7 @@ class ReadmeScreenshots {
     @Test
     fun types() = capture("types") { state ->
         state.success("Your changes were saved", title = "Saved", duration = ToastDuration.Indefinite)
-        state.error("Check your connection and try again", title = "Upload failed", duration = ToastDuration.Indefinite)
+        state.error("Check your connection and try again. The file stays on your phone until it is sent.", title = "Upload failed", duration = ToastDuration.Indefinite)
         state.warning("Only 120 MB of storage left", title = "Storage low", duration = ToastDuration.Indefinite)
         state.info("A new version is ready to install", title = "Update available", duration = ToastDuration.Indefinite)
         state.show("Message archived", duration = ToastDuration.Indefinite)
@@ -224,7 +224,7 @@ class ReadmeScreenshots {
     @Test
     fun library() = capture("library", ToastColorSource.Library) { state ->
         state.success("Your changes were saved", title = "Saved", duration = ToastDuration.Indefinite)
-        state.error("Check your connection and try again", title = "Upload failed", duration = ToastDuration.Indefinite)
+        state.error("Check your connection and try again. The file stays on your phone until it is sent.", title = "Upload failed", duration = ToastDuration.Indefinite)
         state.warning("Only 120 MB of storage left", title = "Storage low", duration = ToastDuration.Indefinite)
         state.info("A new version is ready to install", title = "Update available", duration = ToastDuration.Indefinite)
     }

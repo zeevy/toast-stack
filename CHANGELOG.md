@@ -2,6 +2,15 @@
 
 Changes to the ToastStack library, newest first. "Behavior changes" lists what an app can notice without changing its code. "API" lists changes to public signatures; the public API is kept in `toaststack/api/toaststack.api`, and CI fails when it changes without an update.
 
+## 1.6.0 (2026-11-08)
+
+### Behavior changes
+
+- The icon has its own column again, centred on the header: the title, or the message when there is no title. Header text wraps beside the icon and never goes under it. The icon is 24 dp and no longer grows with the font size; a custom icon can be up to 28 dp. (#87)
+- A toast with a title shows its message below a thin line, at the full width of the card, starting under the icon. With no title, or a blank message, there is no line. (#87)
+- Action and close buttons sit in the header row, so the message below can use their width. (#87)
+- Screen readers read the same text as before. The inline icon and its two stand-in characters in the text are gone. (#87)
+
 ## 1.5.0 (2026-10-20)
 
 ### Behavior changes
