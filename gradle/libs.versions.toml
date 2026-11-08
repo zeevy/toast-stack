@@ -3,7 +3,7 @@
 # lifecycleRuntimeKtx, coroutines, startupRuntime) set the floor for apps
 # that use the library: compileSdk 35, AGP 8.6, Kotlin 2.0. Raise them only
 # on purpose, together with README "Requirements" and consumer-check.
-agp = "9.4.1"
+agp = "9.5.1"
 kotlin = "2.4.21"
 coreKtx = "1.19.1"
 lifecycleRuntimeKtx = "2.10.0"
