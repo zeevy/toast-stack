@@ -25,6 +25,7 @@ ToastStack replaces Android's limited native `Toast` and `Snackbar` with a fully
 - **Action buttons** - Single and secondary actions with auto dismiss
 - **Progress toasts** - Indeterminate loading spinner and determinate progress bar
 - **Swipe to dismiss** - Configurable direction with velocity based flick detection
+- **Title and description** - The icon has its own column beside the title, and the message goes below a thin line at the full width of the card
 - **Custom content** - Arbitrary `@Composable` lambda for fully custom toast layouts
 - **Chaining API** - `ToastStack.show("msg")?.withAction("Undo") { }?.onDismiss { }`
 - **Suspend support** - `showAndAwait()` suspends until dismissed
@@ -42,12 +43,12 @@ ToastStack replaces Android's limited native `Toast` and `Snackbar` with a fully
 - **RTL support** - Start/End positions mirror correctly
 - **Edge to edge** - Respects system bars, display cutouts, and software keyboard
 - **Thread safe** - Call it from any thread; callbacks run on the main thread
-- **Survives rotation** - Toasts and their handles stay through configuration changes
+- **Survives rotation** - With the auto overlay, toasts and their handles stay through configuration changes
 - **Older setups** - Works with compileSdk 35, Android Gradle Plugin 8.6 and Kotlin 2.0
 
 ## Screenshots
 
-Toasts follow your app's Material colors by default, in light and dark themes:
+Toasts follow your app's Material colors by default, in light and dark themes. The icon sits in its own column, and a toast with a title shows its message below a thin line:
 
 <p align="center">
   <img src="docs/images/types-light.png" width="48%" alt="Success, error, warning, info and default toasts in a light theme">
@@ -100,7 +101,7 @@ dependencyResolutionManagement {
 
 ```kotlin
 dependencies {
-    implementation("com.siliconcircuits:toaststack:1.5.0")
+    implementation("com.siliconcircuits:toaststack:1.6.0")
 }
 ```
 
@@ -108,7 +109,7 @@ Or with a version catalog (`gradle/libs.versions.toml`):
 
 ```toml
 [versions]
-toastStack = "1.5.0"
+toastStack = "1.6.0"
 
 [libraries]
 toast-stack = { group = "com.siliconcircuits", name = "toaststack", version.ref = "toastStack" }
@@ -126,7 +127,7 @@ dependencies {
 
 ```groovy
 dependencies {
-    implementation 'com.siliconcircuits:toaststack:1.5.0'
+    implementation 'com.siliconcircuits:toaststack:1.6.0'
 }
 ```
 
@@ -138,7 +139,7 @@ dependencies {
 
 Versions up to 1.4.0 were only on JitPack. To move to Maven Central:
 
-1. Change `com.github.zeevy:toast-stack:v1.4.0` to `com.siliconcircuits:toaststack:1.5.0`. The version has no `v`.
+1. Change `com.github.zeevy:toast-stack:v1.4.0` to `com.siliconcircuits:toaststack:1.6.0`. The version has no `v`.
 2. Remove `maven { url = uri("https://jitpack.io") }` if no other library needs it.
 3. Do not keep both. They hold the same classes, so the build fails with duplicate class errors.
 
@@ -262,6 +263,13 @@ ToastStack.error(
     title = "Network Error"
 )
 ```
+
+With a title, the card has two parts:
+
+- **Header:** the icon in its own column, centred on the title. A long title wraps beside the icon and never goes under it. Action and close buttons sit at the end of this row.
+- **Description:** the message, below a thin line, at the full width of the card.
+
+Without a title, the message is the header and there is no line.
 
 ### Custom Duration
 

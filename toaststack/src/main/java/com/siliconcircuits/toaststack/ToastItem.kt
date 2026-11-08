@@ -10,12 +10,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -56,18 +57,9 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.input.pointer.util.VelocityTracker
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.text.InlineTextContent
-import androidx.compose.foundation.text.appendInlineContent
-import androidx.compose.ui.semantics.text
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.Placeholder
-import androidx.compose.ui.text.PlaceholderVerticalAlign
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.em
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -97,8 +89,8 @@ private const val VELOCITY_THRESHOLD_PX_PER_SEC = 800f
 private const val SETTLE_ANIMATION_MILLIS = 200
 
 /**
- * Renders a single toast card with type aware styling, optional title/description
- * layout, a leading icon, and horizontal swipe to dismiss support.
+ * Renders a single toast card with type aware styling, an icon column, a header
+ * and an optional description below a hairline, and horizontal swipe to dismiss.
  *
  * The card's colors, shape, icon, and typography are resolved in three layers:
  * 1. Built in defaults from [ToastStackDefaults.styleForType] based on [ToastData.type].
@@ -214,21 +206,24 @@ internal fun ToastItem(
             color = resolvedStyle.backgroundColor ?: typeDefaults.backgroundColor!!,
             border = borderStroke
         ) {
-            Row(
+            val closeButton: (@Composable () -> Unit)? = if (toast.showCloseButton) {
+                { CloseButton(label = dismissLabel, tint = contentColor) { onDismiss(DismissReason.CloseButton) } }
+            } else {
+                null
+            }
+            if (toast.customContent != null) {
                 // Custom content gets a minimum height so it stays visible and tappable.
-                modifier = Modifier
-                    .then(if (toast.customContent != null) Modifier.defaultMinSize(minHeight = 48.dp) else Modifier)
-                    .padding(start = 12.dp, end = if (toast.showCloseButton) 4.dp else 12.dp, top = 12.dp, bottom = 12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                if (toast.customContent != null) {
+                Row(
+                    modifier = Modifier
+                        .defaultMinSize(minHeight = 48.dp)
+                        .padding(start = 12.dp, end = if (toast.showCloseButton) 4.dp else 12.dp, top = 12.dp, bottom = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Box(modifier = Modifier.weight(1f)) { toast.customContent.invoke() }
-                } else {
-                    DefaultToastContent(toast, resolvedStyle, contentColor, messageText, onDismiss)
+                    closeButton?.invoke()
                 }
-                if (toast.showCloseButton) {
-                    CloseButton(label = dismissLabel, tint = contentColor) { onDismiss(DismissReason.CloseButton) }
-                }
+            } else {
+                DefaultToastContent(toast, resolvedStyle, contentColor, messageText, closeButton, onDismiss)
             }
         }
     }
@@ -268,13 +263,24 @@ internal fun accessibilityLabel(toast: ToastData, messageText: String): String {
     }
 }
 
-/** The leading visual, the text and the action buttons of a standard toast. */
+/**
+ * A standard toast in two parts (issue #87):
+ *
+ * - The header row: the leading visual in its own column, centred on the
+ *   header text; the header text, which wraps in its own column and never
+ *   goes under the icon; then the action and close buttons.
+ * - The description: when a toast has a title, its message goes below a
+ *   hairline at the full width of the card, starting under the icon.
+ *
+ * With no title, the message is the header and there is no line.
+ */
 @Composable
-private fun RowScope.DefaultToastContent(
+private fun DefaultToastContent(
     toast: ToastData,
     style: ToastStackStyle,
     contentColor: Color,
     messageText: String,
+    closeButton: (@Composable () -> Unit)?,
     onDismiss: (DismissReason) -> Unit,
 ) {
     // Leading visual: loading spinner, custom icon, or type icon. The spinner
@@ -282,50 +288,84 @@ private fun RowScope.DefaultToastContent(
     // below the text takes over.
     val showSpinner = toast.type == ToastType.Loading && toast.customIcon == null && toast.progress == null
     val typeIcon = iconForType(toast.type)
-    val leading: (@Composable (Modifier) -> Unit)? = when {
-        showSpinner -> { modifier -> CircularProgressIndicator(modifier = modifier, color = contentColor, strokeWidth = 2.dp) }
-        toast.customIcon != null -> { modifier -> Box(modifier, contentAlignment = Alignment.Center) { toast.customIcon.invoke() } }
-        typeIcon != null -> { modifier ->
-            Icon(
-                imageVector = typeIcon,
-                // The type is already in the card's label, so the icon is decorative.
-                contentDescription = null,
-                tint = style.iconTint ?: contentColor,
-                modifier = modifier.testTag("toaststack_type_icon")
-            )
+    val leading: (@Composable () -> Unit)? = when {
+        showSpinner -> { { CircularProgressIndicator(modifier = Modifier.size(20.dp), color = contentColor, strokeWidth = 2.dp) } }
+        toast.customIcon != null -> toast.customIcon
+        typeIcon != null -> {
+            {
+                Icon(
+                    imageVector = typeIcon,
+                    // The type is already in the card's label, so the icon is decorative.
+                    contentDescription = null,
+                    tint = style.iconTint ?: contentColor,
+                    modifier = Modifier.size(ICON_SIZE).testTag("toaststack_type_icon")
+                )
+            }
         }
         else -> null
     }
+    // With a title, the message (and its repeat count) is the description. A
+    // blank one draws no line.
+    val description = if (toast.title != null && messageText.isNotBlank()) messageText else null
 
-    // Text area: the leading visual starts the first line (the title, or the
-    // message when there is no title), so every other line uses the full width.
-    Column(modifier = Modifier.weight(1f)) {
-        if (toast.title != null) {
-            TextWithLeading(toast.title, leading, style.titleStyle!!, style.titleColor ?: contentColor)
-            Text(text = messageText, style = style.messageStyle!!, color = contentColor)
-        } else {
-            TextWithLeading(messageText, leading, style.messageStyle!!, contentColor)
-        }
-        if (toast.progress != null) {
-            Spacer(modifier = Modifier.height(6.dp))
-            LinearProgressIndicator(
-                progress = { toast.progress },
-                modifier = Modifier.fillMaxWidth().height(4.dp),
-                color = contentColor,
-                trackColor = contentColor.copy(alpha = 0.3f)
-            )
-        }
-        if (toast.progressLabel != null) {
-            Spacer(modifier = Modifier.height(2.dp))
+    // The header row ends 4 dp from the edge when the close button is there,
+    // as the button has its own padding. Everything below keeps 12 dp.
+    Column(modifier = Modifier.padding(start = 12.dp, top = 12.dp, bottom = 12.dp)) {
+        Row(
+            modifier = Modifier.padding(end = if (closeButton != null) 4.dp else 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (leading != null) {
+                // The icon column: at least the icon's width, a custom icon up
+                // to 28 dp, so the header text always starts at the same place.
+                Box(
+                    modifier = Modifier.sizeIn(minWidth = ICON_SIZE, maxWidth = MAX_ICON_SIZE, maxHeight = MAX_ICON_SIZE),
+                    contentAlignment = Alignment.Center
+                ) { leading() }
+                Spacer(modifier = Modifier.width(12.dp))
+            }
             Text(
-                text = toast.progressLabel,
-                style = MaterialTheme.typography.labelSmall,
-                color = contentColor.copy(alpha = 0.7f)
+                text = toast.title ?: messageText,
+                style = if (toast.title != null) style.titleStyle!! else style.messageStyle!!,
+                color = if (toast.title != null) style.titleColor ?: contentColor else contentColor,
+                modifier = Modifier.weight(1f)
             )
+            ActionButtons(toast, contentColor, onDismiss)
+            closeButton?.invoke()
+        }
+        Column(modifier = Modifier.padding(end = 12.dp)) {
+            if (description != null) {
+                HorizontalDivider(
+                    modifier = Modifier.padding(top = 10.dp, bottom = 8.dp).testTag("toaststack_divider"),
+                    thickness = Dp.Hairline,
+                    color = contentColor.copy(alpha = 0.22f)
+                )
+                Text(text = description, style = style.messageStyle!!, color = contentColor)
+            }
+            if (toast.progress != null) {
+                Spacer(modifier = Modifier.height(6.dp))
+                LinearProgressIndicator(
+                    progress = { toast.progress },
+                    modifier = Modifier.fillMaxWidth().height(4.dp),
+                    color = contentColor,
+                    trackColor = contentColor.copy(alpha = 0.3f)
+                )
+            }
+            if (toast.progressLabel != null) {
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = toast.progressLabel,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = contentColor.copy(alpha = 0.7f)
+                )
+            }
         }
     }
+}
 
-    // Actions: the primary one, then the optional secondary one, dimmer.
+/** The primary action, then the optional secondary one, dimmer. Each dismisses the toast. */
+@Composable
+private fun ActionButtons(toast: ToastData, contentColor: Color, onDismiss: (DismissReason) -> Unit) {
     if (toast.actionLabel != null) {
         Spacer(modifier = Modifier.width(8.dp))
         ActionButton(toast.actionLabel, contentColor) {
@@ -341,44 +381,11 @@ private fun RowScope.DefaultToastContent(
     }
 }
 
-/**
- * [text] with [leading] drawn at the start of its first line. The icon slot is
- * a square one line high (1.43em, the line height of the default styles), so
- * the icon grows with the font size and stays centred on the line. A bigger
- * custom icon is shrunk to fit the slot.
- *
- * The icon and the gap after it are two stand-in characters in the text.
- * Screen readers read the plain text, but TalkBack's move by line or by
- * character is off by these two characters.
- */
-@Composable
-private fun TextWithLeading(text: String, leading: (@Composable (Modifier) -> Unit)?, style: TextStyle, color: Color) {
-    if (leading == null) {
-        Text(text = text, style = style, color = color)
-        return
-    }
-    val icon = InlineTextContent(Placeholder(1.43.em, 1.43.em, PlaceholderVerticalAlign.TextCenter)) {
-        leading(Modifier.fillMaxSize())
-    }
-    // The gap is its own slot, so it stays between the icon and the text in
-    // both text directions, also when the text direction is not the layout's.
-    val gap = InlineTextContent(Placeholder(0.57.em, 1.43.em, PlaceholderVerticalAlign.TextCenter)) {}
-    Text(
-        text = buildAnnotatedString {
-            appendInlineContent(ICON_SLOT, "*")
-            appendInlineContent(GAP_SLOT, "*")
-            append(text)
-        },
-        // Screen readers get the plain text, without the stand-in characters.
-        modifier = Modifier.semantics { this.text = AnnotatedString(text) },
-        style = style,
-        color = color,
-        inlineContent = mapOf(ICON_SLOT to icon, GAP_SLOT to gap)
-    )
-}
+/** The type icon size; the icon column is at least this wide. */
+private val ICON_SIZE = 24.dp
 
-private const val ICON_SLOT = "icon"
-private const val GAP_SLOT = "gap"
+/** The largest a custom icon can be; a bigger one is shrunk to fit. */
+private val MAX_ICON_SIZE = 28.dp
 
 @Composable
 private fun ActionButton(label: String, color: Color, onClick: () -> Unit) {
