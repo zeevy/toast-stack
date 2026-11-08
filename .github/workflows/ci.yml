@@ -72,7 +72,7 @@ jobs:
       # consumer-check is an app on the oldest setup README "Requirements"
       # promises (AGP 8.6, Kotlin 2.0, compileSdk 35). It needs Gradle 8.
       - name: Set up Gradle 8.7 for the consumer check
-        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6
+        uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6
         with:
           gradle-version: "8.7"
           cache-disabled: true
